@@ -20,6 +20,7 @@ test('laboratório: roda um backtest com custos, mostra veredito, CDI, curva e r
   await expect(bench).toContainText('CDI no mesmo período');
   await expect(bench).toContainText(/\d+,\d%|sem dados do Banco Central/);
   await expect(page.getByTestId('lab-kpis')).toContainText('Taxa de acerto');
+  await expect(page.getByTestId('walk-forward')).toContainText('Escolhido');
 
   // gráficos com dica ao tocar
   await expect(page.getByTestId('equity-chart').locator('svg')).toBeVisible();

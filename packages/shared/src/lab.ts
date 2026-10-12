@@ -95,6 +95,22 @@ export interface LabRun {
     param: string;
     values: { value: number; expectancyR: number | null; trades: number }[];
   }[];
+  /** Walk-forward do número "*" principal do 1º setup (null se o setup não tiver). */
+  walkForward: {
+    param: string;
+    folds: {
+      trainFrom: number;
+      trainTo: number;
+      testFrom: number;
+      testTo: number;
+      chosen: number | null;
+      trainExpectancyR: number | null;
+      testTrades: number;
+      testExpectancyR: number | null;
+    }[];
+    oosTrades: number;
+    oosExpectancyR: number | null;
+  } | null;
   equity: { time: number; equity: number }[];
   monthly: { month: string; pnl: number }[];
   rHistogram: { from: number; to: number; count: number }[];

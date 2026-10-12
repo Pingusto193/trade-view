@@ -6,6 +6,7 @@ import {
   runBacktest,
   setupParamsSchema,
   splitTrades,
+  walkForward,
   type BacktestResult,
   type BtTrade,
   type Metrics,
@@ -196,16 +197,30 @@ export class LabService {
     const mTest = computeMetrics(r, { pointValue: meta.pointValue, taxB3, trades: test });
 
     // sensibilidade: o mesmo teste com o número "*" principal de cada setup (até 2 setups)
+    // walk-forward: no 1º setup, escolhe o melhor valor no passado e mede no trecho seguinte
     const sensitivity: LabRun['sensitivity'] = [];
-    for (const s of input.setups.slice(0, 2)) {
+    let wf: LabRun['walkForward'] = null;
+    for (const [k, s] of input.setups.slice(0, 2).entries()) {
       const sp = SENSITIVITY[s];
       if (!sp) continue;
-      const values = sp.values.map((value) => {
-        const rr = runBacktest(candles, { ...base, params: withPath(params, sp.path, value) });
+      const runs = sp.values.map((value) => ({
+        value,
+        r: runBacktest(candles, { ...base, params: withPath(params, sp.path, value) }),
+      }));
+      const values = runs.map(({ value, r: rr }) => {
         const mm = computeMetrics(rr, { pointValue: meta.pointValue });
         return { value, expectancyR: mm.expectancyR, trades: mm.trades };
       });
       sensitivity.push({ param: sp.path.join('.'), values });
+      if (k === 0)
+        wf = {
+          param: sp.path.join('.'),
+          ...walkForward(
+            runs.map((x) => ({ value: x.value, trades: x.r.trades })),
+            r.from,
+            r.to,
+          ),
+        };
     }
 
     // CDI do mesmo período (busca o histórico que faltar no BCB)
@@ -222,7 +237,15 @@ export class LabService {
 
     const setupsKey = [...input.setups].sort().join(',');
     const attempts = this.family(userId, input.symbolId, setupsKey) + 1;
-    const verdict = this.verdict(m, mTest, sensitivity, params, cdi?.acc ?? null, r.buyHold.ret);
+    const verdict = this.verdict(
+      m,
+      mTest,
+      sensitivity,
+      params,
+      cdi?.acc ?? null,
+      r.buyHold.ret,
+      wf,
+    );
     const skippedList = Object.entries(r.skipped);
     if (m.trades === 0 && skippedList.length)
       verdict.reasons.unshift(
@@ -289,6 +312,7 @@ export class LabService {
       cdi: cdi ? { acc: cdi.acc } : null,
       monteCarlo: mc,
       sensitivity,
+      walkForward: wf,
       equity: downsample(r.equity),
       monthly: [...byMonth.entries()].map(([month, pnl]) => ({ month, pnl })),
       rHistogram: histogram(r.trades),
@@ -325,6 +349,7 @@ export class LabService {
     params: SetupParams,
     cdiAcc: number | null,
     buyHold: number,
+    wf: LabRun['walkForward'],
   ): { label: LabVerdict; reasons: string[] } {
     const reasons: string[] = [];
     const ret = all.totalReturnAfterTax ?? all.totalReturn;
@@ -379,6 +404,13 @@ export class LabService {
         );
         return { label: 'promissor', reasons };
       }
+    }
+    // walk-forward: escolher o melhor valor olhando para trás precisa funcionar para a frente
+    if (wf && wf.oosExpectancyR !== null && wf.oosExpectancyR <= 0) {
+      reasons.unshift(
+        `No walk-forward (escolher o melhor ${wf.param} no passado e usar no trecho seguinte), a expectativa fora da amostra foi ${formatNumber(wf.oosExpectancyR, 2)} R: o ajuste ao passado não se repetiu.`,
+      );
+      return { label: 'promissor', reasons };
     }
     if (all.trades < 100) {
       reasons.unshift(`${all.trades} trades: menos de 100 ainda é evidência fraca.`);

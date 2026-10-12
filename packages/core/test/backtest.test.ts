@@ -9,6 +9,7 @@ import {
   runBacktest,
   setupParamsSchema,
   splitTrades,
+  walkForward,
   type BacktestConfig,
   type BacktestResult,
   type BtTrade,
@@ -239,5 +240,53 @@ describe('Monte Carlo', () => {
     const down = monteCarlo(Array(50).fill(-1), 1, { runs: 100 });
     expect(down.finalReturn.p50).toBeCloseTo(0.99 ** 50 - 1, 9);
     expect(down.probLoss.find((x) => x.at === 0.3)!.p).toBe(1);
+  });
+});
+
+describe('walk-forward', () => {
+  const T = (d: number) => T0 + d * DAY;
+  const trade = (entryDay: number, r: number): BtTrade =>
+    ({ entryTime: T(entryDay), exitTime: T(entryDay + 2), r }) as BtTrade;
+
+  it('escolhe o melhor valor só com trades já encerrados no treino e mede no trecho seguinte', () => {
+    // valor 2: ótimo no começo, péssimo depois (pico do passado); valor 3: estável
+    const v2 = [
+      ...Array.from({ length: 20 }, (_, i) => trade(i * 2, 2)),
+      ...Array.from({ length: 30 }, (_, i) => trade(50 + i * 1.5, -1)),
+    ];
+    const v3 = Array.from({ length: 50 }, (_, i) => trade(i * 2, 0.3));
+    const wf = walkForward(
+      [
+        { value: 2, trades: v2 },
+        { value: 3, trades: v3 },
+      ],
+      T(0),
+      T(100),
+      { initial: 0.5, folds: 2, minTrainTrades: 5 },
+    );
+    expect(wf.folds).toHaveLength(2);
+    // no 1º corte (dia 50) o valor 2 parecia melhor; fora da amostra ele perde
+    expect(wf.folds[0]!.chosen).toBe(2);
+    expect(wf.folds[0]!.testExpectancyR).toBe(-1);
+    expect(wf.folds[0]!.trainFrom).toBe(T(0));
+    expect(wf.oosExpectancyR).not.toBeNull();
+    expect(wf.oosTrades).toBe(wf.folds.reduce((s, f) => s + f.testTrades, 0));
+  });
+
+  it('trade que ainda não terminou no corte não entra na escolha (sem espiar o futuro)', () => {
+    const wf = walkForward(
+      [{ value: 1, trades: [trade(49, 5), ...Array.from({ length: 5 }, (_, i) => trade(i, -1))] }],
+      T(0),
+      T(100),
+      { initial: 0.5, folds: 1, minTrainTrades: 5 },
+    );
+    // o trade do dia 49 só sai no dia 51: a média do treino é −1, não (5 − 5)/6
+    expect(wf.folds[0]!.trainExpectancyR).toBe(-1);
+  });
+
+  it('sem trades suficientes no treino: trecho sem escolha', () => {
+    const wf = walkForward([{ value: 1, trades: [trade(1, 1)] }], T(0), T(100));
+    expect(wf.folds.every((f) => f.chosen === null && f.testTrades === 0)).toBe(true);
+    expect(wf.oosExpectancyR).toBeNull();
   });
 });

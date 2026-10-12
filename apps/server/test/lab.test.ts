@@ -78,6 +78,11 @@ describe('laboratório', () => {
     expect(run.cdi?.acc).toBeGreaterThan(0.3); // ~4 anos de CDI a ~10% a.a.
     expect(run.sensitivity.map((s) => s.param)).toEqual(['s91.exit.targetR', 'elastic.bbStdDev']);
     expect(run.monteCarlo.runs).toBe(5000);
+    expect(run.walkForward?.param).toBe('s91.exit.targetR');
+    expect(run.walkForward?.folds).toHaveLength(5);
+    expect(run.walkForward?.oosTrades).toBe(
+      run.walkForward!.folds.reduce((s, f) => s + f.testTrades, 0),
+    );
     expect(run.equity.length).toBeLessThanOrEqual(401);
     expect(run.dataNotes.some((n) => n.includes('viés de sobrevivência'))).toBe(true);
     expect(run.attempts).toBe(1);

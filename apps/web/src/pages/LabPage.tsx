@@ -546,6 +546,55 @@ function Sensitivity({ run }: { run: LabRun }) {
   );
 }
 
+function WalkForward({ run }: { run: LabRun }) {
+  // execuções antigas (antes do walk-forward) não têm o campo
+  const wf = run.walkForward ?? null;
+  if (!wf) return null;
+  return (
+    <Section title="Walk-forward: o melhor do passado funciona depois?">
+      <p className="mb-2 text-xs text-muted">
+        Em cada trecho, escolhe o valor de “{paramLabel(wf.param)}” que foi melhor até ali (só com
+        trades já encerrados) e mede esse valor no trecho seguinte, que ele nunca viu.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[28rem] text-left text-sm" data-testid="walk-forward">
+          <thead>
+            <tr className="text-xs text-muted">
+              <th className="py-0.5">Trecho testado</th>
+              <th>Escolhido</th>
+              <th>No passado</th>
+              <th>Depois (trades)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {wf.folds.map((f) => (
+              <tr key={f.testFrom} className="border-t border-line/50">
+                <td className="py-0.5">
+                  {formatDate(f.testFrom)} a {formatDate(f.testTo)}
+                </td>
+                <td>{f.chosen === null ? 'poucos trades' : formatNumber(f.chosen, 1)}</td>
+                <td className="tabular-nums">
+                  {f.trainExpectancyR === null ? '—' : `${num(f.trainExpectancyR)} R`}
+                </td>
+                <td className="tabular-nums">
+                  {f.testExpectancyR === null ? '—' : `${num(f.testExpectancyR)} R`} ({f.testTrades}
+                  )
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-sm">
+        Fora da amostra, somando os trechos:{' '}
+        <b>{wf.oosExpectancyR === null ? '—' : `${num(wf.oosExpectancyR)} R por trade`}</b> em{' '}
+        {wf.oosTrades} trades
+        {wf.oosTrades < 30 && ' (menos de 30: inconclusivo)'}.
+      </p>
+    </Section>
+  );
+}
+
 function MonteCarlo({ run }: { run: LabRun }) {
   const mc = run.monteCarlo;
   if (!mc.runs) return null;
@@ -688,6 +737,7 @@ function TradeCharts({ run, money }: { run: LabRun; money(v: number): string }) 
       <RDistribution run={run} />
       <TrainTest run={run} />
       <Sensitivity run={run} />
+      <WalkForward run={run} />
       <MonteCarlo run={run} />
       <Monthly run={run} money={money} />
       <Trades run={run} money={money} />

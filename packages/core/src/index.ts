@@ -24,3 +24,4 @@ export * from './paper/engine';
 export * from './backtest/engine';
 export * from './backtest/metrics';
 export * from './backtest/montecarlo';
+export * from './backtest/walkforward';
