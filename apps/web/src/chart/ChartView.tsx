@@ -3,7 +3,8 @@ import { marketState, MARKET_STATE_LABEL } from '@radar/core';
 import type { FeedStatus, SymbolMeta, Timeframe } from '@radar/shared';
 import { TIMEFRAME_LABEL } from '@radar/shared';
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import type { ChartType } from '../lib/prefs';
+import { newDrawingId, useDrawings, useDrawingTool } from '../lib/drawings-store';
+import { usePrefs, type ChartType } from '../lib/prefs';
 import { ChartController, type HoverInfo } from './controller';
 import { Legend } from './Legend';
 import { LiveSeries } from './live-series';
@@ -52,6 +53,8 @@ export function ChartView(props: ChartViewProps) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
+  const metaRef = useRef<SymbolMeta | null>(null);
+  metaRef.current = meta;
 
   useImperativeHandle(ref, () => ({
     syncCrosshair: (t, src) => ctl.current?.syncCrosshair(t, src),
@@ -76,8 +79,39 @@ export function ChartView(props: ChartViewProps) {
         raf = requestAnimationFrame(() => setHover(h));
       },
       onCrosshairTime: (t, src) => crossCb.current?.(t, src),
+      drawing: {
+        symbolId: id,
+        callbacks: {
+          commit: (d) => useDrawings.getState().save(d),
+          select: (sel) => useDrawingTool.getState().select(sel),
+          toolDone: () => useDrawingTool.getState().setTool(null),
+          context: (sel) => useDrawingTool.getState().select(sel),
+          getMeta: () => metaRef.current,
+          getRisk: () => {
+            const p = usePrefs.getState();
+            return { capital: p.capital, riskPct: p.riskPct };
+          },
+          newId: newDrawingId,
+        },
+      },
     });
     ctl.current = controller;
+
+    // desenhos do ativo: carrega do servidor e acompanha mudanças (inclusive de outros aparelhos)
+    const dm = controller.drawings;
+    void useDrawings.getState().load(id);
+    const applyDrawings = () => dm?.setDrawings(useDrawings.getState().bySymbol[id] ?? []);
+    applyDrawings();
+    const unsubDrawings = useDrawings.subscribe((st, prev) => {
+      if (st.bySymbol[id] !== prev.bySymbol[id]) applyDrawings();
+    });
+    const applyTool = () => {
+      const t = useDrawingTool.getState();
+      dm?.setTool(t.tool);
+      dm?.setSelected(t.selectedId);
+    };
+    applyTool();
+    const unsubTool = useDrawingTool.subscribe(applyTool);
 
     const stopWorker = indicatorWorker.listen(key, (msg) => {
       if (msg.type === 'full') controller.setIndicators(msg.outputs);
@@ -111,6 +145,8 @@ export function ChartView(props: ChartViewProps) {
     void series.start();
 
     return () => {
+      unsubDrawings();
+      unsubTool();
       cancelAnimationFrame(raf);
       series.dispose();
       stopWorker();

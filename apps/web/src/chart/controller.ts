@@ -25,6 +25,7 @@ import {
 } from 'lightweight-charts';
 import type { ChartType } from '../lib/prefs';
 import { chartTimeLabel, fromChartTime, tickLabel, toChartTime } from './time';
+import { DrawingManager, type DrawingCallbacks } from './drawings/manager';
 import type { TailValue } from './indicator-worker';
 
 /** Painéis que ganham área própria. ATR fica só na legenda (SPEC: "ATR 14 (exibição)"). */
@@ -43,6 +44,8 @@ export interface ControllerOptions {
   downColor: string;
   onHover(info: HoverInfo | null): void;
   onCrosshairTime?(timeMs: number | null, tf: Timeframe): void;
+  /** Liga a camada de desenhos (ativo + callbacks de persistência). */
+  drawing?: { symbolId: string; callbacks: DrawingCallbacks };
 }
 
 /**
@@ -60,6 +63,8 @@ export class ChartController {
   private paneIndex = new Map<Pane, number>();
   private syncing = false;
   private disposed = false;
+  private lastTimesLen = 0;
+  readonly drawings: DrawingManager | null = null;
 
   constructor(
     container: HTMLElement,
@@ -93,6 +98,16 @@ export class ChartController {
     });
     this.price = this.createPriceSeries();
     this.layoutPanes();
+    if (opts.drawing) {
+      this.drawings = new DrawingManager(
+        this.chart,
+        this.price,
+        container,
+        tf,
+        opts.drawing.symbolId,
+        opts.drawing.callbacks,
+      );
+    }
     this.chart.subscribeCrosshairMove(this.onCrosshair);
   }
 
@@ -195,6 +210,8 @@ export class ChartController {
       this.chart
         .timeScale()
         .setVisibleLogicalRange({ from: Math.max(0, n - visibleBars), to: n + 4 });
+    this.lastTimesLen = n;
+    this.drawings?.setCandleTimes(candles.map((c) => c.time));
     this.applyPaneSizes();
   }
 
@@ -209,6 +226,10 @@ export class ChartController {
       this.price.update(this.toPriceData(candle, i, null) as never);
     }
     if (this.volume && this.meta?.volume !== 'none') this.volume.update(this.volBar(candle));
+    if (this.drawings && n !== this.lastTimesLen) {
+      this.lastTimesLen = n;
+      this.drawings.setCandleTimes(this.candles.map((c) => c.time));
+    }
   }
 
   /** Aplica todos os indicadores (resultado completo do worker). */
@@ -400,6 +421,7 @@ export class ChartController {
   dispose(): void {
     this.disposed = true;
     this.chart.unsubscribeCrosshairMove(this.onCrosshair);
+    this.drawings?.dispose();
     this.chart.remove();
   }
 }

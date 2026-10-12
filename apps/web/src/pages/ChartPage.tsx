@@ -1,10 +1,13 @@
 import { BUILT_IN_PRESETS } from '@radar/core';
 import type { Timeframe } from '@radar/shared';
 import { FRACTAL_MAPPINGS, TIMEFRAMES, TIMEFRAME_LABEL, timeframeSchema } from '@radar/shared';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChartView } from '../chart/ChartView';
 import { FractalView } from '../chart/FractalView';
+import { DrawingList, DrawingPanel } from '../chart/drawings/DrawingPanel';
+import { DrawingToolbar, TOOL_SHORTCUTS } from '../chart/drawings/DrawingToolbar';
+import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { SymbolSearch } from '../components/SymbolSearch';
 import { usePrefs, usePreset, type ChartType } from '../lib/prefs';
 
@@ -34,6 +37,42 @@ export function ChartPage() {
   const tf: Timeframe = tfParsed.success ? tfParsed.data : (prefs.recent[0]?.tf ?? '1d');
   const fractal = params.get('modo') === '3';
   const mapping = FRACTAL_MAPPINGS.find((m) => m.id === prefs.fractalId) ?? FRACTAL_MAPPINGS[0]!;
+
+  const [drawMode, setDrawMode] = useState(false);
+  const [showList, setShowList] = useState(false);
+
+  // Atalhos de teclado (computador): Esc, Delete e Alt + letra da ferramenta.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable))
+        return;
+      const tool = useDrawingTool.getState();
+      if (e.key === 'Escape') {
+        tool.setTool(null);
+        tool.select(null);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && tool.selectedId) {
+        const d = (useDrawings.getState().bySymbol[id] ?? []).find((x) => x.id === tool.selectedId);
+        if (d && !d.locked) {
+          useDrawings.getState().remove(d);
+          tool.select(null);
+        }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const kind = TOOL_SHORTCUTS[e.code.replace('Key', '')];
+        if (kind) {
+          e.preventDefault();
+          setDrawMode(true);
+          tool.setTool(kind);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id]);
+
+  useEffect(() => {
+    useDrawingTool.getState().select(null);
+  }, [id]);
 
   useEffect(() => {
     prefs.pushRecent(id, tf);
@@ -91,6 +130,26 @@ export function ChartPage() {
             ))}
           </select>
         )}
+        <button
+          type="button"
+          onClick={() => {
+            setDrawMode((m) => !m);
+            useDrawingTool.getState().setTool(null);
+          }}
+          aria-pressed={drawMode}
+          className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${drawMode ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
+          title="Ferramentas de desenho"
+        >
+          ✏️ Desenhar
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowList((v) => !v)}
+          className="whitespace-nowrap rounded border border-line px-2 py-1 text-xs text-muted"
+          title="Lista de desenhos (reexibir ocultos)"
+        >
+          ☰ Desenhos
+        </button>
         <select
           value={prefs.chartType}
           onChange={(e) => prefs.setChartType(e.target.value as ChartType)}
@@ -114,13 +173,16 @@ export function ChartPage() {
           ))}
         </select>
       </div>
+      {drawMode && <DrawingToolbar />}
       {prefs.chartType === 'heikin' && (
         <p className="border-b border-line bg-panel px-2 py-1 text-xs text-warn">
           Heikin-Ashi é só visual: os preços mostrados não são negociáveis. Indicadores e setups
           usam os candles reais.
         </p>
       )}
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
+        <DrawingPanel symbolId={id} tf={fractal ? mapping.setup : tf} />
+        {showList && <DrawingList symbolId={id} onClose={() => setShowList(false)} />}
         {fractal ? (
           <FractalView
             id={id}

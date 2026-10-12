@@ -6,6 +6,7 @@ import {
 } from '@radar/shared';
 
 type Handler = (msg: ServerMessage) => void;
+export type SyncMessage = Extract<ServerMessage, { type: 'sync' }>;
 
 /**
  * Cliente WebSocket único do app. Reconecta sozinho e refaz as assinaturas.
@@ -14,6 +15,7 @@ type Handler = (msg: ServerMessage) => void;
 class MarketSocket {
   private ws: WebSocket | null = null;
   private readonly handlers = new Map<string, Set<Handler>>();
+  private readonly syncHandlers = new Set<(m: SyncMessage) => void>();
   private attempt = 0;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private connectedListeners = new Set<(up: boolean) => void>();
@@ -49,6 +51,8 @@ class MarketSocket {
       const msg = parsed.data;
       if (msg.type === 'candle' || msg.type === 'status') {
         for (const h of this.handlers.get(`${msg.id}|${msg.tf}`) ?? []) h(msg);
+      } else if (msg.type === 'sync') {
+        for (const h of this.syncHandlers) h(msg);
       } else if (msg.type === 'error') {
         console.warn('Radar WS:', msg.message);
       }
@@ -68,6 +72,12 @@ class MarketSocket {
   private setConnected(up: boolean) {
     this.connected = up;
     for (const l of this.connectedListeners) l(up);
+  }
+
+  /** Avisos de mudança feita em outro aparelho. */
+  onSync(fn: (m: SyncMessage) => void): () => void {
+    this.syncHandlers.add(fn);
+    return () => this.syncHandlers.delete(fn);
   }
 
   onConnectionChange(fn: (up: boolean) => void): () => void {

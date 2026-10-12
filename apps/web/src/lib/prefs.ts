@@ -1,47 +1,119 @@
 import { BUILT_IN_PRESETS, CHANNEL_PRESET, type IndicatorPreset } from '@radar/core';
-import type { Timeframe } from '@radar/shared';
+import { DEFAULT_PREFS, type Prefs, type Timeframe } from '@radar/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { api } from './api';
+import { CLIENT_ID } from './client-id';
+import { marketSocket } from './ws';
 
-export type ChartType = 'candles' | 'heikin' | 'line';
+export type ChartType = Prefs['chartType'];
 
 /**
- * Preferências de interface. Guardadas no navegador só por conveniência; na Fase 2 passam a ser
- * sincronizadas com o servidor (SPEC §17: nada importante só no localStorage).
+ * Preferências: a fonte da verdade é o servidor (SPEC §17). O navegador guarda uma cópia só para
+ * abrir rápido; ao entrar, carrega do servidor; cada mudança é enviada ao servidor.
  */
-interface PrefsState {
-  chartType: ChartType;
-  presetId: string;
+interface PrefsState extends Prefs {
   customPresets: IndicatorPreset[];
-  fractalId: string;
-  upColor: string;
-  downColor: string;
   recent: { id: string; tf: Timeframe }[];
+  serverLoaded: boolean;
   setChartType(t: ChartType): void;
   setPresetId(id: string): void;
   setFractalId(id: string): void;
+  setRisk(p: Partial<Pick<Prefs, 'capital' | 'riskPct' | 'maxRiskPct'>>): void;
   pushRecent(id: string, tf: Timeframe): void;
+  loadFromServer(): Promise<void>;
+  savePreset(p: IndicatorPreset): Promise<void>;
+  deletePreset(id: string): Promise<void>;
 }
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+function pushToServer(patch: Partial<Prefs>) {
+  pending = { ...pending, ...patch };
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const body = pending;
+    pending = {};
+    api('/api/prefs', { method: 'PUT', body: JSON.stringify(body) }).catch(() => undefined);
+  }, 400);
+}
+let pending: Partial<Prefs> = {};
 
 export const usePrefs = create<PrefsState>()(
   persist(
-    (set) => ({
-      chartType: 'candles',
-      presetId: CHANNEL_PRESET.id,
+    (set, get) => ({
+      ...DEFAULT_PREFS,
       customPresets: [],
-      fractalId: 'swing-diario',
-      upColor: '#22c55e',
-      downColor: '#ef4444',
       recent: [],
-      setChartType: (chartType) => set({ chartType }),
-      setPresetId: (presetId) => set({ presetId }),
-      setFractalId: (fractalId) => set({ fractalId }),
-      pushRecent: (id, tf) =>
-        set((s) => ({ recent: [{ id, tf }, ...s.recent.filter((r) => r.id !== id)].slice(0, 12) })),
+      serverLoaded: false,
+      setChartType: (chartType) => {
+        set({ chartType });
+        pushToServer({ chartType });
+      },
+      setPresetId: (presetId) => {
+        set({ presetId });
+        pushToServer({ presetId });
+      },
+      setFractalId: (fractalId) => {
+        set({ fractalId });
+        pushToServer({ fractalId });
+      },
+      setRisk: (p) => {
+        set(p);
+        pushToServer(p);
+      },
+      pushRecent: (id, tf) => {
+        set((s) => ({ recent: [{ id, tf }, ...s.recent.filter((r) => r.id !== id)].slice(0, 12) }));
+        pushToServer({ lastSymbol: id, lastTf: tf });
+      },
+      async loadFromServer() {
+        try {
+          const [prefs, presets] = await Promise.all([
+            api<Prefs>('/api/prefs'),
+            api<{ presets: IndicatorPreset[] }>('/api/presets'),
+          ]);
+          set({ ...prefs, customPresets: presets.presets, serverLoaded: true });
+          const recent = get().recent;
+          if (prefs.lastSymbol && prefs.lastTf && recent[0]?.id !== prefs.lastSymbol) {
+            set({ recent: [{ id: prefs.lastSymbol, tf: prefs.lastTf }, ...recent].slice(0, 12) });
+          }
+        } catch {
+          // offline: segue com a cópia local
+        }
+      },
+      async savePreset(p) {
+        const saved = await api<IndicatorPreset>(`/api/presets/${encodeURIComponent(p.id)}`, {
+          method: 'PUT',
+          body: JSON.stringify(p),
+        });
+        set((s) => ({
+          customPresets: [...s.customPresets.filter((x) => x.id !== saved.id), saved],
+        }));
+      },
+      async deletePreset(id) {
+        await api(`/api/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        set((s) => ({
+          customPresets: s.customPresets.filter((x) => x.id !== id),
+          presetId: s.presetId === id ? CHANNEL_PRESET.id : s.presetId,
+        }));
+      },
     }),
-    { name: 'radar-prefs', version: 1 },
+    {
+      name: 'radar-prefs',
+      version: 2,
+      partialize: (s) => {
+        const { serverLoaded: _s, ...rest } = s;
+        void _s;
+        return rest;
+      },
+    },
   ),
 );
+
+marketSocket.onSync((m) => {
+  if ((m.topic === 'prefs' || m.topic === 'presets') && m.origin !== CLIENT_ID) {
+    void usePrefs.getState().loadFromServer();
+  }
+});
 
 export function usePreset(): IndicatorPreset {
   const { presetId, customPresets } = usePrefs();

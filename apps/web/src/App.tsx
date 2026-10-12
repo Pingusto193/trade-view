@@ -3,6 +3,7 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { setUnauthorizedHandler } from './lib/api';
 import { useAuth } from './lib/auth';
+import { usePrefs } from './lib/prefs';
 import { AboutPage } from './pages/AboutPage';
 import { AccountPage } from './pages/AccountPage';
 import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
@@ -42,6 +43,10 @@ export function App() {
 }
 
 function Shell() {
+  // logado: carrega preferências e presets do servidor (fonte da verdade)
+  useEffect(() => {
+    void usePrefs.getState().loadFromServer();
+  }, []);
   return (
     <div className="safe-top flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-line bg-panel px-3 py-1.5">

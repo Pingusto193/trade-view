@@ -1,3 +1,4 @@
+import { CLIENT_ID } from './client-id';
 import type { CandlesResponse, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
 
 export class ApiError extends Error {
@@ -22,6 +23,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: {
       ...(init.body ? { 'content-type': 'application/json' } : {}),
+      ...(init.method && init.method !== 'GET' ? { 'x-radar-client': CLIENT_ID } : {}),
       ...init.headers,
     },
   });
