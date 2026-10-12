@@ -71,3 +71,23 @@ jobs:
         with:
           name: playwright-report
           path: apps/web/test-results/
+
+  docker:
+    name: Imagem de produção (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Monta a imagem
+        run: docker build -t radar:ci .
+      - name: Sobe em modo produção e confere saúde e PWA
+        run: |
+          docker run -d --name radar -p 8787:8787 -e PUBLIC_URL=http://localhost:8787 -e RADAR_SIMULATED=0 radar:ci
+          for i in $(seq 1 40); do curl -sf localhost:8787/api/health && break; sleep 2; done
+          curl -sf localhost:8787/api/health | grep '"simulated":false'
+          curl -sf localhost:8787/ | grep -q '<html lang="pt-BR">'
+          docker exec radar ls /data/radar.sqlite /data/app-secret.key /data/vapid.json
+      - name: Simulador é proibido em produção
+        run: |
+          docker run --name sim -e RADAR_SIMULATED=1 radar:ci || true
+          docker logs sim 2>&1 | grep -q 'RADAR_SIMULATED não pode ser ligado em produção'

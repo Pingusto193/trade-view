@@ -1,0 +1,36 @@
+# Radar em produção: o app + Caddy (HTTPS automático). Guia: docs/GUIA_PUBLICACAO.md
+services:
+  radar:
+    build: .
+    image: radar:latest
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      DATABASE_PATH: /data/radar.sqlite
+      WEB_DIST: /app/apps/web/dist
+      # atrás do Caddy: lê o IP real do visitante
+      TRUST_PROXY: '1'
+    volumes:
+      - radar-data:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    env_file: .env
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - radar
+    restart: unless-stopped
+
+volumes:
+  radar-data:
+  caddy-data:
+  caddy-config:

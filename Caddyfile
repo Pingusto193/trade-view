@@ -1,0 +1,5 @@
+# HTTPS automático (Let's Encrypt) para o domínio em RADAR_DOMAIN (arquivo .env).
+{$RADAR_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy radar:8787
+}

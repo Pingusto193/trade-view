@@ -88,7 +88,10 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 8 — Produção
 
-- [ ] Docker Compose + Caddy (HTTPS), deploy guiado (planos A–D), backups, revisão de segurança, guias
+- [~] Docker Compose + Caddy (HTTPS), guia de publicação (`docs/GUIA_PUBLICACAO.md`), backup
+  (`pnpm --filter @radar/server backup`), imagem testada no CI — adiantado para o usuário usar com dados
+  reais. Falta: HTTPS real testado com domínio, alternativas de hospedagem (planos B–D), revisão de
+  segurança completa
 
 ## Fase 9 — Assistente com IA (opcional)
 

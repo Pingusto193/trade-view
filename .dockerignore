@@ -1,0 +1,14 @@
+**/node_modules
+.git
+.claude
+.env
+.env.*
+!.env.example
+data
+backups
+apps/web/dist
+apps/web/dev-dist
+apps/web/test-results
+apps/web/playwright-report
+**/*.tmp.mjs
+tools/chart-prototype
