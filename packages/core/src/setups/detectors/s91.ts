@@ -1,5 +1,5 @@
 import { formatNumber } from '@radar/shared';
-import { Detector, highestHigh, lowestLow } from '../base';
+import { Detector, highestHigh, lowestLow, type Instance } from '../base';
 import type { Side } from '../fills';
 import { slope, turnedDown, turnedUp } from '../pa';
 import type { setup91Schema } from '../params';
@@ -15,11 +15,13 @@ const f = (n: number) => formatNumber(n, 2);
  * - Condição: a MME9 vinha caindo e VIRA para cima; o candle que a virou é o candle-sinal.
  * - Gatilho: máxima do candle-sinal + 1 tick.
  * - Decisão nossa: se não romper no candle seguinte e a MME9 seguir subindo, o gatilho passa para a
- *   máxima do novo candle; o stop fica abaixo da menor mínima desde o sinal. Se a MME9 virar para baixo
- *   antes do acionamento, cancela.
- * - Filtro (E1): MMA50 subindo; e não operar em lateral (ADX < mínimo ou MMA50 plana).
+ *   máxima do novo candle; o stop desce para abaixo da menor mínima desde o sinal, sem nunca subir
+ *   acima do stop do modo escolhido (ex.: fundo anterior). Se a MME9 virar para baixo antes do
+ *   acionamento, cancela.
+ * - Filtro (E1): MMA50 subindo (trendFilter). À parte: não operar em lateral (ADX < mínimo ou MMA50
+ *   plana; lateralFilter), que continua valendo com o trendFilter desligado.
  * - Saída fixa (alvo em R) ou dinâmica (quando a MME9 vira para baixo, stop vai para a mínima desse
- *   candle; o Radar mantém o stop de proteção inicial — decisão nossa).
+ *   candle, inclusive no candle da entrada; o Radar mantém o stop de proteção inicial — decisão nossa).
  */
 export class Setup91 extends Detector {
   readonly id = 's91' as const;
@@ -36,17 +38,47 @@ export class Setup91 extends Detector {
     side: Side,
     ctx: StepContext,
   ): { ok: boolean; why: string } {
-    if (!this.p.trendFilter) return { ok: true, why: 'sem filtro de tendência (9.1 puro)' };
-    const ma50Up = s.v(s.sma50, t) > s.v(s.sma50, t - 1);
-    const ma50Down = s.v(s.sma50, t) < s.v(s.sma50, t - 1);
-    if (side === 'buy' && !ma50Up) return { ok: false, why: 'MMA50 não está subindo' };
-    if (side === 'sell' && !ma50Down) return { ok: false, why: 'MMA50 não está caindo' };
-    const adx = s.v(s.adx, t);
-    if (!(adx >= this.p.adxMin))
-      return { ok: false, why: `ADX ${f(adx)} abaixo de ${this.p.adxMin} (lateral)` };
-    const sl = slope(s, s.sma50, t, ctx.pa);
-    if (!(Math.abs(sl) >= ctx.pa.flatSlope)) return { ok: false, why: 'MMA50 plana (lateral)' };
-    return { ok: true, why: `MMA50 ${side === 'buy' ? 'subindo' : 'caindo'}, ADX ${f(adx)}` };
+    const why: string[] = [];
+    if (this.p.trendFilter) {
+      const ma50Up = s.v(s.sma50, t) > s.v(s.sma50, t - 1);
+      const ma50Down = s.v(s.sma50, t) < s.v(s.sma50, t - 1);
+      if (side === 'buy' && !ma50Up) return { ok: false, why: 'MMA50 não está subindo' };
+      if (side === 'sell' && !ma50Down) return { ok: false, why: 'MMA50 não está caindo' };
+      why.push(`MMA50 ${side === 'buy' ? 'subindo' : 'caindo'}`);
+    } else why.push('sem filtro de tendência (9.1 puro)');
+    // "Não operar em lateral" é regra à parte do filtro da MMA50: o E1 desliga só o trendFilter.
+    if (this.p.lateralFilter) {
+      const adx = s.v(s.adx, t);
+      if (!(adx >= this.p.adxMin))
+        return { ok: false, why: `ADX ${f(adx)} abaixo de ${this.p.adxMin} (lateral)` };
+      const sl = slope(s, s.sma50, t, ctx.pa);
+      if (!(Math.abs(sl) >= ctx.pa.flatSlope)) return { ok: false, why: 'MMA50 plana (lateral)' };
+      why.push(`ADX ${f(adx)}`);
+    }
+    return { ok: true, why: why.join(', ') };
+  }
+
+  /**
+   * Saída dinâmica (SPEC §8.2): quando a MME9 vira contra o trade, o stop vai para 1 tick além do
+   * extremo do candle que a virou. Vale também no candle da entrada; o novo stop vale do próximo em diante.
+   */
+  private dynamicStop(inst: Instance, s: SeriesBuffer, t: number, out: SetupEvent[]): void {
+    if (this.p.exit.mode !== 'dynamic') return;
+    const buy = inst.side === 'buy';
+    if (!(buy ? turnedDown(s, s.ema9, t) : turnedUp(s, s.ema9, t))) return;
+    const c = s.c(t);
+    const ns = buy ? this.down(c.low, s) : this.up(c.high, s);
+    if (this.trailStop(inst, ns))
+      out.push(
+        this.ev(
+          inst,
+          'acionado',
+          s,
+          t,
+          ns,
+          `MME9 virou para ${buy ? 'baixo' : 'cima'}: stop móvel para ${f(ns)}`,
+        ),
+      );
   }
 
   step(s: SeriesBuffer, t: number, ctx: StepContext): SetupEvent[] {
@@ -65,6 +97,7 @@ export class Setup91 extends Detector {
         );
         if (entered.length) {
           out.push(...entered);
+          if (this.active.includes(inst)) this.dynamicStop(inst, s, t, out);
           continue;
         }
         if (
@@ -86,9 +119,11 @@ export class Setup91 extends Detector {
         }
         if (this.p.trailTrigger) {
           inst.trigger = buy ? this.up(c.high, s) : this.down(c.low, s);
+          // mantém o stop do modo escolhido (ex.: fundo anterior); só o afasta se a mínima desde o
+          // sinal ficar abaixo dele
           inst.stop = buy
-            ? this.down(lowestLow(s, inst.startIndex, t), s)
-            : this.up(highestHigh(s, inst.startIndex, t), s);
+            ? Math.min(inst.stop ?? Infinity, this.down(lowestLow(s, inst.startIndex, t), s))
+            : Math.max(inst.stop ?? -Infinity, this.up(highestHigh(s, inst.startIndex, t), s));
           out.push(
             this.ev(
               inst,
@@ -108,25 +143,7 @@ export class Setup91 extends Detector {
           out.push(ex);
           continue;
         }
-        if (
-          this.p.exit.mode === 'dynamic' &&
-          t > (inst.entryIndex ?? t) &&
-          (buy ? turnedDown(s, s.ema9, t) : turnedUp(s, s.ema9, t))
-        ) {
-          const ns = buy ? this.down(c.low, s) : this.up(c.high, s);
-          if (this.trailStop(inst, ns)) {
-            out.push(
-              this.ev(
-                inst,
-                'acionado',
-                s,
-                t,
-                ns,
-                `MME9 virou para ${buy ? 'baixo' : 'cima'}: stop móvel para ${f(ns)}`,
-              ),
-            );
-          }
-        }
+        this.dynamicStop(inst, s, t, out);
       }
     }
 

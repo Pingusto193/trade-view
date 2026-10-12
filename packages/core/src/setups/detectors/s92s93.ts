@@ -26,6 +26,9 @@ interface Leg {
  * - Gatilho: máxima do candle que armou + 1 tick; se não romper, passa para a máxima do próximo candle
  *   da correção, enquanto a MME9 seguir para cima.
  * - Stop: 1 tick abaixo da menor mínima da correção. Desarme: MME9 aponta para baixo na correção.
+ * - A pernada continua durante o trade (a referência acompanha novos fechamentos maiores); encerrado o
+ *   trade, a mesma pernada pode armar de novo. Decisão nossa: no 9.3, os fechamentos que armaram uma
+ *   ocorrência e os que ocorrem durante ela não contam para a próxima.
  */
 abstract class Setup9x extends Detector {
   private legs: Record<Side, Leg | null> = { buy: null, sell: null };
@@ -35,6 +38,20 @@ abstract class Setup9x extends Detector {
     protected readonly allowSell: boolean,
   ) {
     super();
+  }
+
+  /**
+   * Saída dinâmica (SPEC §8.2, "como no 9.1"): quando a MME9 vira contra o trade, o stop vai para 1 tick
+   * além do extremo do candle que a virou. Vale também no candle da entrada; o novo stop vale do próximo.
+   */
+  private dynamicStop(inst: Instance, s: SeriesBuffer, t: number, out: SetupEvent[]): void {
+    if (this.exit.mode !== 'dynamic') return;
+    const buy = inst.side === 'buy';
+    if (!(buy ? turnedDown(s, s.ema9, t) : turnedUp(s, s.ema9, t))) return;
+    const c = s.c(t);
+    const ns = buy ? this.down(c.low, s) : this.up(c.high, s);
+    if (this.trailStop(inst, ns))
+      out.push(this.ev(inst, 'acionado', s, t, ns, `MME9 virou: stop móvel para ${f(ns)}`));
   }
 
   /** Condição que arma (diferente no 9.2 e no 9.3). */
@@ -62,7 +79,7 @@ abstract class Setup9x extends Detector {
           );
           if (entered.length) {
             out.push(...entered);
-            this.legs[inst.side] = null; // nova pernada começa depois da entrada
+            if (this.active.includes(inst)) this.dynamicStop(inst, s, t, out);
             continue;
           }
         }
@@ -104,24 +121,16 @@ abstract class Setup9x extends Detector {
           out.push(ex);
           continue;
         }
-        if (
-          this.exit.mode === 'dynamic' &&
-          t > (inst.entryIndex ?? t) &&
-          (buy ? turnedDown(s, s.ema9, t) : turnedUp(s, s.ema9, t))
-        ) {
-          const ns = buy ? this.down(c.low, s) : this.up(c.high, s);
-          if (this.trailStop(inst, ns))
-            out.push(this.ev(inst, 'acionado', s, t, ns, `MME9 virou: stop móvel para ${f(ns)}`));
-        }
+        this.dynamicStop(inst, s, t, out);
       }
     }
 
-    // pernadas e novos sinais
+    // pernadas e novos sinais. A pernada é acompanhada também durante uma ocorrência (armada ou em
+    // trade): a referência segue sendo o maior fechamento enquanto a MME9 apontar a favor.
     const sides: Side[] = this.allowSell ? ['buy', 'sell'] : ['buy'];
     for (const side of sides) {
       const buy = side === 'buy';
       const dirOk = buy ? emaUp : emaDown;
-      if (this.active.some((x) => x.side === side)) continue;
       if (!dirOk) {
         this.legs[side] = null;
         continue;
@@ -138,6 +147,8 @@ abstract class Setup9x extends Detector {
         leg.below = 0;
         continue;
       }
+      // com ocorrência em andamento não arma outra (e, no 9.3, os fechamentos dela não contam)
+      if (this.active.some((x) => x.side === side)) continue;
       if (this.arms(s, t, side, leg)) {
         const inst = this.newInstance(side, t, s);
         inst.state = 'armado';
@@ -148,6 +159,7 @@ abstract class Setup9x extends Detector {
           ? this.down(lowestLow(s, leg.ref + 1, t), s)
           : this.up(highestHigh(s, leg.ref + 1, t), s);
         if (!buy) inst.notes.push('Venda espelhada — não descrita nos vídeos.');
+        leg.below = 0; // 9.3: os fechamentos que armaram esta ocorrência não valem para a próxima
         this.active.push(inst);
         out.push(
           this.ev(inst, 'armado', s, t, inst.trigger, this.armReason(side), { refs: [leg.ref, t] }),
