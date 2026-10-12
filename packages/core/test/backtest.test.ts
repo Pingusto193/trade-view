@@ -7,6 +7,7 @@ import {
   monteCarlo,
   rng,
   runBacktest,
+  setupParamsSchema,
   splitTrades,
   type BacktestConfig,
   type BacktestResult,
@@ -73,6 +74,26 @@ describe('backtest', () => {
       // tamanho arredondado em unidades inteiras: R líquido = R do detector
       expect(t.r).toBeCloseTo(ev!.resultR!, 6);
     }
+  });
+
+  it('parcial em 1R (Elástico): o backtest realiza metade e o R bate com o do detector', () => {
+    const params = setupParamsSchema.parse({ elastic: { partialAt1R: true } });
+    const meta = { tick: 0.01, pointValue: 1, lotSize: 1, minQty: 0.0001, qtyStep: 0.0001 };
+    const r = runBacktest(
+      candles,
+      cfg({ setups: ['elastic'], params, meta: { ...meta, market: 'us' } }),
+    );
+    const events = detectSetups(candles, { tf: '1d', tz: 'UTC', only: ['elastic'], params });
+    const partials = events.filter((e) => e.partial !== undefined);
+    expect(partials.length).toBeGreaterThan(0);
+    let withPartial = 0;
+    for (const t of r.trades.filter((x) => x.exitKind !== 'fim-dos-dados')) {
+      const ev = events.find((e) => e.id === t.occurrence && e.state === 'encerrado');
+      expect(ev?.resultR).toBeDefined();
+      if (partials.some((p) => p.id === t.occurrence)) withPartial++;
+      expect(t.r).toBeCloseTo(ev!.resultR!, 3);
+    }
+    expect(withPartial).toBeGreaterThan(0);
   });
 
   it('custos sempre pioram o resultado (o treino/backtest não pode parecer melhor que o real)', () => {

@@ -82,7 +82,10 @@ export class Elastic extends Detector {
     }
     const partial = (lvl: number): SetupEvent => {
       inst.m.partial = 1;
-      return this.ev(inst, 'acionado', s, t, lvl, `Parcial em 1R (${f(lvl)})`);
+      return {
+        ...this.ev(inst, 'acionado', s, t, lvl, `Parcial em 1R (${f(lvl)})`),
+        partial: PARTIAL_FRACTION,
+      };
     };
     const ex = this.checkExit(inst, s, t);
     if (!ex) {

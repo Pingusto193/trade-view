@@ -60,6 +60,8 @@ export interface SetupEvent {
   exit?: ExitKind;
   /** Resultado em R (só no encerramento após acionado). */
   resultR?: number;
+  /** Saída parcial: fração da posição realizada em `price` (ex.: 0,5 = metade em 1R). */
+  partial?: number;
   /** Pontuação (recuo à média). */
   score?: number;
   notes?: string[];

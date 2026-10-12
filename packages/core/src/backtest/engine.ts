@@ -97,10 +97,16 @@ function adverse(price: number, side: 'buy' | 'sell', tick: number, c: CostModel
 interface Open {
   ev: SetupEvent;
   entry: number;
+  /** Quantidade ainda aberta (diminui com a parcial). */
   qty: number;
+  /** Quantidade da entrada (o risco e o registro do trade usam esta). */
+  qty0: number;
   stop: number;
   risk: number;
+  /** Taxas já pagas (entrada e parciais). */
   fees: number;
+  /** Resultado bruto já realizado nas parciais. */
+  realized: number;
   entryIndex: number;
 }
 
@@ -132,7 +138,7 @@ export function runBacktest(candles: readonly Candle[], cfg: BacktestConfig): Ba
     const exitFees = feeOf(exit, o.qty, pv, costs);
     const gross = (side === 'buy' ? exit - o.entry : o.entry - exit) * o.qty * pv;
     const totalFees = o.fees + exitFees;
-    const pnl = gross - totalFees;
+    const pnl = o.realized + gross - totalFees;
     equity += gross - exitFees;
     const c = candles[idx]!;
     trades.push({
@@ -148,7 +154,7 @@ export function runBacktest(candles: readonly Candle[], cfg: BacktestConfig): Ba
       signalExit,
       exit,
       stop: o.stop,
-      qty: o.qty,
+      qty: o.qty0,
       risk: o.risk,
       fees: totalFees,
       pnl,
@@ -211,11 +217,32 @@ export function runBacktest(candles: readonly Candle[], cfg: BacktestConfig): Ba
           ev,
           entry,
           qty,
+          qty0: qty,
           stop,
           risk: Math.abs(entry - stop) * qty * pv,
           fees,
+          realized: 0,
           entryIndex: i,
         };
+      } else if (
+        ev.state === 'acionado' &&
+        ev.partial !== undefined &&
+        open &&
+        ev.id === open.ev.id &&
+        ev.price !== null
+      ) {
+        // parcial: ordem limitada (não derrapa), arredondada para o passo de quantidade
+        const step = cfg.meta.qtyStep || 1;
+        const part = Math.floor((open.qty0 * ev.partial) / step + 1e-9) * step;
+        if (part > 0 && part < open.qty) {
+          const px = roundTick(ev.price, tick);
+          const pf = feeOf(px, part, pv, costs);
+          const g = (ev.side === 'buy' ? px - open.entry : open.entry - px) * part * pv;
+          open.realized += g;
+          open.fees += pf;
+          open.qty -= part;
+          equity += g - pf;
+        }
       } else if (ev.state === 'encerrado' && open && ev.id === open.ev.id && ev.price !== null) {
         closeTrade(open, ev.price, i, ev.exit ?? 'stop');
         open = null;
