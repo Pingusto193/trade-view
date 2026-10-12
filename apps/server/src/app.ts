@@ -164,7 +164,25 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   );
   alertRoutes(app, alerts, notifier, sync, env.PUBLIC_URL);
 
-  const paper = new PaperService(db, market, hub, sync, app.log, deps.now);
+  const paper = new PaperService(
+    db,
+    market,
+    hub,
+    sync,
+    app.log,
+    deps.now,
+    async (userId, title, body, symbolId) => {
+      // execuções do treino feitas pelo servidor: avisa nos canais já configurados
+      const st = notifier.settings(userId);
+      const channels = [
+        ...(st.pushDevices.length ? (['push'] as const) : []),
+        ...(st.telegramConfigured && st.telegramChatId ? (['telegram'] as const) : []),
+      ];
+      if (!channels.length) return;
+      const url = `${env.PUBLIC_URL.replace(/\/$/, '')}/grafico?id=${encodeURIComponent(symbolId)}&tf=1d`;
+      await notifier.deliver(userId, { title, body, url, tag: `treino-${symbolId}` }, channels);
+    },
+  );
   paperRoutes(app, paper);
 
   const macro = new MacroService(db, deps.bcb, deps.now);

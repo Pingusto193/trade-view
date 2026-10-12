@@ -92,6 +92,13 @@ export class PaperService {
     private readonly sync: SyncHub,
     private readonly log: FastifyBaseLogger,
     private readonly now: () => number = Date.now,
+    /** Avisa o usuário de execuções feitas pelo servidor (app fechado): push/Telegram. */
+    private readonly tell: (
+      userId: number,
+      title: string,
+      body: string,
+      symbolId: string,
+    ) => Promise<void> = async () => undefined,
   ) {}
 
   // ---------------------------------------------------------------- contas
@@ -868,6 +875,14 @@ export class PaperService {
       const pos = await this.execute(o, fill, w.meta, null);
       if (pos && o.side === 'buy') openedNow.add(pos);
       users.add(o.userId);
+      if (pos) {
+        void this.tell(
+          o.userId,
+          `Treino · ${w.meta.symbol}`,
+          `Ordem ${o.side === 'buy' ? 'de compra' : 'de venda'} executada a ${formatNumber(fill.price, w.meta.priceDecimals)} (preço real + custos). Dinheiro fictício.`,
+          w.symbolId,
+        ).catch(() => undefined);
+      }
     }
     const positions = this.db
       .select()
@@ -910,8 +925,22 @@ export class PaperService {
         })
         .run();
       const order = this.db.select().from(paperOrders).where(eq(paperOrders.id, id)).get()!;
-      await this.execute(order, hit, w.meta, hit.kind, p);
+      const done = await this.execute(order, hit, w.meta, hit.kind, p);
       users.add(p.userId);
+      if (done) {
+        const closed = this.db
+          .select()
+          .from(paperPositions)
+          .where(eq(paperPositions.id, p.id))
+          .get();
+        const r = closed ? this.toPosition(closed, null, null).r : null;
+        void this.tell(
+          p.userId,
+          `Treino · ${w.meta.symbol}`,
+          `${hit.kind === 'stop' ? 'Stop' : 'Alvo'} executado a ${formatNumber(hit.price, w.meta.priceDecimals)}${hit.gap ? ' (gap)' : ''}. Resultado ${formatBRL(closed?.realizedBrl ?? 0)}${r !== null ? ` (${formatNumber(r, 2)}R)` : ''}, já com custos. Dinheiro fictício.`,
+          w.symbolId,
+        ).catch(() => undefined);
+      }
     }
     for (const u of users) this.changed(u);
     if (users.size) this.releaseUnused();

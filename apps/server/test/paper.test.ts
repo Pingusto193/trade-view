@@ -1,6 +1,6 @@
 import type { Candle, PaperAccount, PaperOrder, PaperPosition } from '@radar/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { testApp } from './helpers';
+import { FakeSenders, testApp } from './helpers';
 
 let close: (() => Promise<void>) | null = null;
 afterEach(async () => {
@@ -11,8 +11,8 @@ afterEach(async () => {
 const T0 = Date.UTC(2026, 9, 12, 14, 0);
 const M = 60_000;
 
-async function setup() {
-  const t = await testApp({ now: () => Date.now() });
+async function setup(fx?: FakeSenders) {
+  const t = await testApp({ now: () => Date.now(), ...(fx ? { senders: fx } : {}) });
   close = () => t.app.close();
   // histórico de 1 minuto terminando em 100,00 (a fonte de teste é 24/7, em dólar)
   t.fake.candles = Array.from({ length: 30 }, (_, i) => ({
@@ -179,5 +179,23 @@ describe('Modo Treino (preço real da fonte, dinheiro fictício)', () => {
     expect(j.trades).toHaveLength(0);
     j = (await req('GET', `/api/paper/accounts/${acc.id}/journal?all=1`)).body;
     expect(j.trades).toHaveLength(1);
+  });
+
+  it('stop executado pelo servidor avisa no aparelho (app fechado)', async () => {
+    const fx = new FakeSenders();
+    const { req, tick, acc } = await setup(fx);
+    await req('POST', '/api/notify/push', {
+      endpoint: 'https://push.exemplo.com/x',
+      keys: { p256dh: 'BOr5x3ZpY7m0kQ9wA1b2c3d4e5f6', auth: 'qwertyuiopas' },
+      label: 'iPhone',
+    });
+    await req('PUT', `/api/paper/accounts/${acc.id}`, { fxManual: 5 });
+    await req('POST', '/api/paper/orders', order(acc.id, { stopLoss: 95 }));
+    expect(fx.push).toHaveLength(0); // execução pedida na tela não gera aviso
+    tick(99, 99.2, 94.5, 94.8);
+    await vi.waitFor(() => expect(fx.push).toHaveLength(1));
+    const msg = JSON.parse(fx.push[0]!.payload);
+    expect(msg.title).toBe('Treino · AAA');
+    expect(msg.body).toMatch(/Stop executado a 94,99.*Dinheiro fictício/);
   });
 });
