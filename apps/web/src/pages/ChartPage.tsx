@@ -8,7 +8,9 @@ import { FractalView } from '../chart/FractalView';
 import { DrawingList, DrawingPanel } from '../chart/drawings/DrawingPanel';
 import { DrawingToolbar, TOOL_SHORTCUTS } from '../chart/drawings/DrawingToolbar';
 import { useDrawings, useDrawingTool } from '../lib/drawings-store';
+import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
+import { WatchlistPanel } from '../components/WatchlistPanel';
 import { usePrefs, usePreset, type ChartType } from '../lib/prefs';
 
 const DEFAULT_ID = 'binance:BTCUSDT';
@@ -40,6 +42,8 @@ export function ChartPage() {
 
   const [drawMode, setDrawMode] = useState(false);
   const [showList, setShowList] = useState(false);
+  const [editPreset, setEditPreset] = useState(false);
+  const [showWatch, setShowWatch] = useState(() => window.innerWidth >= 1200);
 
   // Atalhos de teclado (computador): Esc, Delete e Alt + letra da ferramenta.
   useEffect(() => {
@@ -172,6 +176,23 @@ export function ChartPage() {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setEditPreset(true)}
+          className="rounded border border-line px-2 py-1 text-xs text-muted"
+          title="Editar indicadores"
+          aria-label="Editar indicadores"
+        >
+          ⚙
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowWatch((v) => !v)}
+          className={`hidden whitespace-nowrap rounded border px-2 py-1 text-xs lg:block ${showWatch ? 'border-accent text-accent' : 'border-line text-muted'}`}
+          aria-pressed={showWatch}
+        >
+          ☆ Lista
+        </button>
       </div>
       {drawMode && <DrawingToolbar />}
       {prefs.chartType === 'heikin' && (
@@ -180,27 +201,35 @@ export function ChartPage() {
           usam os candles reais.
         </p>
       )}
-      <div className="relative min-h-0 flex-1">
-        <DrawingPanel symbolId={id} tf={fractal ? mapping.setup : tf} />
-        {showList && <DrawingList symbolId={id} onClose={() => setShowList(false)} />}
-        {fractal ? (
-          <FractalView
-            id={id}
-            mapping={mapping}
-            preset={preset}
-            chartType={prefs.chartType}
-            upColor={prefs.upColor}
-            downColor={prefs.downColor}
-          />
-        ) : (
-          <ChartView
-            id={id}
-            tf={tf}
-            preset={preset}
-            chartType={prefs.chartType}
-            upColor={prefs.upColor}
-            downColor={prefs.downColor}
-          />
+      {editPreset && <PresetEditor preset={preset} onClose={() => setEditPreset(false)} />}
+      <div className="flex min-h-0 flex-1">
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <DrawingPanel symbolId={id} tf={fractal ? mapping.setup : tf} />
+          {showList && <DrawingList symbolId={id} onClose={() => setShowList(false)} />}
+          {fractal ? (
+            <FractalView
+              id={id}
+              mapping={mapping}
+              preset={preset}
+              chartType={prefs.chartType}
+              upColor={prefs.upColor}
+              downColor={prefs.downColor}
+            />
+          ) : (
+            <ChartView
+              id={id}
+              tf={tf}
+              preset={preset}
+              chartType={prefs.chartType}
+              upColor={prefs.upColor}
+              downColor={prefs.downColor}
+            />
+          )}
+        </div>
+        {showWatch && (
+          <aside className="hidden w-72 shrink-0 border-l border-line lg:block">
+            <WatchlistPanel compact />
+          </aside>
         )}
       </div>
     </div>

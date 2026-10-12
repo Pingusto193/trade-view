@@ -9,14 +9,25 @@ import { AccountPage } from './pages/AccountPage';
 import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
 import { ChartPage } from './pages/ChartPage';
 import { InstallPage } from './pages/InstallPage';
+import { MorePage } from './pages/MorePage';
+import { WatchlistsPage } from './pages/WatchlistsPage';
 import { SourcesPage } from './pages/SourcesPage';
 
+/** Navegação do computador (topo). */
 const NAV = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
+  { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/fontes', label: 'Fontes', icon: '🛰️' },
   { to: '/instalar', label: 'Instalar', icon: '📲' },
   { to: '/sobre', label: 'Sobre', icon: 'ℹ️' },
   { to: '/conta', label: 'Conta', icon: '👤' },
+];
+
+/** Barra de baixo do celular: só as telas principais + "Mais". */
+const MOBILE_NAV = [
+  { to: '/grafico', label: 'Gráfico', icon: '📈' },
+  { to: '/listas', label: 'Listas', icon: '☆' },
+  { to: '/mais', label: 'Mais', icon: '☰' },
 ];
 
 /** Decide entre primeiro acesso, login, convite ou o app. */
@@ -71,6 +82,8 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Navigate to="/grafico" replace />} />
           <Route path="/grafico" element={<ChartPage />} />
+          <Route path="/listas" element={<WatchlistsPage />} />
+          <Route path="/mais" element={<MorePage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route path="/instalar" element={<InstallPage />} />
           <Route path="/sobre" element={<AboutPage />} />
@@ -79,7 +92,7 @@ function Shell() {
         </Routes>
       </main>
       <nav className="safe-bottom flex border-t border-line bg-panel md:hidden">
-        {NAV.map((n) => (
+        {MOBILE_NAV.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}

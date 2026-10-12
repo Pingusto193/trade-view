@@ -123,3 +123,15 @@ describe('WebSocket de tempo real', () => {
     b.terminate();
   });
 });
+
+describe('cotações para listas', () => {
+  it('devolve último preço e variação; erro por ativo não derruba os outros', async () => {
+    const t = await testApp({ now: 9 * DAY + 3600_000 });
+    close = () => t.app.close();
+    t.fake.candles = series(10);
+    const r = (await t.app.inject({ url: '/api/quotes?ids=fake:AAA,naoexiste:XYZ' })).json();
+    expect(r.quotes['fake:AAA']).toMatchObject({ last: 109.5, symbol: 'AAA' });
+    expect(r.quotes['fake:AAA'].changePct).toBeCloseTo((109.5 / 108.5 - 1) * 100);
+    expect(r.quotes['naoexiste:XYZ'].error).toMatch(/fonte desconhecida/);
+  });
+});

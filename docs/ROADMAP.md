@@ -31,12 +31,16 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 2 — Desenhos, contas e listas
 
-- [ ] Login (argon2id, cookie seguro, 2FA TOTP opcional), cadastro fechado após a 1ª conta, convites
-- [ ] Proteção contra força bruta
-- [ ] Desenhos persistentes e sincronizados (linha, tendência, raio, vertical, zona, canal, Fibonacci,
-      régua, posição comprada/vendida, texto) — travar, ocultar, copiar entre escalas
-- [ ] Watchlists e presets de indicadores no servidor
-- [ ] Preferências sincronizadas (sair do localStorage)
+- [x] Login (argon2id, cookie HttpOnly/SameSite, 2FA TOTP opcional), cadastro fechado após a 1ª conta, convites
+- [x] Proteção contra força bruta (5 erros/15 min por IP e por e-mail), CSRF por origem, rotas exigem login
+- [x] Desenhos persistentes e sincronizados: linha horizontal, tendência, raio, vertical, zona, canal,
+      Fibonacci, régua, posição comprada/vendida (quantidade pela calculadora), texto — travar, ocultar,
+      cor, "só nesta escala"/"em todas", lista de desenhos, atalhos (Alt+letra, Esc, Delete)
+- [x] **Critério:** E2E "linha desenhada no PC aparece no celular sem recarregar"
+- [x] Watchlists no servidor (criar, renomear, reordenar, apagar) com cotação e variação
+- [x] Presets de indicadores no servidor (editor; prontos protegidos, "salvar como novo")
+- [x] Preferências sincronizadas (servidor é a fonte da verdade; localStorage só cache)
+- [ ] Toque longo testado em aparelho real (só testado em navegador com toque emulado)
 
 ## Fase 3 — Setups e contexto
 

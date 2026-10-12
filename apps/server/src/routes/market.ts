@@ -39,6 +39,50 @@ export function marketRoutes(
     }
   });
 
+  /**
+   * Cotações resumidas para listas: último fechamento diário, variação contra o dia anterior e
+   * estado da fonte. Usa o mesmo cache de candles (respeita as cotas das fontes).
+   */
+  app.get('/api/quotes', async (req) => {
+    const q = z.object({ ids: z.string().max(3000) }).parse(req.query);
+    const ids = [
+      ...new Set(
+        q.ids
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, 60);
+    const out: Record<string, unknown> = {};
+    let next = 0;
+    const worker = async () => {
+      while (next < ids.length) {
+        const id = ids[next++] as string;
+        try {
+          const r = await market.getCandles(id, '1d', 3);
+          const last = r.candles.at(-1);
+          const prev = r.candles.at(-2);
+          out[id] = {
+            name: r.meta.name,
+            symbol: r.meta.symbol,
+            market: r.meta.market,
+            currency: r.meta.currency,
+            priceDecimals: r.meta.priceDecimals,
+            last: last?.close ?? null,
+            time: last?.time ?? null,
+            changePct: last && prev ? (last.close / prev.close - 1) * 100 : null,
+            status: r.status,
+            delay: r.meta.delay,
+          };
+        } catch (err) {
+          out[id] = { error: (err as Error).message };
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker));
+    return { quotes: out };
+  });
+
   app.get('/api/candles', async (req, reply) => {
     const q = candlesQuerySchema.parse(req.query);
     try {

@@ -4,7 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import { searchSymbols } from '../lib/api';
 
 /** Busca unificada de ativos entre mercados (SPEC §7). */
-export function SymbolSearch({ onPick, current }: { onPick(id: string): void; current: string }) {
+export function SymbolSearch({
+  onPick,
+  current,
+  label,
+}: {
+  onPick(id: string): void;
+  current: string;
+  /** Texto do botão (padrão: código do ativo atual). */
+  label?: string;
+}) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<SymbolSearchResult[]>([]);
@@ -36,10 +45,10 @@ export function SymbolSearch({ onPick, current }: { onPick(id: string): void; cu
           setOpen(true);
           setTimeout(() => input.current?.focus(), 0);
         }}
-        aria-label="Buscar ativo"
+        aria-label={label ? 'Adicionar ativo' : 'Buscar ativo'}
       >
-        <span aria-hidden>🔎</span>
-        <span>{current.split(':')[1] ?? current}</span>
+        {!label && <span aria-hidden>🔎</span>}
+        <span>{label ?? current.split(':')[1] ?? current}</span>
       </button>
       {open && (
         <div
