@@ -38,7 +38,20 @@ test('modo treino: conta com dinheiro fictício escolhido, compra pelo gráfico,
   );
   await ticket.getByLabel('Stop').fill((last * 0.9).toFixed(2));
   await ticket.getByLabel('Quantidade').fill('10');
-  await ticket.getByRole('button', { name: 'Comprar no treino' }).click();
+  // sem plano completo o botão avisa que conta como indisciplina
+  await expect(ticket.getByTestId('plan-status')).toContainText('Plano incompleto');
+  // preenche o plano: setup, motivo e checklist (o print do gráfico é automático)
+  await ticket.getByLabel('Setup do plano').selectOption('s91');
+  await ticket.getByLabel('Alvo').fill((last * 1.2).toFixed(2));
+  await ticket.getByLabel('Motivo').fill('MME9 virou para cima com a MMA50 subindo');
+  for (const box of await ticket
+    .getByRole('group', { name: 'Checklist psicológico' })
+    .getByRole('checkbox')
+    .all()) {
+    await box.check();
+  }
+  await expect(ticket.getByTestId('plan-status')).toHaveText('✅ Plano liberado');
+  await ticket.getByRole('button', { name: /Comprar no treino \(plano liberado\)/ }).click();
   await expect(ticket.getByTestId('ticket-msg')).toContainText('Executada');
   await ticket.getByRole('button', { name: 'Fechar' }).click();
 
@@ -52,6 +65,7 @@ test('modo treino: conta com dinheiro fictício escolhido, compra pelo gráfico,
   // custos aparecem (o treino não pode parecer melhor do que o real)
   await expect(diario.getByText(/custos R\$ \d+,\d{2}/).first()).toBeVisible();
   await expect(diario.getByText('custos R$ 0,00')).toHaveCount(0);
+  await expect(diario.getByText('plano ✓').first()).toBeVisible();
 });
 
 test('chave Treino/Real: mudar para Real pede confirmação e tira a faixa', async ({ page }) => {

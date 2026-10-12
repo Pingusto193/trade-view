@@ -76,6 +76,17 @@ export function paperRoutes(app: FastifyInstance, paper: PaperService) {
     return { ok: true };
   });
 
+  app.get('/api/paper/positions/:id/screenshot', async (req, reply) => {
+    const img = paper.planScreenshot(userOf(req).id, idParam.parse(req.params).id);
+    if (!img) return reply.code(404).send({ error: 'sem print' });
+    const m = /^data:(image\/(?:jpeg|png));base64,(.*)$/.exec(img);
+    if (!m) return reply.code(404).send({ error: 'sem print' });
+    return reply
+      .header('content-type', m[1])
+      .header('cache-control', 'private, max-age=86400')
+      .send(Buffer.from(m[2]!, 'base64'));
+  });
+
   app.put('/api/paper/positions/:id', async (req, reply) =>
     guard(reply, () =>
       paper.updatePosition(

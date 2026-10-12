@@ -1,11 +1,21 @@
-import { positionSize, riskPctWarnings } from '@radar/core';
+import { SETUP_LABEL, positionSize, riskPctWarnings, type SetupId } from '@radar/core';
 import {
+  EXIT_CRITERIA,
+  FRACTAL_MAPPINGS,
+  PSYCH_CHECKS,
+  TIMEFRAMES,
+  TIMEFRAME_LABEL,
   formatBRL,
   formatNumber,
+  higherTimeframe,
   isIntraday,
+  planMissing,
+  type PsychCheck,
   type SymbolMeta,
   type Timeframe,
+  type TradePlan,
 } from '@radar/shared';
+import { chartScreenshot } from '../chart/registry';
 import { useEffect, useMemo, useState } from 'react';
 import { create } from 'zustand';
 import { Link } from 'react-router-dom';
@@ -25,6 +35,9 @@ export const useTicket = create<{
   open: (symbolId, tf) => set({ target: { symbolId, tf } }),
   close: () => set({ target: null }),
 }));
+
+/** Constante estável: um [] novo a cada render faria o seletor re-renderizar sem parar. */
+const NO_OPEN: readonly { setup: SetupId; side: string; state: string }[] = [];
 
 const field = 'w-full rounded border border-line bg-bg px-2 py-1 text-sm';
 /** Aceita "1.234,56", "1234,56" e "1234.56". */
@@ -54,6 +67,25 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // plano de trade (SPEC §11)
+  const openSetups = useAnalysis((s) => s.byKey[analysisKey(symbolId, tf)]?.open ?? NO_OPEN);
+  const mapping = FRACTAL_MAPPINGS.find((m) => m.setup === tf);
+  const [setup, setSetup] = useState<string>(
+    openSetups.find((o) => o.side === 'buy' && o.state !== 'radar')?.setup ?? '',
+  );
+  const [tfs, setTfs] = useState({
+    context: mapping?.context ?? higherTimeframe(tf) ?? tf,
+    setup: tf,
+    trigger: mapping?.trigger ?? tf,
+  });
+  const [aligned, setAligned] = useState(false);
+  const [exitCriterion, setExitCriterion] = useState<TradePlan['exitCriterion']>('alvo');
+  const [checks, setChecks] = useState<Partial<Record<PsychCheck, boolean>>>({});
+  const [shot, setShot] = useState<string | null>(null);
+  useEffect(() => {
+    // print automático do gráfico aberto
+    setShot(chartScreenshot(`${symbolId}|${tf}`));
+  }, [symbolId, tf]);
 
   useEffect(() => {
     if (!usePaper.getState().loaded) void usePaper.getState().load();
@@ -110,9 +142,31 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
     ...(ctx?.adx.value === 'lateral' ? ['ADX abaixo de 20: mercado lateral.'] : []),
   ];
 
+  const qtyValue = numDot(qty) ?? sizing?.quantity ?? null;
+  const plan: TradePlan = {
+    setup: setup || '',
+    tfContext: tfs.context,
+    tfSetup: tfs.setup,
+    tfTrigger: tfs.trigger,
+    aligned,
+    exitCriterion,
+    reason: note,
+    checks,
+    warnings: [],
+    screenshot: shot,
+  };
+  const missing = planMissing(plan, {
+    stopLoss: stopV,
+    takeProfit: tgtV,
+    qty: qtyValue,
+  });
+  const stopsToday = paper.state?.stops.today ?? 0;
+  const stopsWeek = paper.state?.stops.week ?? 0;
+  const pause = stopsToday >= prefs.antiRevengeDay || stopsWeek >= prefs.antiRevengeWeek;
+
   const submit = async () => {
     setMsg(null);
-    const q = numDot(qty) ?? sizing?.quantity ?? null;
+    const q = qtyValue;
     if (!q || q <= 0) {
       setMsg('Informe a quantidade (ou preencha o stop para o cálculo pelo risco).');
       return;
@@ -128,6 +182,7 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
         stopLoss: stopV,
         takeProfit: tgtV,
         note,
+        plan: { ...plan, warnings: warnings.slice(0, 20) },
       });
       setMsg(
         o.status === 'filled'
@@ -258,13 +313,147 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
                 {formatNumber(sizing.allocated, 2)} {meta?.currency}
               </p>
             )}
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Por que esta compra? (motivo técnico)"
-              className={field}
-              aria-label="Motivo"
-            />
+            <fieldset
+              className="space-y-2 rounded border border-line p-2"
+              aria-label="Plano de trade"
+            >
+              <legend className="px-1 text-xs font-semibold">
+                Plano de trade{' '}
+                <HelpLink
+                  slug="gestao-de-risco"
+                  label="Ajuda: plano de trade"
+                  className="align-middle"
+                />
+              </legend>
+              <label className="block text-xs">
+                Setup
+                <select
+                  value={setup}
+                  onChange={(e) => setSetup(e.target.value)}
+                  className={field}
+                  aria-label="Setup do plano"
+                >
+                  <option value="">— escolha —</option>
+                  {(Object.keys(SETUP_LABEL) as SetupId[]).map((k) => (
+                    <option key={k} value={k}>
+                      {SETUP_LABEL[k]}
+                      {openSetups.some((o) => o.setup === k && o.state !== 'radar')
+                        ? ' (em andamento no gráfico)'
+                        : ''}
+                    </option>
+                  ))}
+                  <option value="manual">Leitura própria (sem setup do app)</option>
+                </select>
+              </label>
+              <div className="grid grid-cols-3 gap-1 text-xs">
+                {(
+                  [
+                    ['context', 'Contexto'],
+                    ['setup', 'Setup'],
+                    ['trigger', 'Gatilho'],
+                  ] as const
+                ).map(([k, l]) => (
+                  <label key={k} className="block">
+                    {l}
+                    <select
+                      value={tfs[k]}
+                      onChange={(e) => setTfs({ ...tfs, [k]: e.target.value as Timeframe })}
+                      className={field}
+                      aria-label={`Escala de ${l.toLowerCase()}`}
+                    >
+                      {TIMEFRAMES.map((t) => (
+                        <option key={t} value={t}>
+                          {TIMEFRAME_LABEL[t]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={aligned}
+                  onChange={(e) => setAligned(e.target.checked)}
+                />
+                As três escalas estão a favor da compra
+                {ctx && (
+                  <span className={ctx.wind.value === 'contra' ? 'text-down' : 'text-muted'}>
+                    (painel: escala maior {ctx.wind.label.toLowerCase()})
+                  </span>
+                )}
+              </label>
+              <label className="block text-xs">
+                Critério de saída
+                <select
+                  value={exitCriterion}
+                  onChange={(e) => setExitCriterion(e.target.value as TradePlan['exitCriterion'])}
+                  className={field}
+                  aria-label="Critério de saída"
+                >
+                  {Object.entries(EXIT_CRITERIA).map(([k, l]) => (
+                    <option key={k} value={k}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value.slice(0, 1000))}
+                placeholder="Motivo técnico: o que você vê no gráfico que justifica a compra?"
+                className={`${field} min-h-16`}
+                aria-label="Motivo"
+              />
+              <div className="flex items-center gap-2 text-xs">
+                {shot ? (
+                  <img
+                    src={shot}
+                    alt="Print do gráfico no plano"
+                    className="h-14 rounded border border-line"
+                  />
+                ) : (
+                  <span className="text-muted">Sem print (abra pelo gráfico).</span>
+                )}
+                <button
+                  type="button"
+                  className="rounded border border-line px-2 py-0.5"
+                  onClick={() => setShot(chartScreenshot(`${symbolId}|${tf}`))}
+                >
+                  Tirar print de novo
+                </button>
+              </div>
+              <fieldset className="space-y-0.5 text-xs" aria-label="Checklist psicológico">
+                {(Object.entries(PSYCH_CHECKS) as [PsychCheck, string][]).map(([k, l]) => (
+                  <label key={k} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(checks[k])}
+                      onChange={(e) => setChecks({ ...checks, [k]: e.target.checked })}
+                    />
+                    {l}
+                  </label>
+                ))}
+              </fieldset>
+              <p
+                className={`rounded px-2 py-1 text-xs font-semibold ${missing.length ? 'bg-warn/15 text-warn' : 'bg-up/15 text-up'}`}
+                data-testid="plan-status"
+              >
+                {missing.length
+                  ? `Plano incompleto — falta: ${missing.join(', ')}`
+                  : '✅ Plano liberado'}
+              </p>
+            </fieldset>
+            {pause && (
+              <p
+                className="rounded border border-down/60 bg-down/15 p-2 text-xs text-down"
+                role="alert"
+              >
+                Pausa recomendada: {stopsToday} stop(s) hoje e {stopsWeek} nos últimos 7 dias.
+                Depois de perdas seguidas, o risco de operar por revanche aumenta. Se for entrar,
+                reduza o tamanho.
+              </p>
+            )}
             {warnings.length > 0 && (
               <ul className="space-y-0.5 text-xs text-warn">
                 {warnings.map((w) => (
@@ -282,7 +471,9 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
               disabled={busy || !meta}
               className="w-full rounded bg-train px-3 py-2 font-semibold text-black disabled:opacity-50"
             >
-              Comprar no treino
+              {missing.length
+                ? 'Comprar sem plano completo (conta como indisciplina)'
+                : 'Comprar no treino (plano liberado)'}
             </button>
             <p className="text-[11px] text-muted">
               Executa com o preço real da fonte, mais spread, derrapagem e taxas. Para vender, use

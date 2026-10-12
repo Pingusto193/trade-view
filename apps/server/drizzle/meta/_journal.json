@@ -22,6 +22,13 @@
       "when": 1791811527142,
       "tag": "0002_paper",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791813357170,
+      "tag": "0003_trade_plans",
+      "breakpoints": true
     }
   ]
 }

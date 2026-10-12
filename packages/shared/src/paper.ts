@@ -28,6 +28,9 @@ export const paperAccountUpdateSchema = z.object({
 });
 export type PaperAccountUpdate = z.infer<typeof paperAccountUpdateSchema>;
 
+// o schema do plano é declarado mais abaixo no arquivo
+const tradePlanSchemaLazy = () => z.lazy(() => tradePlanSchema);
+
 export const paperOrderInputSchema = z
   .object({
     accountId: z.string().min(8).max(64),
@@ -39,12 +42,16 @@ export const paperOrderInputSchema = z
     stopLoss: z.number().positive().finite().nullable().default(null),
     takeProfit: z.number().positive().finite().nullable().default(null),
     note: z.string().max(500).default(''),
+    /** Plano de trade (opcional no treino; a falta dele conta na disciplina). */
+    plan: tradePlanSchemaLazy().nullable().default(null),
   })
   .refine((o) => o.type === 'market' || o.price !== null, {
     message: 'informe o preço da ordem limitada/stop',
     path: ['price'],
   });
 export type PaperOrderInput = z.infer<typeof paperOrderInputSchema>;
+/** O que o navegador envia (campos com padrão são opcionais). */
+export type PaperOrderDraft = z.input<typeof paperOrderInputSchema>;
 
 export const paperPositionUpdateSchema = z.object({
   stop: z.number().positive().finite().nullable().optional(),
@@ -92,6 +99,8 @@ export interface PaperPosition {
   entryFx: number;
   delayNote: string | null;
   generation: number;
+  /** Plano de entrada (sem o print), se houve. */
+  plan: (Omit<TradePlan, 'screenshot'> & { released: boolean; hasScreenshot: boolean }) | null;
 }
 
 export interface PaperOrder {
@@ -155,4 +164,72 @@ export interface PaperStats {
   /** Trades sem stop na entrada e com stop movido para trás (disciplina). */
   withoutStop: number;
   stopMovedBack: number;
+  /** Trades que entraram com o plano liberado. */
+  withPlan: number;
+  /** % de trades disciplinados: plano liberado, com stop e sem stop movido para trás. */
+  disciplinePct: number | null;
+}
+
+/**
+ * Plano de trade (SPEC §11), preenchido ANTES de entrar. Só fica "Liberado" com tudo completo.
+ * No treino ele não bloqueia a ordem, mas a falta dele conta na estatística de disciplina.
+ */
+export const PSYCH_CHECKS = {
+  ego: 'Não estou querendo provar que estou certo',
+  revanche: 'Não é para recuperar uma perda (revanche)',
+  lucro: 'Sei o que faço se o lucro começar a voltar',
+  demais: 'Não estou operando demais hoje',
+  plano: 'Vou seguir este plano até o fim',
+} as const;
+export type PsychCheck = keyof typeof PSYCH_CHECKS;
+
+export const EXIT_CRITERIA = {
+  alvo: 'Alvo fixo (stop e alvo definidos)',
+  'stop-atr': 'Conduzir com o Stop ATR',
+  mme9: 'Conduzir: sair quando a MME9 virar para baixo e a mínima for perdida',
+} as const;
+
+export const tradePlanSchema = z.object({
+  setup: z.string().min(1).max(40),
+  tfContext: z.string().max(4),
+  tfSetup: z.string().max(4),
+  tfTrigger: z.string().max(4),
+  /** As três escalas estão a favor? (resposta do usuário, com o contexto automático ao lado). */
+  aligned: z.boolean(),
+  exitCriterion: z.enum(['alvo', 'stop-atr', 'mme9']),
+  reason: z.string().max(1000),
+  checks: z.object({
+    ego: z.boolean().optional(),
+    revanche: z.boolean().optional(),
+    lucro: z.boolean().optional(),
+    demais: z.boolean().optional(),
+    plano: z.boolean().optional(),
+  }),
+  /** Avisos automáticos mostrados no momento (registro do que você sabia ao entrar). */
+  warnings: z.array(z.string().max(300)).max(20),
+  /** Print do gráfico (JPEG em data URL, reduzido). */
+  screenshot: z
+    .string()
+    .max(400_000)
+    .regex(/^data:image\/(jpeg|png);base64,/)
+    .nullable(),
+});
+export type TradePlan = z.infer<typeof tradePlanSchema>;
+
+/** O que falta para o plano ficar "Liberado" (lista vazia = liberado). */
+export function planMissing(
+  p: Partial<TradePlan>,
+  order: { stopLoss: number | null; takeProfit: number | null; qty: number | null },
+): string[] {
+  const miss: string[] = [];
+  if (!p.setup) miss.push('setup');
+  if (!p.tfContext || !p.tfSetup || !p.tfTrigger) miss.push('escalas');
+  if (order.stopLoss === null) miss.push('stop técnico');
+  if (p.exitCriterion === 'alvo' && order.takeProfit === null) miss.push('alvo');
+  if (!order.qty) miss.push('tamanho da posição');
+  if (!p.reason || p.reason.trim().length < 15) miss.push('motivo técnico (mín. 15 letras)');
+  if (!p.screenshot) miss.push('print do gráfico');
+  const checks: Partial<Record<PsychCheck, boolean>> = p.checks ?? {};
+  if (Object.keys(PSYCH_CHECKS).some((k) => !checks[k as PsychCheck])) miss.push('checklist');
+  return miss;
 }

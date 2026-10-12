@@ -17,6 +17,9 @@ export const prefsSchema = z.object({
   maxRiskPct: z.number().positive().max(10).default(2),
   /** Chave global Treino/Real (SPEC §13): treino ligado por padrão no primeiro uso. */
   mode: z.enum(['treino', 'real']).default('treino'),
+  /** Anti-revanche (SPEC §11): pausa recomendada após X stops no dia (*2) ou Y na semana (*4). */
+  antiRevengeDay: z.number().int().min(1).max(20).default(2),
+  antiRevengeWeek: z.number().int().min(1).max(50).default(4),
   /** Conta de treino ativa. */
   paperAccountId: z.string().max(64).optional(),
   /** Parâmetros dos setups (validados no navegador e no servidor pelo schema do core). */

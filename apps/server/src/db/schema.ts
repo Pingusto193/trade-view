@@ -370,3 +370,26 @@ export const paperEvents = sqliteTable(
   },
   (t) => [index('paper_events_account_idx').on(t.accountId, t.time)],
 );
+
+/** Planos de trade (SPEC §11) ligados às ordens do treino (e, no futuro, aos trades reais). */
+export const tradePlans = sqliteTable(
+  'trade_plans',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    orderId: text('order_id'),
+    positionId: text('position_id'),
+    /** Plano sem o print (JSON validado). */
+    json: text('json').notNull(),
+    released: integer('released', { mode: 'boolean' }).notNull(),
+    /** Print do gráfico (data URL JPEG reduzido). */
+    screenshot: text('screenshot'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    index('trade_plans_order_idx').on(t.orderId),
+    index('trade_plans_position_idx').on(t.positionId),
+  ],
+);

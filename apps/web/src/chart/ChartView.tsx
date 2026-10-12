@@ -9,6 +9,7 @@ import { usePaper } from '../lib/paper-store';
 import { usePrefs, type ChartType } from '../lib/prefs';
 import { ChartController, type HoverInfo, type PaperLine } from './controller';
 import { Legend } from './Legend';
+import { registerChart } from './registry';
 import { LiveSeries } from './live-series';
 import { SourceBadge } from './SourceBadge';
 import { indicatorWorker } from './worker-client';
@@ -147,6 +148,7 @@ export function ChartView(props: ChartViewProps) {
       controller.setPaperLines(lines);
     };
     const unsubPaper = usePaper.subscribe(applyPaper);
+    const unregister = registerChart(`${id}|${tf}`, () => controller.chart.takeScreenshot());
     if (usePrefs.getState().mode === 'treino' && !usePaper.getState().loaded) {
       void usePaper
         .getState()
@@ -203,6 +205,7 @@ export function ChartView(props: ChartViewProps) {
     void series.start();
 
     return () => {
+      unregister();
       unsubPaper();
       unsubView();
       unsubFocus();

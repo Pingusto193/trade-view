@@ -152,3 +152,15 @@ Decisões nossas:
 - **IR simulado** só para a B3 (motor `apurarB3`); cripto e EUA mostram "ainda não simulado".
 - Chave **Treino/Real** nas preferências do servidor (treino é o padrão); no Real a faixa some e o Radar
   continua sem enviar ordens.
+
+## ADR-0015 — Plano de trade e anti-revanche no Treino (12/10/2026)
+
+- O plano (SPEC §11) fica **Liberado** só com: setup (ou "leitura própria"), 3 escalas, stop técnico, alvo
+  (se o critério for alvo fixo), tamanho, motivo técnico (mín. 15 letras), print do gráfico (automático,
+  JPEG reduzido) e os 5 itens do checklist psicológico (§22).
+- No **treino ele não bloqueia** a compra: o botão avisa "conta como indisciplina" e o diário mede
+  **disciplina** = trades com plano liberado, com stop e sem stop movido para trás (o Painel de prontidão
+  exige ≥ 90%).
+- **Anti-revanche**: pausa recomendada a partir de 2 stops no dia ou 4 em 7 dias (padrões *, editáveis
+  nas preferências). Nunca bloqueia (SPEC: "nunca bloqueia de forma irreversível").
+- Os avisos automáticos vistos na hora da entrada ficam gravados no plano (o que você sabia ao entrar).

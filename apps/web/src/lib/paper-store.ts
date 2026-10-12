@@ -3,7 +3,7 @@ import type {
   PaperAccountUpdate,
   PaperEvent,
   PaperOrder,
-  PaperOrderInput,
+  PaperOrderDraft,
   PaperPosition,
   PaperPositionUpdate,
   PaperStats,
@@ -21,6 +21,8 @@ export interface PaperState {
   orders: PaperOrder[];
   events: PaperEvent[];
   fx: number | null;
+  /** Stops executados hoje e nos últimos 7 dias (anti-revanche). */
+  stops: { today: number; week: number };
 }
 
 export interface PaperJournal {
@@ -43,7 +45,7 @@ interface Store {
   createAccount(name: string, initialBalance: number): Promise<PaperAccount>;
   updateAccount(id: string, u: PaperAccountUpdate): Promise<void>;
   reset(id: string, initialBalance: number): Promise<void>;
-  order(o: Omit<PaperOrderInput, 'accountId'>): Promise<PaperOrder>;
+  order(o: Omit<PaperOrderDraft, 'accountId'>): Promise<PaperOrder>;
   cancel(id: string): Promise<void>;
   updatePosition(id: string, u: Partial<PaperPositionUpdate>): Promise<void>;
 }

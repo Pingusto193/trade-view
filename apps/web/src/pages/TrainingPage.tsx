@@ -309,6 +309,12 @@ function Journal() {
           tone={s.withoutStop ? 'down' : undefined}
         />
         <Stat
+          label="Disciplina"
+          value={s.disciplinePct === null ? '—' : `${formatNumber(s.disciplinePct, 0)}%`}
+          tone={s.disciplinePct !== null && s.disciplinePct < 90 ? 'down' : undefined}
+        />
+        <Stat label="Com plano liberado" value={`${s.withPlan} de ${s.trades}`} />
+        <Stat
           label="Stop para trás"
           value={String(s.stopMovedBack)}
           tone={s.stopMovedBack ? 'down' : undefined}
@@ -337,6 +343,20 @@ function Journal() {
             </b>
             <span>{t.r === null ? 'R —' : `${formatNumber(t.r, 2)}R`}</span>
             <span className="text-muted">custos {formatBRL(t.feesBrl)}</span>
+            <span className={t.plan?.released ? 'text-up' : 'text-warn'}>
+              {t.plan ? (t.plan.released ? 'plano ✓' : 'plano incompleto') : 'sem plano'}
+            </span>
+            {t.plan?.hasScreenshot && (
+              <a
+                href={`/api/paper/positions/${t.id}/screenshot`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent underline"
+              >
+                print
+              </a>
+            )}
+            {t.plan?.reason && <span className="w-full text-xs text-muted">“{t.plan.reason}”</span>}
           </li>
         ))}
         {journal.trades.length === 0 && (

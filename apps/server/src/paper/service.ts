@@ -20,6 +20,7 @@ import {
   formatBRL,
   formatNumber,
   isIntraday,
+  planMissing,
   type Market,
   type PaperAccount,
   type PaperAccountInput,
@@ -38,7 +39,7 @@ import {
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
-import { paperAccounts, paperEvents, paperOrders, paperPositions } from '../db/schema';
+import { paperAccounts, paperEvents, paperOrders, paperPositions, tradePlans } from '../db/schema';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
 import type { SyncHub } from '../sync';
@@ -276,6 +277,52 @@ export class PaperService {
       entryFx: p.entryFx,
       delayNote: p.delayNote,
       generation: p.generation,
+      plan: this.planOf(p.id),
+    };
+  }
+
+  private planOf(positionId: string): PaperPosition['plan'] {
+    const r = this.db
+      .select()
+      .from(tradePlans)
+      .where(eq(tradePlans.positionId, positionId))
+      .orderBy(asc(tradePlans.createdAt))
+      .get();
+    if (!r) return null;
+    return {
+      ...(JSON.parse(r.json) as Omit<
+        NonNullable<PaperPosition['plan']>,
+        'released' | 'hasScreenshot'
+      >),
+      released: r.released,
+      hasScreenshot: Boolean(r.screenshot),
+    };
+  }
+
+  /** Print do gráfico guardado no plano da posição. */
+  planScreenshot(userId: number, positionId: string): string | null {
+    const r = this.db
+      .select()
+      .from(tradePlans)
+      .where(and(eq(tradePlans.positionId, positionId), eq(tradePlans.userId, userId)))
+      .get();
+    return r?.screenshot ?? null;
+  }
+
+  /** Stops executados hoje e na semana (anti-revanche, SPEC §11). */
+  private stopCounts(accountId: string): { today: number; week: number } {
+    const t = this.now();
+    const weekAgo = t - 7 * 86_400_000;
+    const today = saoPauloDate(t);
+    const stops = this.db
+      .select()
+      .from(paperEvents)
+      .where(and(eq(paperEvents.accountId, accountId), eq(paperEvents.kind, 'saida')))
+      .all()
+      .filter((e) => e.time >= weekAgo && e.detail.startsWith('Stop executado'));
+    return {
+      today: stops.filter((e) => saoPauloDate(e.time) === today).length,
+      week: stops.length,
     };
   }
 
@@ -330,6 +377,7 @@ export class PaperService {
       orders,
       events,
       fx: fxNow,
+      stops: this.stopCounts(accountId),
     };
   }
 
@@ -405,6 +453,17 @@ export class PaperService {
       maxDrawdownPct: round(ddPct * 100, 2),
       withoutStop: trades.filter((t) => t.initialStop === null).length,
       stopMovedBack: trades.filter((t) => movedBack.has(t.id)).length,
+      withPlan: trades.filter((t) => t.plan?.released).length,
+      disciplinePct: n
+        ? round(
+            (trades.filter(
+              (t) => t.plan?.released && t.initialStop !== null && !movedBack.has(t.id),
+            ).length /
+              n) *
+              100,
+            1,
+          )
+        : null,
     };
     // IR simulado: só operações da B3 (cripto e EUA têm regras próprias, ainda não simuladas)
     const b3 = closed.filter((p) => p.market === 'b3');
@@ -558,6 +617,26 @@ export class PaperService {
       qty,
       detail: `${input.side === 'buy' ? 'Compra' : 'Venda'} ${input.type === 'market' ? 'a mercado' : input.type === 'limit' ? 'limitada' : 'stop'}${input.note ? ` — ${input.note}` : ''}`,
     });
+    if (input.plan) {
+      const { screenshot, ...rest } = input.plan;
+      const missing = planMissing(input.plan, {
+        stopLoss: input.stopLoss,
+        takeProfit: input.takeProfit,
+        qty,
+      });
+      this.db
+        .insert(tradePlans)
+        .values({
+          id: randomUUID(),
+          userId,
+          orderId: id,
+          json: JSON.stringify({ ...rest, missing }),
+          released: missing.length === 0,
+          screenshot,
+          createdAt: t,
+        })
+        .run();
+    }
     const w = await this.ensureWatcher(input.symbolId);
     // a mercado com mercado aberto e preço recente: executa já, no último preço + custos
     if (input.type === 'market' && w && last !== null) {
@@ -739,6 +818,12 @@ export class PaperService {
         fx,
         detail: `${fill.gap ? 'Abriu além do preço (gap): executada na abertura. ' : ''}Derrapagem ${formatNumber(fill.slippage, meta.priceDecimals)} por unidade.`,
       });
+      // o plano da ordem passa a ser o plano da posição
+      this.db
+        .update(tradePlans)
+        .set({ positionId: posId! })
+        .where(eq(tradePlans.orderId, o.id))
+        .run();
       return posId!;
     }
     // venda (fecha parte ou toda a posição comprada)

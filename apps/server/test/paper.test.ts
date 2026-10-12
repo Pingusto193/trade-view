@@ -198,4 +198,41 @@ describe('Modo Treino (preço real da fonte, dinheiro fictício)', () => {
     expect(msg.title).toBe('Treino · AAA');
     expect(msg.body).toMatch(/Stop executado a 94,99.*Dinheiro fictício/);
   });
+
+  it('plano de trade: liberado só completo; disciplina e anti-revanche no diário', async () => {
+    const { t, req, tick, acc, state } = await setup();
+    await req('PUT', `/api/paper/accounts/${acc.id}`, { fxManual: 5 });
+    const plan = {
+      setup: 's91',
+      tfContext: '1w',
+      tfSetup: '1d',
+      tfTrigger: '60m',
+      aligned: true,
+      exitCriterion: 'alvo',
+      reason: 'MME9 virou para cima com a MMA50 subindo',
+      checks: { ego: true, revanche: true, lucro: true, demais: true, plano: true },
+      warnings: [],
+      screenshot: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==',
+    };
+    // completo → liberado
+    await req('POST', '/api/paper/orders', order(acc.id, { stopLoss: 95, takeProfit: 110, plan }));
+    tick(99, 99.2, 94.5, 94.8); // stop
+    await vi.waitFor(async () => expect((await state()).positions).toHaveLength(0));
+    // incompleto (sem checklist) → registra, mas não libera
+    await req(
+      'POST',
+      '/api/paper/orders',
+      order(acc.id, { stopLoss: 90, plan: { ...plan, checks: {} } }),
+    );
+    const j = (await req('GET', `/api/paper/accounts/${acc.id}/journal`)).body;
+    expect(j.trades[0].plan).toMatchObject({ setup: 's91', released: true, hasScreenshot: true });
+    expect(j.stats).toMatchObject({ withPlan: 1, disciplinePct: 100 });
+    expect(JSON.stringify(j)).not.toContain('base64'); // o print não vai no diário
+    const s = await state();
+    expect(s.positions[0]!.plan).toMatchObject({ released: false });
+    expect((s as unknown as { stops: { today: number } }).stops.today).toBe(1);
+    // print servido como imagem
+    const img = await t.app.inject({ url: `/api/paper/positions/${j.trades[0].id}/screenshot` });
+    expect(img.headers['content-type']).toBe('image/jpeg');
+  });
 });
