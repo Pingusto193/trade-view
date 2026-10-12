@@ -26,11 +26,20 @@ describe('Binance', () => {
   });
 
   it('lê klines REST com preços em string', async () => {
-    const f = fakeFetch([{ match: (u) => u.includes('/api/v3/klines'), body: fixture('binance-klines.json') }]);
+    const f = fakeFetch([
+      { match: (u) => u.includes('/api/v3/klines'), body: fixture('binance-klines.json') },
+    ]);
     const b = new BinanceAdapter({ fetch: f });
     const c = await b.getCandles({ symbol: 'BTCUSDT', tf: '1d', limit: 5 });
     expect(c).toHaveLength(5);
-    expect(c[0]).toEqual({ time: D(2025, 10, 1), open: 60000, high: 60903, low: 59700, close: 60600, volume: 100 });
+    expect(c[0]).toEqual({
+      time: D(2025, 10, 1),
+      open: 60000,
+      high: 60903,
+      low: 59700,
+      close: 60600,
+      volume: 100,
+    });
     expect(f.calls[0]).toContain('interval=1d');
     expect(f.calls[0]).toContain('data-api.binance.vision');
   });
@@ -53,9 +62,17 @@ describe('Binance', () => {
   });
 
   it('metadados: tick, lote e volume só da exchange', async () => {
-    const f = fakeFetch([{ match: (u) => u.includes('exchangeInfo'), body: fixture('binance-exchangeinfo.json') }]);
+    const f = fakeFetch([
+      { match: (u) => u.includes('exchangeInfo'), body: fixture('binance-exchangeinfo.json') },
+    ]);
     const m = await new BinanceAdapter({ fetch: f }).getMeta('BTCUSDT');
-    expect(m).toMatchObject({ tickSize: 0.01, qtyStep: 0.00001, priceDecimals: 2, volume: 'exchange-only', currency: 'USD' });
+    expect(m).toMatchObject({
+      tickSize: 0.01,
+      qtyStep: 0.00001,
+      priceDecimals: 2,
+      volume: 'exchange-only',
+      currency: 'USD',
+    });
   });
 
   it('WebSocket: candle em formação, fechado e reconexão', async () => {
@@ -92,7 +109,9 @@ describe('Alpaca', () => {
   it('sem chave: erro claro de "não configurada"', async () => {
     const a = new AlpacaAdapter();
     expect(a.isConfigured()).toBe(false);
-    await expect(a.getCandles({ symbol: 'AAPL', tf: '1d' })).rejects.toBeInstanceOf(NotConfiguredError);
+    await expect(a.getCandles({ symbol: 'AAPL', tf: '1d' })).rejects.toBeInstanceOf(
+      NotConfiguredError,
+    );
   });
 
   it('diário com paginação; datas convertidas para a data de pregão de Nova York; semanal agregado', async () => {
@@ -100,9 +119,19 @@ describe('Alpaca', () => {
       { match: (u) => u.includes('page_token=PAGE2'), body: fixture('alpaca-bars-page2.json') },
       { match: (u) => u.includes('/v2/stocks/AAPL/bars'), body: fixture('alpaca-bars-page1.json') },
     ]);
-    const a = new AlpacaAdapter({ keyId: 'k', secretKey: 's', fetch: f, now: () => D(2025, 10, 14) });
+    const a = new AlpacaAdapter({
+      keyId: 'k',
+      secretKey: 's',
+      fetch: f,
+      now: () => D(2025, 10, 14),
+    });
     const d = await a.getCandles({ symbol: 'AAPL', tf: '1d' });
-    expect(d.map((c) => c.time)).toEqual([D(2025, 10, 6), D(2025, 10, 7), D(2025, 10, 8), D(2025, 10, 13)]);
+    expect(d.map((c) => c.time)).toEqual([
+      D(2025, 10, 6),
+      D(2025, 10, 7),
+      D(2025, 10, 8),
+      D(2025, 10, 13),
+    ]);
     expect(f.calls[0]).toContain('feed=sip');
     expect(f.calls[0]).toContain('adjustment=all');
     const w = await a.getCandles({ symbol: 'AAPL', tf: '1w' });
@@ -121,10 +150,17 @@ describe('Alpaca', () => {
 
 describe('brapi', () => {
   it('lê o histórico, ignora pontos nulos e usa a data de pregão de São Paulo', async () => {
-    const f = fakeFetch([{ match: (u) => u.includes('/quote/PETR4'), body: fixture('brapi-quote-history.json') }]);
+    const f = fakeFetch([
+      { match: (u) => u.includes('/quote/PETR4'), body: fixture('brapi-quote-history.json') },
+    ]);
     const b = new BrapiAdapter({ token: 'tok', fetch: f });
     const d = await b.getCandles({ symbol: 'PETR4', tf: '1d' });
-    expect(d.map((c) => c.time)).toEqual([D(2025, 10, 6), D(2025, 10, 7), D(2025, 10, 9), D(2025, 10, 13)]);
+    expect(d.map((c) => c.time)).toEqual([
+      D(2025, 10, 6),
+      D(2025, 10, 7),
+      D(2025, 10, 9),
+      D(2025, 10, 13),
+    ]);
     expect(f.calls[0]).toContain('range=3mo');
     expect(f.calls[0]).toContain('token=tok');
     const w = await b.getCandles({ symbol: 'PETR4', tf: '1w' });
@@ -133,9 +169,9 @@ describe('brapi', () => {
   });
 
   it('não oferece intradiário', async () => {
-    await expect(new BrapiAdapter().getCandles({ symbol: 'PETR4', tf: '60m' })).rejects.toBeInstanceOf(
-      TimeframeNotSupportedError,
-    );
+    await expect(
+      new BrapiAdapter().getCandles({ symbol: 'PETR4', tf: '60m' }),
+    ).rejects.toBeInstanceOf(TimeframeNotSupportedError);
   });
 
   it('assinatura semanal não soma o volume do dia duas vezes entre consultas', async () => {
@@ -148,7 +184,10 @@ describe('brapi', () => {
     ]);
     const b = new BrapiAdapter({ fetch: f, pollMs: 60_000, now: () => now });
     const ups: CandleUpdate[] = [];
-    const sub = b.subscribe('PETR4', '1w', { onCandle: (u) => ups.push(u), onStatus: () => undefined });
+    const sub = b.subscribe('PETR4', '1w', {
+      onCandle: (u) => ups.push(u),
+      onStatus: () => undefined,
+    });
     await vi.advanceTimersByTimeAsync(10);
     await vi.advanceTimersByTimeAsync(60_000);
     sub.close();
@@ -166,7 +205,9 @@ describe('brapi', () => {
 
 describe('Banco Central (SGS)', () => {
   it('lê série e acumula o CDI', async () => {
-    const f = fakeFetch([{ match: (u) => u.includes('bcdata.sgs.12'), body: fixture('bcb-sgs-12.json') }]);
+    const f = fakeFetch([
+      { match: (u) => u.includes('bcdata.sgs.12'), body: fixture('bcb-sgs-12.json') },
+    ]);
     const bcb = new BcbClient({ fetch: f });
     const pts = await bcb.getSeries(12, D(2025, 10, 1), D(2025, 10, 3));
     expect(pts).toHaveLength(3);
@@ -192,7 +233,15 @@ describe('COTAHIST (B3)', () => {
     return arr.join('');
   }
   const num = (v: number, w: number) => String(Math.round(v)).padStart(w, '0');
-  const rec = (date: string, ticker: string, tpmerc: string, o: number, h: number, l: number, c: number) =>
+  const rec = (
+    date: string,
+    ticker: string,
+    tpmerc: string,
+    o: number,
+    h: number,
+    l: number,
+    c: number,
+  ) =>
     line({
       1: '01',
       3: date,
@@ -246,7 +295,14 @@ describe('LiveCandleBuilder', () => {
   it('funde barras de 1 min em 5 min e fecha ao virar o período', () => {
     const out: CandleUpdate[] = [];
     const b = new LiveCandleBuilder('5m', 'UTC', (u) => out.push(u));
-    const bar = (t: number, c: number, v = 1): Candle => ({ time: t * 60_000, open: c, high: c + 1, low: c - 1, close: c, volume: v });
+    const bar = (t: number, c: number, v = 1): Candle => ({
+      time: t * 60_000,
+      open: c,
+      high: c + 1,
+      low: c - 1,
+      close: c,
+      volume: v,
+    });
     b.push(bar(0, 10));
     b.push(bar(1, 12));
     b.push(bar(5, 11));

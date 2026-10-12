@@ -1,0 +1,169 @@
+import type { IndicatorPreset } from '@radar/core';
+import { marketState, MARKET_STATE_LABEL } from '@radar/core';
+import type { FeedStatus, SymbolMeta, Timeframe } from '@radar/shared';
+import { TIMEFRAME_LABEL } from '@radar/shared';
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import type { ChartType } from '../lib/prefs';
+import { ChartController, type HoverInfo } from './controller';
+import { Legend } from './Legend';
+import { LiveSeries } from './live-series';
+import { SourceBadge } from './SourceBadge';
+import { indicatorWorker } from './worker-client';
+
+export interface ChartHandle {
+  syncCrosshair(timeMs: number | null, sourceTf: Timeframe): void;
+}
+
+export interface ChartViewProps {
+  id: string;
+  tf: Timeframe;
+  preset: IndicatorPreset;
+  chartType: ChartType;
+  upColor: string;
+  downColor: string;
+  /** Rótulo do papel no modo 3 escalas (Contexto / Setup / Gatilho). */
+  role?: string;
+  visibleBars?: number;
+  onCrosshairTime?(timeMs: number | null, tf: Timeframe): void;
+  ref?: Ref<ChartHandle>;
+}
+
+let seq = 0;
+
+export function ChartView(props: ChartViewProps) {
+  const {
+    id,
+    tf,
+    preset,
+    chartType,
+    upColor,
+    downColor,
+    role,
+    visibleBars = 150,
+    onCrosshairTime,
+    ref,
+  } = props;
+  const box = useRef<HTMLDivElement>(null);
+  const ctl = useRef<ChartController | null>(null);
+  const crossCb = useRef(onCrosshairTime);
+  crossCb.current = onCrosshairTime;
+  const [meta, setMeta] = useState<SymbolMeta | null>(null);
+  const [status, setStatus] = useState<FeedStatus>({ state: 'connecting' });
+  const [hover, setHover] = useState<HoverInfo | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [empty, setEmpty] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    syncCrosshair: (t, src) => ctl.current?.syncCrosshair(t, src),
+  }));
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    setMeta(null);
+    setError(null);
+    setEmpty(false);
+    setStatus({ state: 'connecting' });
+    const key = `chart-${++seq}`;
+    let raf = 0;
+    const controller = new ChartController(el, preset, {
+      tf,
+      chartType,
+      upColor,
+      downColor,
+      onHover: (h) => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => setHover(h));
+      },
+      onCrosshairTime: (t, src) => crossCb.current?.(t, src),
+    });
+    ctl.current = controller;
+
+    const stopWorker = indicatorWorker.listen(key, (msg) => {
+      if (msg.type === 'full') controller.setIndicators(msg.outputs);
+      else controller.applyTail(msg.time, msg.tail);
+      setHover((h) => (h && h.time !== series.candles.at(-1)?.time ? h : controller.lastHover()));
+    });
+
+    const series = new LiveSeries(id, tf, {
+      onReset: (candles, m, lastOpen) => {
+        setMeta(m);
+        setEmpty(candles.length === 0);
+        controller.setData(candles, m, visibleBars);
+        setHover(controller.lastHover());
+        indicatorWorker.post({
+          type: 'reset',
+          key,
+          tf,
+          tz: m.session.timezone,
+          preset,
+          candles,
+          lastOpen,
+        });
+      },
+      onUpdate: (candle, closed) => {
+        controller.update(candle);
+        indicatorWorker.post({ type: 'update', key, candle, closed });
+      },
+      onStatus: setStatus,
+      onError: setError,
+    });
+    void series.start();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      series.dispose();
+      stopWorker();
+      controller.dispose();
+      ctl.current = null;
+    };
+  }, [id, tf, preset, chartType, upColor, downColor, visibleBars]);
+
+  const state = meta ? marketState(meta.session, Date.now()) : null;
+
+  return (
+    <div className="relative flex h-full min-h-0 w-full flex-col">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line/60 px-2 py-1 text-xs">
+        {role && (
+          <span className="rounded bg-panel-2 px-1.5 py-0.5 font-semibold uppercase tracking-wide text-accent">
+            {role}
+          </span>
+        )}
+        <span className="font-semibold">{meta?.symbol ?? id.split(':')[1]}</span>
+        <span className="text-muted">{TIMEFRAME_LABEL[tf]}</span>
+        {state && (
+          <span
+            className={`rounded px-1.5 py-0.5 ${state === 'open' ? 'bg-up/15 text-up' : state === 'pre-open' ? 'bg-warn/15 text-warn' : 'bg-panel-2 text-muted'}`}
+          >
+            {MARKET_STATE_LABEL[state]}
+          </span>
+        )}
+        <SourceBadge meta={meta} status={status} />
+      </div>
+      {meta?.delay.kind === 'simulated' && (
+        <div className="bg-warn px-2 py-0.5 text-center text-xs font-bold tracking-widest text-black">
+          DADOS SIMULADOS — não representam nenhum mercado real
+        </div>
+      )}
+      <div className="relative min-h-0 flex-1">
+        <div ref={box} className="absolute inset-0" data-testid="chart-canvas" />
+        <Legend hover={hover} meta={meta} tf={tf} />
+        {error && (
+          <div className="absolute inset-x-2 top-12 rounded border border-down/50 bg-panel/95 p-3 text-sm">
+            <p className="font-semibold text-down">Não foi possível carregar os dados</p>
+            <p className="mt-1 text-muted">{error}</p>
+          </div>
+        )}
+        {!error && empty && (
+          <div className="absolute inset-x-2 top-12 rounded border border-warn/50 bg-panel/95 p-3 text-sm">
+            <p className="font-semibold text-warn">Sem candles para mostrar</p>
+            <p className="mt-1 text-muted">
+              {status.message ?? 'A fonte não devolveu dados para esta escala.'} Nenhum dado é
+              inventado: quando a fonte volta, o gráfico aparece.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

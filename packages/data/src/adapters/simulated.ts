@@ -46,32 +46,37 @@ function gauss(r: () => number): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r());
 }
 
-/** Gera candles de 1 minuto entre `from` e `to` de forma determinística (mesmo resultado sempre). */
+/** Nível "de fundo" contínuo no tempo (tendências lentas), em múltiplos do preço-base. */
+function level(base: number, tMs: number): number {
+  const d = tMs / DAY;
+  return base * Math.exp(0.25 * Math.sin(d / 60) + 0.1 * Math.sin(d / 13) + 0.02 * Math.sin(d * 3));
+}
+
+/**
+ * Gera candles de 1 minuto entre `from` e `to` de forma determinística: nível contínuo + ruído que
+ * volta à média (Ornstein-Uhlenbeck), para não haver saltos grandes na virada do dia.
+ */
 function minuteSeries(symbol: string, base: number, from: number, to: number): Candle[] {
-  // O preço de cada dia parte de um nível determinístico do dia, para não depender do intervalo pedido.
   const out: Candle[] = [];
   const start = Math.floor(from / 60_000) * 60_000;
   let dayKey = -1;
-  let price = base;
+  let noise = 0;
   let r = rng(1);
   for (let t = start; t <= to; t += 60_000) {
     const dk = Math.floor(t / DAY);
     if (dk !== dayKey) {
       dayKey = dk;
-      const dr = rng(seedOf(symbol) ^ dk);
-      // nível do dia: tendência lenta + ruído
-      price = base * Math.exp(0.25 * Math.sin(dk / 60) + 0.1 * Math.sin(dk / 13) + 0.03 * gauss(dr));
+      noise = 0;
       r = rng(seedOf(symbol) ^ (dk * 7919));
-      // avança até o minuto do dia
       const minutesIntoDay = Math.floor((t - dk * DAY) / 60_000);
-      for (let i = 0; i < minutesIntoDay; i++) price *= Math.exp(0.0009 * gauss(r));
+      for (let i = 0; i < minutesIntoDay; i++) noise = 0.97 * noise + 0.0009 * gauss(r);
     }
-    const open = price;
-    const close = open * Math.exp(0.0009 * gauss(r));
+    const open = level(base, t) * Math.exp(noise);
+    noise = 0.97 * noise + 0.0009 * gauss(r);
+    const close = level(base, t + 60_000) * Math.exp(noise);
     const high = Math.max(open, close) * (1 + Math.abs(0.0004 * gauss(r)));
     const low = Math.min(open, close) * (1 - Math.abs(0.0004 * gauss(r)));
     out.push({ time: t, open, high, low, close, volume: Math.round(50 + 100 * r()) });
-    price = close;
   }
   return out;
 }
@@ -90,9 +95,15 @@ export class SimulatedAdapter implements MarketDataAdapter {
 
   async searchSymbols(text: string): Promise<SymbolSearchResult[]> {
     const q = text.trim().toUpperCase();
-    return SYMBOLS.filter(([s, n]) => s.includes(q) || n.toUpperCase().includes(q) || q === 'SIM').map(
-      ([s, n]) => ({ id: symbolId(this.id, s), symbol: s, name: `${n} — SIMULADO`, market: this.market, sourceLabel: this.label }),
-    );
+    return SYMBOLS.filter(
+      ([s, n]) => s.includes(q) || n.toUpperCase().includes(q) || q === 'SIM',
+    ).map(([s, n]) => ({
+      id: symbolId(this.id, s),
+      symbol: s,
+      name: `${n} — SIMULADO`,
+      market: this.market,
+      sourceLabel: this.label,
+    }));
   }
 
   private base(symbol: string): number {
@@ -144,9 +155,8 @@ export class SimulatedAdapter implements MarketDataAdapter {
     const lastDay = Math.floor(to / DAY);
     for (let dk = firstDay; dk <= lastDay; dk++) {
       const r = rng(seedOf(req.symbol) ^ (dk * 104729));
-      const level = base * Math.exp(0.25 * Math.sin(dk / 60) + 0.1 * Math.sin(dk / 13));
-      const open = level * Math.exp(0.01 * gauss(r));
-      const close = level * Math.exp(0.01 * gauss(r));
+      const open = level(base, dk * DAY) * Math.exp(0.004 * gauss(r));
+      const close = level(base, (dk + 1) * DAY) * Math.exp(0.004 * gauss(r));
       const high = Math.max(open, close) * (1 + Math.abs(0.008 * gauss(r)));
       const low = Math.min(open, close) * (1 - Math.abs(0.008 * gauss(r)));
       days.push({ time: dk * DAY, open, high, low, close, volume: Math.round(1e5 * (0.5 + r())) });
@@ -174,7 +184,8 @@ export class SimulatedAdapter implements MarketDataAdapter {
         h.onCandle({ candle: { ...forming }, closed: true });
         forming = null;
       }
-      if (!forming) forming = { time: k, open: price, high: price, low: price, close: price, volume: 0 };
+      if (!forming)
+        forming = { time: k, open: price, high: price, low: price, close: price, volume: 0 };
       forming.high = Math.max(forming.high, price);
       forming.low = Math.min(forming.low, price);
       forming.close = price;

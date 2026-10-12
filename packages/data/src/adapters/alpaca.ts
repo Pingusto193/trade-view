@@ -131,7 +131,13 @@ export class AlpacaAdapter implements MarketDataAdapter {
     }));
     // Código exato digitado (ex.: "KO") é oferecido mesmo fora da lista.
     if (/^[A-Z]{1,5}(\.[A-Z])?$/.test(q) && !res.some((r) => r.symbol === q)) {
-      res.push({ id: symbolId(this.id, q), symbol: q, name: `${q} (código digitado)`, market: this.market, sourceLabel: this.label });
+      res.push({
+        id: symbolId(this.id, q),
+        symbol: q,
+        name: `${q} (código digitado)`,
+        market: this.market,
+        sourceLabel: this.label,
+      });
     }
     return res;
   }
@@ -155,7 +161,13 @@ export class AlpacaAdapter implements MarketDataAdapter {
       delay: { kind: 'delayed', minutes: 15 },
       volume: 'complete',
       liveVolume: 'partial',
-      session: { timezone: TZ, days: [1, 2, 3, 4, 5], preOpen: '04:00', open: '09:30', close: '16:00' },
+      session: {
+        timezone: TZ,
+        days: [1, 2, 3, 4, 5],
+        preOpen: '04:00',
+        open: '09:30',
+        close: '16:00',
+      },
       timeframes: ['1m', '5m', '15m', '30m', '60m', '1d', '1w', '1M'],
       adjusted: 'yes',
       notes: [
@@ -166,7 +178,13 @@ export class AlpacaAdapter implements MarketDataAdapter {
     };
   }
 
-  private async fetchBars(symbol: string, tf: keyof typeof ALPACA_TF, from: number, to: number, feed: 'sip' | 'iex'): Promise<Candle[]> {
+  private async fetchBars(
+    symbol: string,
+    tf: keyof typeof ALPACA_TF,
+    from: number,
+    to: number,
+    feed: 'sip' | 'iex',
+  ): Promise<Candle[]> {
     this.requireConfig();
     const out: Candle[] = [];
     let token: string | null | undefined;
@@ -194,7 +212,9 @@ export class AlpacaAdapter implements MarketDataAdapter {
   async getCandles(req: CandleRequest): Promise<Candle[]> {
     const now = this.now();
     const to = Math.min(req.to ?? now, now - SIP_DELAY_MS);
-    const base: keyof typeof ALPACA_TF = isIntradayTf(req.tf) ? (req.tf as keyof typeof ALPACA_TF) : '1d';
+    const base: keyof typeof ALPACA_TF = isIntradayTf(req.tf)
+      ? (req.tf as keyof typeof ALPACA_TF)
+      : '1d';
     const want = req.limit ?? 1500;
     const spanMs: Record<keyof typeof ALPACA_TF, number> = {
       '1m': 7 * 86_400_000,
@@ -204,7 +224,8 @@ export class AlpacaAdapter implements MarketDataAdapter {
       '60m': 365 * 86_400_000,
       '1d': 12 * 365 * 86_400_000,
     };
-    const from = req.from ?? to - (req.tf === '1w' || req.tf === '1M' ? 25 * 365 * 86_400_000 : spanMs[base]);
+    const from =
+      req.from ?? to - (req.tf === '1w' || req.tf === '1M' ? 25 * 365 * 86_400_000 : spanMs[base]);
     const bars = await this.fetchBars(req.symbol, base, from, to, 'sip');
     const candles = base === req.tf ? bars : aggregate(bars, '1d', req.tf, TZ);
     return candles.slice(-want);
@@ -212,7 +233,10 @@ export class AlpacaAdapter implements MarketDataAdapter {
 
   subscribe(symbol: string, tf: Timeframe, h: SubscribeHandlers): Subscription {
     if (!this.isConfigured()) {
-      h.onStatus({ state: 'not-configured', message: 'Alpaca sem chave: defina ALPACA_KEY_ID e ALPACA_SECRET_KEY' });
+      h.onStatus({
+        state: 'not-configured',
+        message: 'Alpaca sem chave: defina ALPACA_KEY_ID e ALPACA_SECRET_KEY',
+      });
       return { close: () => undefined };
     }
     const builder = new LiveCandleBuilder(tf, TZ, (u: CandleUpdate) => h.onCandle(u));
@@ -274,7 +298,9 @@ export class AlpacaAdapter implements MarketDataAdapter {
       url: this.opts.wsUrl ?? 'wss://stream.data.alpaca.markets/v2/iex',
       ...(this.opts.wsFactory ? { factory: this.opts.wsFactory } : {}),
       onOpen: (ws, reconnected) => {
-        ws.send(JSON.stringify({ action: 'auth', key: this.opts.keyId, secret: this.opts.secretKey }));
+        ws.send(
+          JSON.stringify({ action: 'auth', key: this.opts.keyId, secret: this.opts.secretKey }),
+        );
         if (reconnected) for (const h of this.statusListeners) h.onReconnect?.();
       },
       onMessage: (data) => {
@@ -289,18 +315,27 @@ export class AlpacaAdapter implements MarketDataAdapter {
           if (m.T === 'success' && m.msg === 'authenticated') {
             const symbols = [...this.listeners.keys()];
             if (symbols.length) {
-              this.ws?.send(JSON.stringify({ action: 'subscribe', bars: symbols, updatedBars: symbols }));
+              this.ws?.send(
+                JSON.stringify({ action: 'subscribe', bars: symbols, updatedBars: symbols }),
+              );
             }
             this.broadcastStatus({ state: 'ok', message: 'Ao vivo via IEX (volume parcial)' });
           } else if (m.T === 'error') {
-            this.broadcastStatus({ state: 'error', message: `Alpaca: ${String(m.msg)} (código ${String(m.code)})` });
+            this.broadcastStatus({
+              state: 'error',
+              message: `Alpaca: ${String(m.msg)} (código ${String(m.code)})`,
+            });
           } else if ((m.T === 'b' || m.T === 'u') && typeof m.S === 'string') {
             const bar = parseAlpacaBar(m as unknown as AlpacaBar, false);
             for (const fn of this.listeners.get(m.S) ?? []) fn(bar);
           }
         }
       },
-      onDown: (reason) => this.broadcastStatus({ state: 'error', message: `Conexão com a Alpaca caiu (${reason}); reconectando…` }),
+      onDown: (reason) =>
+        this.broadcastStatus({
+          state: 'error',
+          message: `Conexão com a Alpaca caiu (${reason}); reconectando…`,
+        }),
     });
   }
 }

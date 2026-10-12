@@ -205,7 +205,9 @@ export interface LineOutput {
   lineWidth: number;
   dashed: boolean;
   /** Linha desenhada como pontos/degraus (Stop ATR). */
-  style?: 'line' | 'step' | 'histogram';
+  style?: 'line' | 'step' | 'histogram' | 'dots';
+  /** Cor por ponto (opcional), alinhada com `values`. */
+  colors?: string[];
 }
 
 export interface IndicatorOutput {
@@ -390,14 +392,15 @@ function makeComputer(
           id: cfg.id,
           label: `${label} × ${m}`,
           pane: 'price',
-          lines: [
-            line('long', 'Stop ATR (alta)', '#22c55e', 2, false, 'step'),
-            line('short', 'Stop ATR (baixa)', '#ef4444', 2, false, 'step'),
-          ],
+          // Uma série só, desenhada como pontos coloridos: verde = acompanhando alta,
+          // vermelho = acompanhando baixa. Linhas contínuas ligariam as lacunas nas viradas.
+          lines: [{ ...line('stop', `Stop ATR × ${m}`, '#22c55e', 2, false, 'dots'), colors: [] }],
         },
         (o, ls) => {
-          set(ls[0], o.direction === 1 ? o.stop : Number.NaN);
-          set(ls[1], o.direction === -1 ? o.stop : Number.NaN);
+          const l = ls[0];
+          if (!l) return;
+          l.values.push(o.stop);
+          l.colors?.push(o.direction === -1 ? '#ef4444' : '#22c55e');
         },
       );
     }
@@ -535,7 +538,12 @@ export class IndicatorEngine {
   private popForming(): void {
     this.formingTimeWas = this.formingTime;
     this.candles.pop();
-    for (const comp of this.comps) for (const l of comp.output.lines) l.values.pop();
+    for (const comp of this.comps) {
+      for (const l of comp.output.lines) {
+        l.values.pop();
+        l.colors?.pop();
+      }
+    }
     this.formingTime = null;
   }
 

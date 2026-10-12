@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+/* Tema escuro por padrão (gráficos de trading). Cores em tokens para facilitar ajustes. */
+@theme {
+  --color-bg: #0b1120;
+  --color-panel: #111827;
+  --color-panel-2: #1f2937;
+  --color-line: #334155;
+  --color-text: #e5e7eb;
+  --color-muted: #94a3b8;
+  --color-up: #22c55e;
+  --color-down: #ef4444;
+  --color-accent: #38bdf8;
+  --color-warn: #f59e0b;
+  --color-train: #a855f7;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Áreas seguras do iPhone (notch / barra inferior) no modo instalado. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Abas deslizáveis do modo 3 escalas no celular. */
+.snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+}
+.snap-start {
+  scroll-snap-align: start;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}

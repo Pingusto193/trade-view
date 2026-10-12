@@ -1,9 +1,4 @@
-import type {
-  Candle,
-  SymbolMeta,
-  SymbolSearchResult,
-  Timeframe,
-} from '@radar/shared';
+import type { Candle, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
 import { HttpClient, type FetchFn } from '../http';
 import {
   DataSourceError,
@@ -38,7 +33,16 @@ export const BINANCE_INTERVAL: Readonly<Record<Timeframe, string>> = {
 };
 
 /** Linha de kline REST: [openTime, o, h, l, c, v, closeTime, quoteVol, trades, takerBase, takerQuote, ignore]. */
-export type BinanceKlineRow = [number, string, string, string, string, string, number, ...unknown[]];
+export type BinanceKlineRow = [
+  number,
+  string,
+  string,
+  string,
+  string,
+  string,
+  number,
+  ...unknown[],
+];
 
 export interface BinanceWsKline {
   e: 'kline';
@@ -153,7 +157,10 @@ export class BinanceAdapter implements MarketDataAdapter {
   }
 
   async searchSymbols(text: string): Promise<SymbolSearchResult[]> {
-    const q = text.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const q = text
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
     const hits = POPULAR.filter(([s, n]) => s.includes(q) || n.toUpperCase().includes(q));
     return hits.map(([s, n]) => ({
       id: symbolId(this.id, s),
@@ -183,7 +190,12 @@ export class BinanceAdapter implements MarketDataAdapter {
       market: this.market,
       source: this.id,
       sourceLabel: this.label,
-      currency: s.quoteAsset === 'BRL' ? 'BRL' : s.quoteAsset === 'USDT' || s.quoteAsset === 'USDC' ? 'USD' : s.quoteAsset,
+      currency:
+        s.quoteAsset === 'BRL'
+          ? 'BRL'
+          : s.quoteAsset === 'USDT' || s.quoteAsset === 'USDC'
+            ? 'USD'
+            : s.quoteAsset,
       tickSize: tick,
       lotSize: step,
       minQty: Number(lot?.minQty ?? step),
@@ -219,7 +231,8 @@ export class BinanceAdapter implements MarketDataAdapter {
       const rows = await this.http.getJson<BinanceKlineRow[]>(
         `${this.restBase}/api/v3/klines?${params.toString()}`,
       );
-      if (!Array.isArray(rows)) throw new DataSourceError('resposta inesperada de klines', this.label);
+      if (!Array.isArray(rows))
+        throw new DataSourceError('resposta inesperada de klines', this.label);
       const batch = rows.map(parseRestKline);
       out.unshift(...batch);
       if (rows.length < lim || req.from !== undefined) break;
