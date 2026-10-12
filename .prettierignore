@@ -9,3 +9,4 @@ packages/core/test/reference
 apps/web/dist
 apps/server/drizzle
 tools/chart-prototype
+.claude/
