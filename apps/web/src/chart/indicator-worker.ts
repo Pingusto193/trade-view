@@ -86,6 +86,8 @@ function buildSetups(st: Omit<ChartState, 'setups' | 'ind'>): SetupEngine {
   const engine = new SetupEngine({
     params: st.params,
     tick: st.tick,
+    tf: st.tf,
+    tz: st.tz,
     ...(higher ? { higher: higher.fn } : {}),
   });
   for (const c of st.closed) engine.push(c);

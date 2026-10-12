@@ -1,3 +1,4 @@
+import type { Timeframe } from '@radar/shared';
 import type { Side } from './fills';
 import type { PaParams } from './params';
 import type { PivotTracker } from './pivots';
@@ -82,6 +83,8 @@ export interface Fundamentals {
 
 export interface StepContext {
   pa: PaParams;
+  /** Escala do gráfico (alguns setups só valem em certas escalas, ex.: reflexividade no semanal). */
+  tf?: Timeframe;
   pivots: PivotTracker;
   higher?: HigherContext | null;
   /** Média que o ativo respeita (do painel de contexto), se conhecida. */

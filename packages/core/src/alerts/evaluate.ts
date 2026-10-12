@@ -362,6 +362,8 @@ export class AlertRuntime {
     const engine = new SetupEngine({
       params,
       tick: this.opts.tick,
+      tf: this.opts.tf,
+      tz: this.opts.tz,
       ...(higher ? { higher: higher.fn } : {}),
     });
     for (const c of this.closed) engine.push(c);

@@ -1,4 +1,4 @@
-import type { Candle } from '@radar/shared';
+import type { Candle, Timeframe } from '@radar/shared';
 import type { Detector } from './base';
 import { Consolidation } from './detectors/consolidation';
 import { Elastic } from './detectors/elastic';
@@ -13,6 +13,9 @@ import type { Fundamentals, HigherContext, SetupEvent, SetupId, StepContext } fr
 
 export interface EngineOptions {
   params?: SetupParams;
+  /** Escala e fuso da série (escala maior incremental e setups restritos a certas escalas). */
+  tf?: Timeframe;
+  tz?: string;
   tick?: number;
   /** Quais setups rodar (padrão: todos os ligados nos parâmetros). */
   only?: readonly SetupId[];
@@ -61,6 +64,7 @@ export class SetupEngine {
     this.pivots.step(this.series, t);
     const ctx: StepContext = {
       pa: this.params.pa,
+      ...(this.opts.tf ? { tf: this.opts.tf } : {}),
       pivots: this.pivots,
       higher: this.opts.higher?.(t) ?? null,
       respectedMa: this.opts.respectedMa ?? null,

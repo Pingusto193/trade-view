@@ -30,6 +30,8 @@ export const paParamsSchema = z.object({
   falseBreakBars: z.number().int().min(1).max(10).default(2),
   /** Rompimento só vale por fechamento (pavio não conta) — configurável. */
   breakoutByClose: z.boolean().default(true),
+  /** Média respeitada (§9): mínima a até k × ATR da média e fechamento acima (*0,5). */
+  respectNearAtr: z.number().min(0).max(3).default(0.5),
 });
 export type PaParams = z.infer<typeof paParamsSchema>;
 export const DEFAULT_PA: PaParams = paParamsSchema.parse({});
@@ -44,6 +46,8 @@ export const setup91Schema = z.object({
   enabled: z.boolean().default(true),
   /** Filtro de contexto: só comprar com a MMA50 subindo (Experimento E1 liga/desliga). */
   trendFilter: z.boolean().default(true),
+  /** Não operar em mercado lateral (ADX < adxMin ou MMA50 plana) — independente do trendFilter. */
+  lateralFilter: z.boolean().default(true),
   /** Não operar em mercado lateral: ADX abaixo disto (*20) ou MMA50 plana. */
   adxMin: z.number().min(0).max(60).default(20),
   stopMode: z.enum(['signal-low', 'prior-swing']).default('signal-low'),
@@ -83,6 +87,8 @@ export const pullbackSchema = z.object({
   exit: exitSchema.default({ mode: 'fixed', targetR: 2 }),
   /** Validade do setup após armar (candles). Decisão nossa. */
   expiryBars: z.number().int().min(1).max(20).default(5),
+  /** Validade do radar sem armar (candles). Decisão nossa. */
+  radarExpiryBars: z.number().int().min(1).max(100).default(15),
 });
 
 export const consolidationSchema = z.object({
@@ -102,6 +108,10 @@ export const consolidationSchema = z.object({
   stopMode: z.enum(['box-low', 'breakout-low']).default('box-low'),
   /** Entrada: 'breakout' (no rompimento) ou 'retest' (no reteste) — E5 compara. */
   entry: z.enum(['breakout', 'retest']).default('breakout'),
+  /** Reteste: até onde o preço pode voltar abaixo do topo rompido (k × ATR). Decisão nossa (0,25). */
+  retestAtr: z.number().min(0).max(3).default(0.25),
+  /** Reteste: candles de espera depois do rompimento. Decisão nossa (10). */
+  retestExpiryBars: z.number().int().min(1).max(50).default(10),
   exit: exitSchema.default({ mode: 'fixed', targetR: 2 }),
 });
 
@@ -117,6 +127,8 @@ export const elasticSchema = z.object({
   allowSell: z.boolean().default(true),
   /** Parcial opcional em 1R. */
   partialAt1R: z.boolean().default(false),
+  /** Stop: além do extremo do candle que fechou fora (SPEC) ou do extremo desde o radar (variante). */
+  stopMode: z.enum(['outside-bar', 'extreme-since']).default('outside-bar'),
 });
 
 export const reflexivitySchema = z.object({
@@ -127,6 +139,13 @@ export const reflexivitySchema = z.object({
   peak: z.enum(['52w', 'all']).default('52w'),
   /** Crescimento mínimo do LPA nos últimos 2 anos (*20% a.a.). */
   minEpsGrowth: z.number().min(0).max(2).default(0.2),
+  /** Só no semanal (a SPEC fala em médias e confirmação semanais). */
+  weeklyOnly: z.boolean().default(true),
+  /** Candles entre o pivô de alta e as médias voltarem a subir. Decisão nossa (8). */
+  confirmBars: z.number().int().min(1).max(50).default(8),
+  /** Validade do radar (candles). Decisão nossa (104 semanas). */
+  radarExpiryBars: z.number().int().min(4).max(520).default(104),
+  exit: exitSchema.default({ mode: 'fixed', targetR: 3 }),
 });
 
 export const setupParamsSchema = z.object({
