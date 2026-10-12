@@ -25,7 +25,7 @@ async function main() {
     ...(env.BRAPI_TOKEN ? { brapiToken: env.BRAPI_TOKEN } : {}),
     simulated: env.RADAR_SIMULATED,
   });
-  const { app } = await buildApp({ env, db, registry });
+  const { app, alerts } = await buildApp({ env, db, registry });
 
   const shutdown = async (sig: string) => {
     app.log.info(`recebido ${sig}, encerrando…`);
@@ -37,6 +37,8 @@ async function main() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
   await app.listen({ host: env.HOST, port: env.PORT });
+  // avaliação dos alertas 24 h (SPEC §10)
+  await alerts.start();
   if (env.RADAR_SIMULATED)
     app.log.warn('ATENÇÃO: fonte de DADOS SIMULADOS ligada (somente desenvolvimento)');
 }

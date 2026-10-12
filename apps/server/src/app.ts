@@ -8,6 +8,7 @@ import websocket from '@fastify/websocket';
 import type { AdapterRegistry } from '@radar/data';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
+import { AlertService } from './alerts/service';
 import { SecretBox } from './auth/crypto';
 import { AuthError, AuthService } from './auth/service';
 import type { Db } from './db/client';
@@ -15,6 +16,10 @@ import type { Env } from './env';
 import { CandleStore } from './market/candle-store';
 import { MarketHub } from './market/hub';
 import { MarketService } from './market/service';
+import { SmtpEmail, TelegramHttp, WebPushSender } from './notify/channels';
+import { Notifier, type Senders } from './notify/notifier';
+import { loadVapid } from './notify/vapid';
+import { alertRoutes } from './routes/alerts';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
 import { userDataRoutes } from './routes/userdata';
@@ -26,6 +31,8 @@ export interface AppDeps {
   registry: AdapterRegistry;
   now?: () => number;
   logger?: boolean;
+  /** Troca canais de notificação (testes usam canais falsos, sem internet). */
+  senders?: Partial<Senders>;
 }
 
 export interface RadarApp {
@@ -35,6 +42,8 @@ export interface RadarApp {
   store: CandleStore;
   auth: AuthService;
   sync: SyncHub;
+  alerts: AlertService;
+  notifier: Notifier;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -111,6 +120,42 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   marketRoutes(app, market, hub, env.RADAR_SIMULATED, sync);
   userDataRoutes(app, db, sync, deps.now);
 
+  const vapid = loadVapid(
+    env,
+    env.DATABASE_PATH === ':memory:' ? null : resolve(dirname(env.DATABASE_PATH), 'vapid.json'),
+  );
+  const senders: Senders = {
+    push:
+      deps.senders?.push ??
+      new WebPushSender(
+        vapid,
+        env.VAPID_SUBJECT ?? `mailto:radar@${new URL(env.PUBLIC_URL).hostname}`,
+      ),
+    telegram: deps.senders?.telegram ?? new TelegramHttp(),
+    email:
+      deps.senders?.email ??
+      new SmtpEmail({
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: env.SMTP_SECURE,
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASS,
+        from: env.SMTP_FROM,
+      }),
+  };
+  const notifier = new Notifier(db, box, senders, vapid.publicKey, deps.now);
+  const alerts = new AlertService(
+    db,
+    market,
+    hub,
+    notifier,
+    sync,
+    env.PUBLIC_URL,
+    app.log,
+    deps.now,
+  );
+  alertRoutes(app, alerts, notifier, sync, env.PUBLIC_URL);
+
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
   if (dist && existsSync(dist)) {
@@ -123,6 +168,9 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     });
   }
 
-  app.addHook('onClose', async () => hub.closeAll());
-  return { app, market, hub, store, auth, sync };
+  app.addHook('onClose', async () => {
+    alerts.close();
+    hub.closeAll();
+  });
+  return { app, market, hub, store, auth, sync, alerts, notifier };
 }

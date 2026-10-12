@@ -59,5 +59,28 @@ describe('isolamento entre usuários', () => {
         })
       ).statusCode,
     ).toBe(404);
+
+    // alertas e histórico de disparos também são isolados
+    const alert = {
+      symbolId: 'fake:AAA',
+      tf: '1d',
+      condition: { kind: 'price', level: 10, direction: 'up' },
+    };
+    const created = (await post('/api/alerts', alert, a)).json();
+    expect(created.id).toBeTruthy();
+    const as = (cookie: string, method: 'GET' | 'PUT' | 'DELETE', url: string, body?: unknown) =>
+      t.app.inject({
+        method,
+        url,
+        headers: { cookie, ...(body ? { 'content-type': 'application/json' } : {}) },
+        ...(body ? { payload: JSON.stringify(body) } : {}),
+      });
+    expect((await as(b, 'GET', '/api/alerts')).json().alerts).toEqual([]);
+    expect((await as(b, 'PUT', `/api/alerts/${created.id}`, alert)).statusCode).toBe(404);
+    expect((await as(b, 'DELETE', `/api/alerts/${created.id}`)).statusCode).toBe(404);
+    expect((await as(a, 'GET', '/api/alerts')).json().alerts).toHaveLength(1);
+    // sem login: nada
+    expect((await t.app.inject({ url: '/api/alerts' })).statusCode).toBe(401);
+    expect((await t.app.inject({ url: '/api/notify/settings' })).statusCode).toBe(401);
   });
 });

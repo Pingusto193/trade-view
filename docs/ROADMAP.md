@@ -52,9 +52,12 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 4 — Alertas
 
-- [ ] Avaliação no servidor (toque/fechamento), alertas de preço, desenho, indicador, setup, sistema
-- [ ] Web Push (VAPID), Telegram, e-mail; teste por canal, anti-duplicação, silêncio, histórico
-- [ ] Tela guiada de notificações no iPhone
+- [x] Avaliação no servidor (toque/fechamento), alertas de preço, desenho, indicador, setup, sistema
+  (lógica em `packages/core/src/alerts`, servidor em `apps/server/src/alerts`; stop/alvo de planos → Fase 5)
+- [~] Web Push (VAPID), Telegram, e-mail; teste por canal, anti-duplicação, silêncio, histórico — feito e
+  testado com canais falsos; **entrega real não testada** (sem internet aqui e sem iPhone): falta o critério
+  "um alerta de preço chega no iPhone com o app instalado"
+- [x] Tela guiada de notificações no iPhone (Alertas › Canais) + `docs/GUIA_NOTIFICACOES.md`
 
 ## Fase 5 — Risco, plano, diário e Modo Treino ao vivo
 

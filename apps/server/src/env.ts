@@ -28,6 +28,19 @@ export const envSchema = z.object({
   ALPACA_KEY_ID: z.string().optional(),
   ALPACA_SECRET_KEY: z.string().optional(),
   BRAPI_TOKEN: z.string().optional(),
+  /** E-mail dos alertas (SMTP). Sem SMTP_HOST, o canal e-mail fica indisponível. */
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().default(587),
+  /** 1 = TLS direto (porta 465); 0 = STARTTLS (porta 587). */
+  SMTP_SECURE: bool,
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+  /** Chaves VAPID do Web Push. Vazias = geradas uma vez e guardadas em vapid.json ao lado do banco. */
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  /** Contato exigido pelo Web Push (mailto: ou https:). */
+  VAPID_SUBJECT: z.string().optional(),
 });
 export type Env = z.infer<typeof envSchema>;
 

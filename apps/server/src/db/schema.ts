@@ -1,4 +1,12 @@
-import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 /**
  * Esquema do banco (SQLite). Datas sempre em UTC (ms desde 1970).
@@ -171,3 +179,85 @@ export const drawings = sqliteTable(
   },
   (t) => [index('drawings_user_symbol_idx').on(t.userId, t.symbolId)],
 );
+
+// ------------------------------------------------------------------ alertas e notificações (Fase 4)
+
+export const alerts = sqliteTable(
+  'alerts',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    /** AlertInput completo (condição, gatilho, canais, repetição) em JSON validado por zod. */
+    json: text('json').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+    lastFiredAt: integer('last_fired_at'),
+    /** Observação do servidor (ex.: "o desenho foi apagado"). */
+    status: text('status'),
+  },
+  (t) => [index('alerts_user_idx').on(t.userId)],
+);
+
+/** Histórico de disparos. `dedupKey` único por usuário garante anti-duplicação. */
+export const alertFires = sqliteTable(
+  'alert_fires',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    alertId: text('alert_id'),
+    dedupKey: text('dedup_key').notNull(),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    firedAt: integer('fired_at').notNull(),
+    candleTime: integer('candle_time').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    url: text('url').notNull(),
+    /** Resultado por canal (JSON). */
+    delivery: text('delivery').notNull().default('{}'),
+    silenced: integer('silenced', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex('alert_fires_dedup_idx').on(t.userId, t.dedupKey),
+    index('alert_fires_user_time_idx').on(t.userId, t.firedAt),
+  ],
+);
+
+export const pushSubscriptions = sqliteTable(
+  'push_subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull().unique(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    label: text('label').notNull(),
+    createdAt: integer('created_at').notNull(),
+    lastOkAt: integer('last_ok_at'),
+    failCount: integer('fail_count').notNull().default(0),
+  },
+  (t) => [index('push_user_idx').on(t.userId)],
+);
+
+export const notifySettings = sqliteTable('notify_settings', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  quietEnabled: integer('quiet_enabled', { mode: 'boolean' }).notNull().default(false),
+  quietStart: text('quiet_start').notNull().default('22:00'),
+  quietEnd: text('quiet_end').notNull().default('07:00'),
+  /** Token do bot do Telegram cifrado com o cofre (SecretBox). */
+  telegramTokenEnc: text('telegram_token_enc'),
+  telegramChatId: text('telegram_chat_id'),
+  email: text('email'),
+  updatedAt: integer('updated_at').notNull(),
+});

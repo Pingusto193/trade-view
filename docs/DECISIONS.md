@@ -100,3 +100,27 @@ Se a fonte falhar, o servidor devolve o cache com o erro e a data do último dad
 
 Só ligar atrás do proxy HTTPS (Caddy). Sem isso, um cliente poderia forjar `X-Forwarded-For` e driblar o
 limite de requisições.
+
+## ADR-0013 — Alertas: regras de avaliação e entrega (12/10/2026)
+
+Decisões nossas (a SPEC §10 não detalha):
+
+- **Mesma lógica do gráfico**: `AlertRuntime` em `packages/core/src/alerts` usa os mesmos indicadores, o mesmo
+  motor de setups e a mesma conversão tempo↔barra (`TimeIndex`, movida para o core) que o navegador.
+- **Borda, não estado**: dispara quando a condição passa de falsa para verdadeira; nunca repete enquanto ela
+  continua verdadeira. O histórico usado para aquecer nunca dispara.
+- **No toque** olha a máxima/mínima do candle em formação; **no fechamento** só o candle fechado. Setups e
+  indicadores são sempre no fechamento (o servidor recusa "no toque" para eles).
+- **Linhas de tendência e raios** são prolongados para a direita e avaliados no espaço de **barras**, igual ao
+  desenho na tela (num gráfico com fins de semana, a linha não "anda" pelo relógio). **Zonas** valem para a
+  direita, sem fim. A escala do alerta decide as barras.
+- **Candle repetido ou mais antigo** (reconexão) é ignorado; um candle em formação mais novo sem o fechamento
+  do anterior fecha o anterior (para não perder alerta de fechamento).
+- **Uma vez** (padrão) desliga o alerta após disparar; **sempre** rearma, com intervalo mínimo (padrão 15 min).
+- **Anti-duplicação**: chave única por usuário (`id do alerta + candle + evento`) no banco.
+- **Fonte caiu**: alerta de sistema se a fonte ficar com erro por mais de 3 minutos (uma vez por queda).
+- **Silêncio** no horário de Brasília; o disparo fica no histórico como "silenciado" e nada é enviado.
+- **Telegram**: bot do próprio usuário; token cifrado no servidor (SecretBox) e nunca devolvido ao navegador;
+  1 mensagem/s por chat e respeito a `retry_after`. **E-mail**: SMTP do `.env`. **Push**: chaves VAPID do
+  `.env` ou geradas uma vez em `vapid.json` (trocar invalida as assinaturas); 404/410 apagam a assinatura.
+- Alertas de **stop e alvo de planos** ficam para a Fase 5 (planos ainda não existem).

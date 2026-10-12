@@ -10,6 +10,7 @@ import {
 import { buildApp } from '../src/app';
 import { openDb } from '../src/db/client';
 import { envSchema } from '../src/env';
+import type { Senders } from '../src/notify/notifier';
 
 /** Fonte falsa controlada pelo teste. */
 export class FakeAdapter implements MarketDataAdapter {
@@ -87,7 +88,35 @@ export function series(n: number, start = 0): Candle[] {
   }));
 }
 
-export async function testApp(opts: { now?: number | (() => number); auth?: boolean } = {}) {
+/** Canais de notificação falsos: guardam o que seria enviado. */
+export class FakeSenders {
+  push: { endpoint: string; payload: string }[] = [];
+  telegram: { chatId: string; text: string }[] = [];
+  email: { to: string; subject: string; text: string }[] = [];
+  /** Endpoints que o "serviço de push" diz que não existem mais (410). */
+  gone = new Set<string>();
+  readonly senders: Senders = {
+    push: {
+      send: async (t, payload) => {
+        if (this.gone.has(t.endpoint)) return { ok: false, gone: true, message: '410' };
+        this.push.push({ endpoint: t.endpoint, payload });
+        return { ok: true };
+      },
+    },
+    telegram: {
+      send: async (_token, chatId, text) => void this.telegram.push({ chatId, text }),
+      detectChat: async () => ({ chatId: '4242', name: 'Teste' }),
+    },
+    email: {
+      available: true,
+      send: async (to, subject, text) => void this.email.push({ to, subject, text }),
+    },
+  };
+}
+
+export async function testApp(
+  opts: { now?: number | (() => number); auth?: boolean; senders?: FakeSenders } = {},
+) {
   const fake = new FakeAdapter();
   const env = envSchema.parse({
     NODE_ENV: 'test',
@@ -102,6 +131,7 @@ export async function testApp(opts: { now?: number | (() => number); auth?: bool
     db,
     registry,
     logger: false,
+    ...(opts.senders ? { senders: opts.senders.senders } : {}),
     ...(opts.now !== undefined
       ? { now: typeof opts.now === 'function' ? opts.now : () => opts.now as number }
       : {}),
