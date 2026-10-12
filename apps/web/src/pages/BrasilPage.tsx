@@ -32,8 +32,7 @@ export function TrainingVsCdi() {
         <HelpLink slug="antes-de-arriscar-dinheiro" label="Ajuda: custo de oportunidade" />
       </h2>
       <p className="text-xs text-muted">
-        Conta “{a.name}” desde{' '}
-        {formatDateTime(start!)}
+        Conta “{a.name}” desde {formatDateTime(start!)}
       </p>
       <ul className="mt-1 space-y-1">
         <li>
