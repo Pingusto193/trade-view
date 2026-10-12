@@ -397,8 +397,16 @@ export class ChartController {
     return this.hoverAt(this.candles.length - 1);
   }
 
+  /** O usuário está com o cursor/dedo sobre um candle (a legenda mostra esse candle). */
+  private hovering = false;
+
+  isHovering(): boolean {
+    return this.hovering;
+  }
+
   private onCrosshair = (p: MouseEventParams<Time>) => {
     if (this.disposed) return;
+    this.hovering = p.time !== undefined;
     if (p.time === undefined) {
       this.opts.onHover(this.lastHover());
       if (!this.syncing) this.opts.onCrosshairTime?.(null, this.opts.tf);

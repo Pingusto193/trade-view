@@ -166,7 +166,12 @@ export function ChartView(props: ChartViewProps) {
       }
       if (msg.type === 'full') controller.setIndicators(msg.outputs);
       else controller.applyTail(msg.time, msg.tail);
-      setHover((h) => (h && h.time !== series.candles.at(-1)?.time ? h : controller.lastHover()));
+      // sem cursor sobre um candle antigo, a legenda acompanha o último (inclusive quando o minuto vira)
+      setHover((h) =>
+        controller.isHovering() && h && h.time !== series.candles.at(-1)?.time
+          ? h
+          : controller.lastHover(),
+      );
     });
 
     const series = new LiveSeries(id, tf, {

@@ -24,7 +24,9 @@ export function Legend({
   return (
     <div className="pointer-events-none absolute left-2 right-20 top-1 z-10 text-[11px] leading-tight">
       <div className="flex flex-wrap gap-x-2 rounded bg-bg/70 px-1">
-        <span className="text-muted">{chartTimeLabel(toChartTime(c.time, tf), tf)}</span>
+        <span className="text-muted" data-testid="legend-time">
+          {chartTimeLabel(toChartTime(c.time, tf), tf)}
+        </span>
         <span>
           A <b>{formatNumber(c.open, d)}</b>
         </span>

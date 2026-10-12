@@ -21,6 +21,22 @@ test('candle de 1 minuto atualiza sozinho (tempo real via WebSocket)', async ({ 
   await expect.poll(async () => close.textContent(), { timeout: 10_000 }).not.toBe(first);
 });
 
+test('a legenda continua ao vivo depois que o minuto vira (candle novo)', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'um projeto basta (espera até 60 s)');
+  test.setTimeout(100_000);
+  await page.goto(`${SIM}&tf=1m`);
+  const date = page.locator('[data-testid="legend-time"]');
+  await expect(date).toBeVisible();
+  const startLabel = await date.textContent();
+  // espera o candle novo começar
+  await expect.poll(async () => date.textContent(), { timeout: 70_000 }).not.toBe(startLabel);
+  const close = page.locator('b.text-up, b.text-down').first();
+  const first = await close.textContent();
+  await expect.poll(async () => close.textContent(), { timeout: 10_000 }).not.toBe(first);
+});
+
 test('trocar escala atualiza a URL e o rótulo', async ({ page }) => {
   await page.goto(`${SIM}&tf=1d`);
   await page.getByRole('button', { name: 'S', exact: true }).click();
