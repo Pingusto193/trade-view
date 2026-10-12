@@ -7,12 +7,12 @@ coverage/
 .env
 .env.*
 !.env.example
-data/
+/data/
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
-backups/
+/backups/
 playwright-report/
 test-results/
 .DS_Store

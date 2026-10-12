@@ -1,0 +1,59 @@
+{
+ "results": [
+  {
+   "symbol": "PETR4",
+   "shortName": "PETROBRAS PN",
+   "currency": "BRL",
+   "regularMarketPrice": 32.0,
+   "historicalDataPrice": [
+    {
+     "date": 1759755600,
+     "open": 30.0,
+     "high": 31.0,
+     "low": 29.5,
+     "close": 30.5,
+     "volume": 10000000,
+     "adjustedClose": 30.5
+    },
+    {
+     "date": 1759842000,
+     "open": 30.5,
+     "high": 31.5,
+     "low": 30.0,
+     "close": 31.0,
+     "volume": 12000000,
+     "adjustedClose": 31.0
+    },
+    {
+     "date": 1759928400,
+     "open": null,
+     "high": null,
+     "low": null,
+     "close": null,
+     "volume": null,
+     "adjustedClose": null
+    },
+    {
+     "date": 1760014800,
+     "open": 31.0,
+     "high": 32.0,
+     "low": 30.8,
+     "close": 31.8,
+     "volume": 9000000,
+     "adjustedClose": 31.8
+    },
+    {
+     "date": 1760360400,
+     "open": 31.8,
+     "high": 32.5,
+     "low": 31.5,
+     "close": 32.0,
+     "volume": 8000000,
+     "adjustedClose": 32.0
+    }
+   ]
+  }
+ ],
+ "requestedAt": "2025-10-13T20:00:00.000Z",
+ "took": "0ms"
+}

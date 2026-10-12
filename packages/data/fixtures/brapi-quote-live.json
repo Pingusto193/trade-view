@@ -1,0 +1,17 @@
+{
+ "results": [
+  {
+   "symbol": "PETR4",
+   "shortName": "PETROBRAS PN",
+   "currency": "BRL",
+   "regularMarketPrice": 32.4,
+   "regularMarketOpen": 32.1,
+   "regularMarketDayHigh": 32.6,
+   "regularMarketDayLow": 31.9,
+   "regularMarketVolume": 3000000,
+   "regularMarketTime": "2025-10-14T14:30:00.000Z"
+  }
+ ],
+ "requestedAt": "2025-10-14T15:00:00.000Z",
+ "took": "0ms"
+}
