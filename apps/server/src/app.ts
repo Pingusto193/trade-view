@@ -17,6 +17,8 @@ import { MarketHub } from './market/hub';
 import { MarketService } from './market/service';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
+import { userDataRoutes } from './routes/userdata';
+import { SyncHub } from './sync';
 
 export interface AppDeps {
   env: Env;
@@ -32,6 +34,7 @@ export interface RadarApp {
   hub: MarketHub;
   store: CandleStore;
   auth: AuthService;
+  sync: SyncHub;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -104,7 +107,9 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     simulated: env.RADAR_SIMULATED,
   }));
 
-  marketRoutes(app, market, hub, env.RADAR_SIMULATED);
+  const sync = new SyncHub();
+  marketRoutes(app, market, hub, env.RADAR_SIMULATED, sync);
+  userDataRoutes(app, db, sync, deps.now);
 
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
@@ -119,5 +124,5 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   }
 
   app.addHook('onClose', async () => hub.closeAll());
-  return { app, market, hub, store, auth };
+  return { app, market, hub, store, auth, sync };
 }

@@ -58,6 +58,13 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('error'), message: z.string() }),
   z.object({ type: z.literal('pong') }),
+  /** Algo mudou em outro aparelho: o navegador recarrega o tópico (desenhos, listas, preferências). */
+  z.object({
+    type: z.literal('sync'),
+    topic: z.enum(['drawings', 'watchlists', 'presets', 'prefs']),
+    symbolId: z.string().optional(),
+    origin: z.string().optional(),
+  }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 

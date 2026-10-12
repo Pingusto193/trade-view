@@ -7,3 +7,4 @@ export * from './candles/time';
 export * from './candles/aggregate';
 export * from './candles/heikin-ashi';
 export * from './candles/session';
+export * from './risk/position';

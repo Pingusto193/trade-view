@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
+import type { SyncHub } from '../sync';
 
 const MAX_SUBS_PER_SOCKET = 24;
 
@@ -11,6 +12,7 @@ export function marketRoutes(
   market: MarketService,
   hub: MarketHub,
   simulated: boolean,
+  sync: SyncHub,
 ) {
   app.get('/api/sources', async () => ({
     simulated,
@@ -49,11 +51,12 @@ export function marketRoutes(
   /**
    * WebSocket de tempo real. Mensagens validadas com zod (protocolo em @radar/shared).
    */
-  app.get('/ws', { websocket: true }, (socket) => {
+  app.get('/ws', { websocket: true }, (socket, req) => {
     const subs = new Map<string, () => void>();
     const send = (msg: ServerMessage) => {
       if (socket.readyState === 1) socket.send(JSON.stringify(msg));
     };
+    const offSync = req.user ? sync.register(req.user.id, send) : () => undefined;
     socket.on('message', (raw: Buffer) => {
       let data: unknown;
       try {
@@ -86,6 +89,7 @@ export function marketRoutes(
       }
     });
     socket.on('close', () => {
+      offSync();
       for (const off of subs.values()) off();
       subs.clear();
     });
