@@ -3,7 +3,6 @@ import {
   IndicatorEngine,
   SetupEngine,
   computeContext,
-  higherContextFn,
   sessionDate,
   setupParamsSchema,
   type ContextReport,
@@ -81,26 +80,21 @@ function post(msg: WorkerOut) {
   (self as unknown as DedicatedWorkerGlobalScope).postMessage(msg);
 }
 
+/** O motor acompanha a escala maior sozinho, candle a candle (agrega `tf` no período maior). */
 function buildSetups(st: Omit<ChartState, 'setups' | 'ind'>): SetupEngine {
-  const higher = higherContextFn(st.closed, st.tf, st.tz, st.params.pa);
-  const engine = new SetupEngine({
-    params: st.params,
-    tick: st.tick,
-    tf: st.tf,
-    tz: st.tz,
-    ...(higher ? { higher: higher.fn } : {}),
-  });
+  const engine = new SetupEngine({ params: st.params, tick: st.tick, tf: st.tf, tz: st.tz });
   for (const c of st.closed) engine.push(c);
   return engine;
 }
 
 function analysis(st: ChartState, events: SetupEvent[], reset: boolean, key: string) {
-  const higher = higherContextFn(st.closed, st.tf, st.tz, st.params.pa);
-  const h = higher?.fn(st.closed.length - 1) ?? null;
+  // o painel usa a MESMA escala maior que o motor usou no último candle fechado
+  const h = st.setups.higherNow();
+  const higherTf = st.setups.higherTf;
   const context = computeContext(st.closed, {
     pa: st.params.pa,
-    higherTrend: h && h.trend !== 'indefinida' ? h.trend : null,
-    ...(higher ? { higherLabel: TIMEFRAME_LABEL[higher.tf] } : {}),
+    higherTrend: h ? h.trend : null,
+    ...(higherTf ? { higherLabel: TIMEFRAME_LABEL[higherTf] } : {}),
   });
   const open: OpenSetup[] = st.setups.open().map((o) => ({
     setup: o.setup,
@@ -119,7 +113,7 @@ function analysis(st: ChartState, events: SetupEvent[], reset: boolean, key: str
     events,
     open,
     context,
-    higherLabel: higher ? TIMEFRAME_LABEL[higher.tf] : null,
+    higherLabel: higherTf ? TIMEFRAME_LABEL[higherTf] : null,
   });
 }
 

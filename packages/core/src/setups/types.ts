@@ -63,6 +63,11 @@ export interface SetupEvent {
   /** Pontuação (recuo à média). */
   score?: number;
   notes?: string[];
+  /**
+   * Aviso vermelho (SPEC §9): compra com a escala maior em baixa (ou venda com ela em alta). O texto do
+   * aviso vai em `notes`.
+   */
+  againstHigher?: boolean;
   /** Índices de candles que justificam o evento (para destacar no gráfico). */
   refs?: number[];
   params?: unknown;
@@ -86,8 +91,9 @@ export interface StepContext {
   /** Escala do gráfico (alguns setups só valem em certas escalas, ex.: reflexividade no semanal). */
   tf?: Timeframe;
   pivots: PivotTracker;
+  /** Tendência do último candle FECHADO da escala maior (null = sem dados). */
   higher?: HigherContext | null;
-  /** Média que o ativo respeita (do painel de contexto), se conhecida. */
+  /** Média que o ativo respeita neste candle (mesma regra do painel, só com fundos já confirmados). */
   respectedMa?: 'ema9' | 'ema21' | 'sma50' | 'sma100' | 'sma200' | null;
   fundamentals?: Fundamentals | null;
 }

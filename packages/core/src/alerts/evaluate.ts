@@ -3,7 +3,6 @@ import { INDICATOR_RULE_LABEL, formatNumber } from '@radar/shared';
 import { TimeIndex } from '../candles/time-index';
 import { EmaStream, SmaStream } from '../indicators/averages';
 import { BollingerStream, DmiStream } from '../indicators/volatility';
-import { higherContextFn } from '../setups/higher';
 import { DEFAULT_SETUP_PARAMS, type SetupParams } from '../setups/params';
 import { SetupEngine } from '../setups/engine';
 import { EXIT_LABEL, SETUP_LABEL, STATE_LABEL, type SetupEvent } from '../setups/types';
@@ -358,13 +357,13 @@ export class AlertRuntime {
 
   private buildSetups(): void {
     const params = this.opts.setupParams ?? DEFAULT_SETUP_PARAMS;
-    const higher = higherContextFn(this.closed, this.opts.tf, this.opts.tz, params.pa);
+    // o motor acompanha a escala maior sozinho (incremental): nada aqui depende do array `closed`,
+    // que é cortado em maxCandles
     const engine = new SetupEngine({
       params,
       tick: this.opts.tick,
       tf: this.opts.tf,
       tz: this.opts.tz,
-      ...(higher ? { higher: higher.fn } : {}),
     });
     for (const c of this.closed) engine.push(c);
     engine.events.length = 0;
@@ -460,11 +459,15 @@ export class AlertRuntime {
           e.resultR !== undefined
             ? `, ${e.resultR >= 0 ? '+' : ''}${formatNumber(e.resultR, 2)}R`
             : '';
+        // aviso vermelho (SPEC §9) também chega na notificação
+        const red = e.againstHigher
+          ? ` ${e.notes?.find((n) => n.startsWith('⚠ Aviso vermelho')) ?? '⚠ Aviso vermelho: contra a escala maior'}`
+          : '';
         out.push({
           alertId: a.id,
           candleTime: c.time,
           price: e.price ?? c.close,
-          text: `${SETUP_LABEL[e.setup]}${side}: ${STATE_LABEL[e.state]}${exit}${r} — ${e.reason}`,
+          text: `${SETUP_LABEL[e.setup]}${side}: ${STATE_LABEL[e.state]}${exit}${r} — ${e.reason}${red}`,
           dedup: `${e.id}:${e.state}:${e.index}`,
         });
       }

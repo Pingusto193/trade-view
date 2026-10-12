@@ -13,8 +13,12 @@ export interface Pivot {
 export type StructureTrend = 'alta' | 'baixa' | 'indefinida';
 
 /**
- * Topos e fundos por fractal (SPEC §8.1): um candle é topo se sua máxima for estritamente maior que as
- * dos N candles de cada lado. Ele só é registrado no candle t = index + N (sem look-ahead).
+ * Topos e fundos por fractal (SPEC §8.1): um candle é topo se sua máxima for maior que as dos N candles
+ * de cada lado. Ele só é registrado no candle t = index + N (sem look-ahead).
+ *
+ * Empates (decisão nossa, não do vídeo): estrito à esquerda e não estrito à direita. Em topos ou fundos
+ * duplos de preço idêntico dentro da vizinhança, vale o PRIMEIRO dos empatados (o nível foi formado ali);
+ * os seguintes não viram pivô.
  */
 export class PivotTracker {
   readonly highs: Pivot[] = [];
@@ -35,8 +39,9 @@ export class PivotTracker {
     for (let k = m - this.n; k <= m + this.n; k++) {
       if (k === m) continue;
       const o = s.c(k);
-      if (o.high >= c.high) isHigh = false;
-      if (o.low <= c.low) isLow = false;
+      // à esquerda o empate desqualifica (já houve um igual antes); à direita, não
+      if (k < m ? o.high >= c.high : o.high > c.high) isHigh = false;
+      if (k < m ? o.low <= c.low : o.low < c.low) isLow = false;
     }
     const out: Pivot[] = [];
     if (isHigh) {
