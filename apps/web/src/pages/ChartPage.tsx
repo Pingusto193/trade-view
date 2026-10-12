@@ -10,6 +10,8 @@ import { DrawingToolbar, TOOL_SHORTCUTS } from '../chart/drawings/DrawingToolbar
 import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
+import { ContextPanel } from '../components/ContextPanel';
+import { SetupsPanel } from '../components/SetupsPanel';
 import { WatchlistPanel } from '../components/WatchlistPanel';
 import { usePrefs, usePreset, type ChartType } from '../lib/prefs';
 
@@ -43,7 +45,11 @@ export function ChartPage() {
   const [drawMode, setDrawMode] = useState(false);
   const [showList, setShowList] = useState(false);
   const [editPreset, setEditPreset] = useState(false);
-  const [showWatch, setShowWatch] = useState(() => window.innerWidth >= 1200);
+  type Side = 'lista' | 'setups' | 'contexto';
+  const [side, setSide] = useState<Side | null>(() =>
+    window.innerWidth >= 1200 ? 'setups' : null,
+  );
+  const toggleSide = (s: Side) => setSide((cur) => (cur === s ? null : s));
 
   // Atalhos de teclado (computador): Esc, Delete e Alt + letra da ferramenta.
   useEffect(() => {
@@ -185,14 +191,23 @@ export function ChartPage() {
         >
           ⚙
         </button>
-        <button
-          type="button"
-          onClick={() => setShowWatch((v) => !v)}
-          className={`hidden whitespace-nowrap rounded border px-2 py-1 text-xs lg:block ${showWatch ? 'border-accent text-accent' : 'border-line text-muted'}`}
-          aria-pressed={showWatch}
-        >
-          ☆ Lista
-        </button>
+        {(
+          [
+            ['setups', '◎ Setups'],
+            ['contexto', '🧭 Contexto'],
+            ['lista', '☆ Lista'],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => toggleSide(k)}
+            className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${side === k ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'} ${k === 'lista' ? 'hidden lg:block' : ''}`}
+            aria-pressed={side === k}
+          >
+            {label}
+          </button>
+        ))}
       </div>
       {drawMode && <DrawingToolbar />}
       {prefs.chartType === 'heikin' && (
@@ -226,9 +241,26 @@ export function ChartPage() {
             />
           )}
         </div>
-        {showWatch && (
-          <aside className="hidden w-72 shrink-0 border-l border-line lg:block">
-            <WatchlistPanel compact />
+        {side && (
+          <aside
+            className="fixed inset-x-0 bottom-0 z-30 h-[60vh] rounded-t-xl border-t border-line bg-panel shadow-2xl lg:static lg:z-auto lg:h-auto lg:w-80 lg:shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none"
+            aria-label={side === 'lista' ? 'Lista' : side === 'setups' ? 'Setups' : 'Contexto'}
+          >
+            <div className="flex items-center border-b border-line px-2 py-1 text-xs lg:hidden">
+              <b>{side === 'lista' ? 'Lista' : side === 'setups' ? 'Setups' : 'Contexto'}</b>
+              <button
+                className="ml-auto px-2 text-muted"
+                onClick={() => setSide(null)}
+                aria-label="Fechar painel"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="h-[calc(100%-1.75rem)] lg:h-full">
+              {side === 'lista' && <WatchlistPanel compact />}
+              {side === 'setups' && <SetupsPanel id={id} tf={fractal ? mapping.setup : tf} />}
+              {side === 'contexto' && <ContextPanel id={id} tf={fractal ? mapping.setup : tf} />}
+            </div>
           </aside>
         )}
       </div>

@@ -15,6 +15,8 @@ export const prefsSchema = z.object({
   riskPct: z.number().positive().max(10).default(1),
   /** Limite máximo de risco por trade (aviso acima de 2%; bloqueio de confirmação acima do limite). */
   maxRiskPct: z.number().positive().max(10).default(2),
+  /** Parâmetros dos setups (validados no navegador e no servidor pelo schema do core). */
+  setupParams: z.record(z.string(), z.unknown()).optional(),
 });
 export type Prefs = z.infer<typeof prefsSchema>;
 export const DEFAULT_PREFS: Prefs = prefsSchema.parse({});

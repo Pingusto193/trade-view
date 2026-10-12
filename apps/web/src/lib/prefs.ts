@@ -20,6 +20,7 @@ interface PrefsState extends Prefs {
   setPresetId(id: string): void;
   setFractalId(id: string): void;
   setRisk(p: Partial<Pick<Prefs, 'capital' | 'riskPct' | 'maxRiskPct'>>): void;
+  setSetupParams(p: Record<string, unknown>): void;
   pushRecent(id: string, tf: Timeframe): void;
   loadFromServer(): Promise<void>;
   savePreset(p: IndicatorPreset): Promise<void>;
@@ -60,6 +61,10 @@ export const usePrefs = create<PrefsState>()(
       setRisk: (p) => {
         set(p);
         pushToServer(p);
+      },
+      setSetupParams: (setupParams) => {
+        set({ setupParams });
+        pushToServer({ setupParams });
       },
       pushRecent: (id, tf) => {
         set((s) => ({ recent: [{ id, tf }, ...s.recent.filter((r) => r.id !== id)].slice(0, 12) }));

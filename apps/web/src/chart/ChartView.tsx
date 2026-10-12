@@ -3,6 +3,7 @@ import { marketState, MARKET_STATE_LABEL } from '@radar/core';
 import type { FeedStatus, SymbolMeta, Timeframe } from '@radar/shared';
 import { TIMEFRAME_LABEL } from '@radar/shared';
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { analysisKey, useAnalysis, useSetupView } from '../lib/analysis-store';
 import { newDrawingId, useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { usePrefs, type ChartType } from '../lib/prefs';
 import { ChartController, type HoverInfo } from './controller';
@@ -113,7 +114,26 @@ export function ChartView(props: ChartViewProps) {
     applyTool();
     const unsubTool = useDrawingTool.subscribe(applyTool);
 
+    const aKey = analysisKey(id, tf);
+    const applyView = () => {
+      const a = useAnalysis.getState().byKey[aKey];
+      const v = useSetupView.getState();
+      if (!a) return;
+      controller.setSetupMarkers(a.events, v.hidden, v.showRadar);
+      controller.setOpenSetups(a.open, v.hidden);
+    };
+    const unsubView = useSetupView.subscribe(applyView);
+    const unsubFocus = useAnalysis.subscribe((st, prev) => {
+      if (st.focus && st.focus !== prev.focus && st.focus.key === aKey) {
+        controller.focusIndex(st.focus.index);
+      }
+    });
     const stopWorker = indicatorWorker.listen(key, (msg) => {
+      if (msg.type === 'analysis') {
+        useAnalysis.getState().apply(aKey, msg, msg.reset);
+        applyView();
+        return;
+      }
       if (msg.type === 'full') controller.setIndicators(msg.outputs);
       else controller.applyTail(msg.time, msg.tail);
       setHover((h) => (h && h.time !== series.candles.at(-1)?.time ? h : controller.lastHover()));
@@ -130,9 +150,11 @@ export function ChartView(props: ChartViewProps) {
           key,
           tf,
           tz: m.session.timezone,
+          tick: m.tickSize,
           preset,
           candles,
           lastOpen,
+          setupParams: usePrefs.getState().setupParams ?? {},
         });
       },
       onUpdate: (candle, closed) => {
@@ -145,6 +167,8 @@ export function ChartView(props: ChartViewProps) {
     void series.start();
 
     return () => {
+      unsubView();
+      unsubFocus();
       unsubDrawings();
       unsubTool();
       cancelAnimationFrame(raf);

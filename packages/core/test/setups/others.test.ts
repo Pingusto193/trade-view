@@ -186,3 +186,18 @@ describe('Painel de contexto', () => {
     expect(computeContext(b.list)!.trend.value).toBe('lateral');
   });
 });
+
+describe('escala maior sem look-ahead', () => {
+  it('cada candle diário só enxerga o último semanal FECHADO', async () => {
+    const { higherContextFn, trendSeries, aggregate } = await import('../../src');
+    const b = waves(1, 30);
+    const h = higherContextFn(b.list, '1d', 'UTC');
+    expect(h?.tf).toBe('1w');
+    const weekly = aggregate(b.list, '1d', '1w', 'UTC');
+    const tr = trendSeries(weekly);
+    // último candle diário: pertence à última semana (em formação) → usa a penúltima
+    const last = h!.fn(b.n - 1);
+    const expected = tr[weekly.length - 2];
+    expect(last?.trend ?? 'indefinida').toBe(expected);
+  });
+});

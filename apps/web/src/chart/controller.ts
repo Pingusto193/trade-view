@@ -7,6 +7,7 @@ import {
 } from '@radar/core';
 import type { Candle, SymbolMeta, Timeframe } from '@radar/shared';
 import { formatNumber, formatVolume, timeframeRank } from '@radar/shared';
+import { SETUP_LABEL, type SetupEvent, type SetupId } from '@radar/core';
 import {
   CandlestickSeries,
   ColorType,
@@ -16,7 +17,11 @@ import {
   LineStyle,
   LineType,
   createChart,
+  createSeriesMarkers,
   type IChartApi,
+  type IPriceLine,
+  type ISeriesMarkersPluginApi,
+  type SeriesMarker,
   type ISeriesApi,
   type MouseEventParams,
   type SeriesType,
@@ -26,7 +31,17 @@ import {
 import type { ChartType } from '../lib/prefs';
 import { chartTimeLabel, fromChartTime, tickLabel, toChartTime } from './time';
 import { DrawingManager, type DrawingCallbacks } from './drawings/manager';
-import type { TailValue } from './indicator-worker';
+import type { OpenSetup, TailValue } from './indicator-worker';
+
+const SHORT: Record<SetupId, string> = {
+  s91: '9.1',
+  s92: '9.2',
+  s93: '9.3',
+  pullback: 'RM',
+  consolidation: 'CONS',
+  elastic: 'ELA',
+  reflexivity: 'REF',
+};
 
 /** Painéis que ganham área própria. ATR fica só na legenda (SPEC: "ATR 14 (exibição)"). */
 const SUB_PANES: readonly Pane[] = ['volume', 'adx', 'macd', 'rsi', 'stochastic'];
@@ -65,6 +80,8 @@ export class ChartController {
   private disposed = false;
   private lastTimesLen = 0;
   readonly drawings: DrawingManager | null = null;
+  private markers: ISeriesMarkersPluginApi<Time> | null = null;
+  private setupLines: IPriceLine[] = [];
 
   constructor(
     container: HTMLElement,
@@ -416,6 +433,114 @@ export class ChartController {
     } finally {
       this.syncing = false;
     }
+  }
+
+  /** Marcadores dos setups no gráfico (SPEC §8): armado, acionado e resultado. */
+  setSetupMarkers(
+    events: readonly SetupEvent[],
+    hidden: readonly SetupId[],
+    showRadar: boolean,
+  ): void {
+    const tf = this.opts.tf;
+    const list: SeriesMarker<Time>[] = [];
+    const armed = new Set<string>();
+    for (const e of events) {
+      if (hidden.includes(e.setup)) continue;
+      const buy = e.side === 'buy';
+      const t = toChartTime(e.time, tf);
+      const tag = SHORT[e.setup];
+      if (e.state === 'radar') {
+        if (!showRadar) continue;
+        list.push({
+          time: t,
+          position: buy ? 'belowBar' : 'aboveBar',
+          shape: 'circle',
+          color: '#64748b',
+          text: tag,
+          size: 0.6,
+          id: e.id + ':' + e.index,
+        });
+      } else if (e.state === 'armado') {
+        // só o primeiro "armado" de cada ocorrência (as atualizações de gatilho poluem); sem texto
+        // para não amontoar — o nome do setup vai na seta de entrada
+        if (armed.has(e.id)) continue;
+        armed.add(e.id);
+        list.push({
+          time: t,
+          position: buy ? 'belowBar' : 'aboveBar',
+          shape: buy ? 'arrowUp' : 'arrowDown',
+          color: '#38bdf8',
+          size: 0.6,
+          id: e.id + ':armado',
+        });
+      } else if (e.state === 'acionado' && e.entryIndex === e.index && e.price === e.entry) {
+        list.push({
+          time: t,
+          position: buy ? 'belowBar' : 'aboveBar',
+          shape: buy ? 'arrowUp' : 'arrowDown',
+          color: buy ? '#22c55e' : '#ef4444',
+          text: `${tag} ${buy ? 'C' : 'V'}`,
+          size: 1,
+          id: e.id + ':entrada',
+        });
+      } else if (e.state === 'encerrado') {
+        if (e.resultR !== undefined) {
+          const r = e.resultR;
+          list.push({
+            time: t,
+            position: buy ? 'aboveBar' : 'belowBar',
+            shape: 'square',
+            color: r >= 0 ? '#22c55e' : '#ef4444',
+            text: `${r >= 0 ? '+' : ''}${formatNumber(r, 1)}R`,
+            size: 0.7,
+            id: e.id + ':fim',
+          });
+        }
+      }
+    }
+    list.sort((a, b) => (a.time as number) - (b.time as number));
+    if (!this.markers) this.markers = createSeriesMarkers(this.price, list);
+    else this.markers.setMarkers(list);
+  }
+
+  /** Linhas de gatilho, stop e alvo das ocorrências abertas. */
+  setOpenSetups(open: readonly OpenSetup[], hidden: readonly SetupId[]): void {
+    for (const l of this.setupLines) this.price.removePriceLine(l);
+    this.setupLines = [];
+    for (const o of open) {
+      if (hidden.includes(o.setup) || o.state === 'radar') continue;
+      const name = SETUP_LABEL[o.setup].replace('Setup ', '');
+      const add = (
+        price: number | null,
+        color: string,
+        title: string,
+        style = LineStyle.Dashed,
+      ) => {
+        if (price === null || !Number.isFinite(price)) return;
+        this.setupLines.push(
+          this.price.createPriceLine({
+            price,
+            color,
+            lineWidth: 1,
+            lineStyle: style,
+            axisLabelVisible: true,
+            title,
+          }),
+        );
+      };
+      if (o.state === 'armado') add(o.trigger, '#38bdf8', `Gatilho ${name}`);
+      if (o.state === 'acionado') add(o.entry, '#e2e8f0', `Entrada ${name}`, LineStyle.Solid);
+      add(o.stop, '#ef4444', `Stop ${name}`);
+      add(o.target, '#22c55e', `Alvo ${name}`);
+    }
+  }
+
+  /** Centraliza o gráfico num candle. */
+  focusIndex(index: number): void {
+    const half = 40;
+    this.chart.timeScale().setVisibleLogicalRange({ from: index - half, to: index + half });
+    const c = this.candles[index];
+    if (c) this.chart.setCrosshairPosition(c.close, toChartTime(c.time, this.opts.tf), this.price);
   }
 
   dispose(): void {

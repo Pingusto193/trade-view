@@ -1,15 +1,24 @@
 /// <reference lib="webworker" />
 import {
   IndicatorEngine,
+  SetupEngine,
+  computeContext,
+  higherContextFn,
   sessionDate,
+  setupParamsSchema,
+  type ContextReport,
   type IndicatorOutput,
   type IndicatorPreset,
+  type SetupEvent,
+  type SetupParams,
 } from '@radar/core';
 import type { Candle, Timeframe } from '@radar/shared';
+import { TIMEFRAME_LABEL } from '@radar/shared';
 
 /**
- * Web Worker de indicadores (SPEC §5: cálculos pesados fora da thread principal).
- * Usa o mesmo IndicatorEngine do servidor e do backtest (princípio 4).
+ * Web Worker de análise (SPEC §5: cálculos pesados fora da thread principal). Usa exatamente o mesmo
+ * código do servidor e do backtest (princípio 4): indicadores, motor de setups e contexto.
+ * Setups e contexto só usam candles FECHADOS (sem look-ahead).
  */
 export type WorkerIn =
   | {
@@ -17,9 +26,11 @@ export type WorkerIn =
       key: string;
       tf: Timeframe;
       tz: string;
+      tick: number;
       preset: IndicatorPreset;
       candles: Candle[];
       lastOpen: boolean;
+      setupParams?: unknown;
     }
   | { type: 'update'; key: string; candle: Candle; closed: boolean }
   | { type: 'dispose'; key: string };
@@ -31,46 +42,134 @@ export interface TailValue {
   color?: string;
 }
 
+export interface OpenSetup {
+  setup: SetupEvent['setup'];
+  id: string;
+  side: SetupEvent['side'];
+  state: 'radar' | 'armado' | 'acionado';
+  trigger: number | null;
+  stop: number | null;
+  target: number | null;
+  entry: number | null;
+}
+
+export interface AnalysisPayload {
+  events: SetupEvent[];
+  open: OpenSetup[];
+  context: ContextReport | null;
+  higherLabel: string | null;
+}
+
 export type WorkerOut =
   | { type: 'full'; key: string; outputs: IndicatorOutput[] }
-  | { type: 'delta'; key: string; mode: 'append' | 'replace'; time: number; tail: TailValue[] };
+  | { type: 'delta'; key: string; mode: 'append' | 'replace'; time: number; tail: TailValue[] }
+  | ({ type: 'analysis'; key: string; reset: boolean } & AnalysisPayload);
 
-const engines = new Map<string, IndicatorEngine>();
+interface ChartState {
+  ind: IndicatorEngine;
+  setups: SetupEngine;
+  closed: Candle[];
+  tf: Timeframe;
+  tz: string;
+  tick: number;
+  params: SetupParams;
+}
+
+const charts = new Map<string, ChartState>();
 
 function post(msg: WorkerOut) {
   (self as unknown as DedicatedWorkerGlobalScope).postMessage(msg);
 }
 
+function buildSetups(st: Omit<ChartState, 'setups' | 'ind'>): SetupEngine {
+  const higher = higherContextFn(st.closed, st.tf, st.tz, st.params.pa);
+  const engine = new SetupEngine({
+    params: st.params,
+    tick: st.tick,
+    ...(higher ? { higher: higher.fn } : {}),
+  });
+  for (const c of st.closed) engine.push(c);
+  return engine;
+}
+
+function analysis(st: ChartState, events: SetupEvent[], reset: boolean, key: string) {
+  const higher = higherContextFn(st.closed, st.tf, st.tz, st.params.pa);
+  const h = higher?.fn(st.closed.length - 1) ?? null;
+  const context = computeContext(st.closed, {
+    pa: st.params.pa,
+    higherTrend: h && h.trend !== 'indefinida' ? h.trend : null,
+    ...(higher ? { higherLabel: TIMEFRAME_LABEL[higher.tf] } : {}),
+  });
+  const open: OpenSetup[] = st.setups.open().map((o) => ({
+    setup: o.setup,
+    id: o.id,
+    side: o.side,
+    state: o.state,
+    trigger: o.trigger,
+    stop: o.stop,
+    target: o.target,
+    entry: o.entry,
+  }));
+  post({
+    type: 'analysis',
+    key,
+    reset,
+    events,
+    open,
+    context,
+    higherLabel: higher ? TIMEFRAME_LABEL[higher.tf] : null,
+  });
+}
+
 self.onmessage = (ev: MessageEvent<WorkerIn>) => {
   const m = ev.data;
   if (m.type === 'dispose') {
-    engines.delete(m.key);
+    charts.delete(m.key);
     return;
   }
   if (m.type === 'reset') {
-    const engine = new IndicatorEngine(m.preset, m.tf, (t) => sessionDate(t, m.tz));
-    engines.set(m.key, engine);
-    post({ type: 'full', key: m.key, outputs: engine.reset(m.candles, m.lastOpen) });
+    const parsed = setupParamsSchema.safeParse(m.setupParams ?? {});
+    const params = parsed.success ? parsed.data : setupParamsSchema.parse({});
+    const ind = new IndicatorEngine(m.preset, m.tf, (t) => sessionDate(t, m.tz));
+    post({ type: 'full', key: m.key, outputs: ind.reset(m.candles, m.lastOpen) });
+    const closed = m.lastOpen ? m.candles.slice(0, -1) : [...m.candles];
+    const base = { closed, tf: m.tf, tz: m.tz, tick: m.tick, params };
+    const st: ChartState = { ...base, ind, setups: buildSetups(base) };
+    charts.set(m.key, st);
+    analysis(st, st.setups.events, true, m.key);
     return;
   }
-  const engine = engines.get(m.key);
-  if (!engine) return;
-  const mode = engine.update(m.candle, m.closed);
+  const st = charts.get(m.key);
+  if (!st) return;
+  const mode = st.ind.update(m.candle, m.closed);
   if (mode === 'reset') {
-    post({ type: 'full', key: m.key, outputs: engine.outputs });
+    post({ type: 'full', key: m.key, outputs: st.ind.outputs });
+  } else {
+    const tail: TailValue[] = [];
+    for (const o of st.ind.outputs) {
+      for (const l of o.lines) {
+        const color = l.colors?.[l.colors.length - 1];
+        tail.push({
+          id: o.id,
+          line: l.key,
+          value: l.values[l.values.length - 1] ?? Number.NaN,
+          ...(color ? { color } : {}),
+        });
+      }
+    }
+    post({ type: 'delta', key: m.key, mode, time: m.candle.time, tail });
+  }
+  if (!m.closed) return;
+  const last = st.closed[st.closed.length - 1];
+  if (last && m.candle.time <= last.time) {
+    // correção de candle já fechado: refaz a análise inteira
+    const idx = st.closed.findIndex((c) => c.time === m.candle.time);
+    if (idx >= 0) st.closed[idx] = m.candle;
+    st.setups = buildSetups(st);
+    analysis(st, st.setups.events, true, m.key);
     return;
   }
-  const tail: TailValue[] = [];
-  for (const o of engine.outputs) {
-    for (const l of o.lines) {
-      const color = l.colors?.[l.colors.length - 1];
-      tail.push({
-        id: o.id,
-        line: l.key,
-        value: l.values[l.values.length - 1] ?? Number.NaN,
-        ...(color ? { color } : {}),
-      });
-    }
-  }
-  post({ type: 'delta', key: m.key, mode, time: m.candle.time, tail });
+  st.closed.push(m.candle);
+  const evs = st.setups.push(m.candle);
+  analysis(st, evs, false, m.key);
 };

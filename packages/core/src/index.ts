@@ -16,3 +16,4 @@ export * from './setups/fills';
 export * from './setups/types';
 export * from './setups/engine';
 export * from './setups/context';
+export * from './setups/higher';
