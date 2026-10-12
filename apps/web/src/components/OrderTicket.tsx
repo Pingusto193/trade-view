@@ -1,5 +1,11 @@
 import { positionSize, riskPctWarnings } from '@radar/core';
-import { formatBRL, formatNumber, type SymbolMeta, type Timeframe } from '@radar/shared';
+import {
+  formatBRL,
+  formatNumber,
+  isIntraday,
+  type SymbolMeta,
+  type Timeframe,
+} from '@radar/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { create } from 'zustand';
 import { Link } from 'react-router-dom';
@@ -52,11 +58,17 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
   useEffect(() => {
     if (!usePaper.getState().loaded) void usePaper.getState().load();
     void getMeta(symbolId)
-      .then(setMeta)
+      .then((m) => {
+        setMeta(m);
+        // mesmo preço que o servidor usa para executar: o do candle mais curto disponível
+        const tfExec = m.timeframes.includes('1m')
+          ? '1m'
+          : (m.timeframes.find((t) => isIntraday(t)) ?? '1d');
+        return getCandles(symbolId, tfExec, 2).then((r) =>
+          setLast(r.candles.at(-1)?.close ?? null),
+        );
+      })
       .catch((e: Error) => setMsg(e.message));
-    void getCandles(symbolId, '1d', 2)
-      .then((r) => setLast(r.candles.at(-1)?.close ?? null))
-      .catch(() => undefined);
   }, [symbolId]);
 
   const entry = type === 'market' ? last : numDot(price);
