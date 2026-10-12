@@ -101,6 +101,126 @@ Se a fonte falhar, o servidor devolve o cache com o erro e a data do último dad
 Só ligar atrás do proxy HTTPS (Caddy). Sem isso, um cliente poderia forjar `X-Forwarded-For` e driblar o
 limite de requisições.
 
+## ADR-0012 — Setups: decisões nossas (12/10/2026)
+
+Decisões nossas (não do vídeo nem da SPEC) ao levar as §8–§9 para `packages/core/src/setups`. Nomes entre crases
+são parâmetros de `params.ts` (padrão entre parênteses); os outros números são constantes no código.
+
+**Geral e execução**
+- Uma ocorrência ativa por setup e por lado: sinal novo do mesmo lado é ignorado enquanto houver outra aberta.
+- Gatilhos são ordem stop intrabar (máxima + 1 tick); `pa.breakoutByClose` só vale para rompimento de nível. O
+  tick a mais ou a menos é arredondado ao tick mais próximo (fora da grade: 0,5 a 1,5 tick). Alvo em R sobre o
+  preço real de execução, arredondado ao tick (pode dar 1,999R).
+- Stop já movido que é atingido = `saida-dinamica` (execução intrabar no stop, não fechamento). Sempre há stop
+  de proteção: a opção "sem stop, com confirmação explícita" da §8.2 não existe.
+- Radar do recuo e da consolidação e encerramentos sem execução gravam `price = null` (a §8 pede preço sempre).
+- **Risco conhecido — candle da entrada.** Nele só o stop é conferido, e conta como atingido após a entrada se o
+  candle chega lá, de qualquer cor (conservador, SPEC §12.1; `fills.ts`). Em passeios aleatórios: cerca de
+  30–40% de "stop no mesmo candle" no 9.2/9.3 (10–20% no 9.1), muitos em candles de alta, em que a mínima deve
+  ter vindo antes: resultados pessimistas. Resolver exige dados da escala menor (opção da §12.1, não feita).
+
+**Pivôs e primitivas**
+- Pivôs (`pa.pivotN` = 2): empate estrito à esquerda e não estrito à direita (em topos/fundos duplos idênticos
+  vale o primeiro); um candle pode ser topo e fundo ao mesmo tempo. Estrutura: dois últimos topos e fundos
+  confirmados, sem exigir alternância; preços iguais = indefinida.
+- Pivô de alta: topo intermediário = maior máxima estritamente entre F1 e F2 (não precisa ser topo confirmado);
+  vale qualquer fechamento acima dele enquanto F1 e F2 forem os dois últimos fundos; sinaliza uma vez por F2.
+- Inclinação = (MA[t] − MA[t − `pa.slopeLookback`]) ÷ ATR14[t]; plana abaixo de `pa.flatSlope` (0,15); acentuada
+  a partir de `pa.steepSlope` (1,0); "virando" (virada em 1 candle) tem prioridade.
+- Força e ignição: corpo médio dos 20 candles anteriores (sem o atual) e cor certa. Martelo: corpo todo no terço
+  superior, de qualquer cor. Amplitude zero nunca é padrão. Volume relativo: MMA21 dos 21 anteriores; secando =
+  média do trecho abaixo da MMA21 de antes dele e inclinação negativa.
+- Falso rompimento: fechar de novo no nível ou abaixo, a partir do candle seguinte (fechar no nível = dentro).
+
+**Contexto e escala maior**
+- Tendência (painel e escala maior, mesma função): alta = ADX ≥ 20, estrutura de alta, MMA50 subindo no candle e
+  inclinação ≥ `pa.flatSlope`; baixa, o espelho; resto, lateral; "indefinida" sem MMA50, inclinação (55 candles)
+  ou ADX. ADX de 20 a 25, inclusive: zona cinzenta.
+- Média respeitada: a que segurou ≥ 2 dos últimos 3 a 5 fundos confirmados (mínima até `pa.respectNearAtr` (0,5)
+  ATR e fechamento acima, no candle do fundo); empate: a mais curta (9, 21, 50, 100, 200). Só compra.
+- Maturidade (experimental, só em alta): jovem = MMA50 virou para cima há até 20 candles E fechou acima do
+  último topo confirmado até a virada; cansada = preço mais de 8 ATR acima da MMA200, MMA50 achatando
+  (inclinação de 10 candles < a dos 10 anteriores) E volume médio das altas < o das baixas nos últimos 20;
+  madura = médias alinhadas há 30 candles ou mais.
+- Vento: maior em baixa = "Vento CONTRA para compras" qualquer que seja esta escala; maior em alta e esta em
+  baixa = contra para vendas; maior lateral ou esta lateral/indefinida = neutro.
+- Escala maior (1m→5m, 5m→15m, 15m/30m→60m, 60m→1d, 1d→1w, 1w→1M): agregada no fuso da bolsa se a origem é
+  intradiária, em UTC se diária+ (ADR-0006); semana conta no mês da sua segunda. Só muda quando chega o 1º
+  candle menor do período seguinte (conservador). "Indefinida" = sem dados.
+- `higher`/`respectedMa` do motor são só para testes: gráfico, backtest e alertas passam `tf`/`tz` e o motor
+  calcula a cada candle. O painel (31+ candles fechados, no último fechado) usa a mesma escala maior do motor.
+- Aviso vermelho: em radar, armado e acionado (não no encerrado), compra com a escala maior em baixa e venda com
+  ela em alta; vai em `notes`, `againstHigher` e no texto do alerta. Só o recuo bloqueia por isso.
+
+**Setups 9.1, 9.2 e 9.3**
+- Começam direto em "armado". Saída dinâmica (`exit.mode = 'dynamic'`, também no 9.2/9.3): MME9 virou contra,
+  até no candle da entrada → stop 1 tick além do extremo desse candle, valendo do seguinte em diante.
+- 9.1: filtros só no candle-sinal. `trendFilter` = MMA50[t] > MMA50[t−1]; `lateralFilter` (ligado) = ADX ≥
+  `adxMin` (20) e |inclinação da MMA50| ≥ `pa.flatSlope`. O E1 alterna só o `trendFilter`.
+- 9.1: o gatilho desloca (`trailTrigger`) a cada candle enquanto a MME9 não cair; o stop do `stopMode` (mínima
+  do sinal ou fundo anterior = último fundo confirmado, sem limite de idade) é mantido, só desce se a menor
+  mínima desde o sinal ficar abaixo dele e nunca sobe antes do acionamento. MME9 caindo antes = `desarme`.
+- 9.2/9.3: pernada = MME9[t] > MME9[t−1], sem mínimo de fechamentos crescentes (o candle que virou a MME9 já é
+  referência); zera com a MME9 sem subir, mas o desarme exige MME9 caindo. Sem filtro de ADX.
+- 9.2/9.3: a pernada segue acompanhada durante a ocorrência; depois do trade pode armar de novo, inclusive no
+  candle em que o trade encerrou. Stop = menor mínima desde o candle após a referência − 1 tick.
+- 9.3 (`consecutive`, ligado): fechar igual à referência quebra a sequência; fechamentos que armaram uma
+  ocorrência ou que ocorrem durante ela não contam, e a contagem recomeça quando ela termina.
+
+**Recuo à média**
+- Tendência = estrutura de alta, MMA50 subindo no candle, MME21 subindo (inclinação com `pa.slopeLookback`
+  positiva) e escala maior não em baixa (lateral ou sem dados deixam passar).
+- `ma = 'auto'` usa a média respeitada (pode ser MMA100/MMA200; sem nenhuma, MME21), fixa durante a ocorrência.
+- Radar: mínima ≤ média + `nearAtr` (0,5) × ATR14 e fechamento abaixo do último topo. Arma no fechamento de
+  qualquer candle na região (e fechamento ≥ média − 0,5 ATR), inclusive o do radar; força, martelo e inside bar
+  só somam 1 ponto. Cada candle novo na região refaz gatilho (máxima + 1 tick) e stop. `expiryBars` (5) conta do
+  1º "armado"; radar sem armar expira com `radarExpiryBars` (15): arma de S a S+N.
+- Pontos: volume secando, amplitude < `smallerRangeRatio` (0,7) × a do impulso, fundo anterior preservado; −1
+  por alerta. `requireHealthy`: ≥ 2 pontos (sem o padrão) e nenhum alerta.
+- Escala maior em baixa invalida antes do gatilho (sabida na abertura); perder o fundo anterior ao topo (não o
+  do recuo) ou a média virar e ser perdida, no fechamento, só invalidam se a ordem stop não executou.
+- Stop `pullback-low`: menor mínima desde o topo − 1 tick. Condução: fechou abaixo da MME9 → stop 1 tick abaixo
+  da mínima. Não feitos: alvo no topo anterior, parcial 2R/3R, Stop ATR e ponto por volume no gatilho.
+
+**Consolidação**
+- Caixa = maior janela válida de `minBars` (8) a `maxBars` − 1 candles até o candle anterior; todo candle que
+  fecha dentro (inclusive o do radar) entra nela e topo/base acompanham os pavios. Tendência antes = fechamento
+  acima da MMA50 e MMA50 acima da de 5 candles antes, no candle anterior à caixa.
+- Amplitude até `maxRangeAtr` (3) × ATR14 anterior à caixa (passou: cancela); acima de `maxBars` (40) sem
+  romper, expira, e nova caixa só no candle seguinte. Contração: Bollinger 20/2 no menor quintil dos últimos 120
+  OU ATR5 < ATR20 (leitura de "ATR5/ATR20 caindo"). Sem dado de volume, a caixa não é filtrada por volume (o
+  radar avisa).
+- Rompimento exige corpo ≥ `breakoutBodyMult` (1,2) × média dos 20 anteriores (qualquer cor) e volume; sem eles
+  cancela. Sem dado de volume: com `requireVolume` cancela explicando; desligado, arma com "sem dado de volume".
+  Entrada `breakout`: na abertura do candle seguinte, a qualquer preço.
+- Reteste: mínima até `retestAtr` (0,25) ATR acima do topo; gatilho = máxima + 1 tick, rolando a cada candle;
+  expira em `retestExpiryBars` (10). A ordem stop vem antes do fechamento; fechar dentro só invalida sem
+  execução. Stop mais curto = 1 tick abaixo da menor mínima desde o reteste (limitado ao topo da caixa).
+- Depois da entrada: alerta de falso rompimento na janela `pa.falseBreakBars` (2) contada da entrada; condução =
+  fechou abaixo da MME9 em queda → stop na mínima desse candle − 1 tick.
+
+**Elástico**
+- Sem `requireConfirmation`, o candle que fechou fora já arma; com ela, sem martelo/força o gatilho não rola.
+- Gatilho na média central ou além: no candle que fechou fora só sai o radar com nota e o gatilho passa ao
+  seguinte; depois disso cancela (inclusive se a média chega ao gatilho armado).
+- Cancela se a máxima (venda: mínima) tocar a média do candle atual; `expiryBars` (5) conta do candle que fechou
+  fora. Alvo = média central do candle anterior. Com `stopMode = 'outside-bar'` (padrão), o gatilho não passa
+  para um candle inteiro além do stop.
+- Gap além da média na entrada: executa e o alvo fecha na mesma abertura ("cancelado", 0R antes dos custos).
+  Média chega à entrada com posição aberta: `saida-dinamica`, nunca "alvo" com prejuízo.
+- Parcial (`partialAt1R`) = 50% em 1R (constante); o stop não vai à entrada; resultR = 0,5 × 1R + 0,5 × R final;
+  stop e 1R no mesmo candle = stop sem parcial. O backtest realiza a parcial (campo `partial`).
+
+**Reflexividade**
+- `weeklyOnly` (ligado): só roda em '1w'. Topo de 52 semanas = 52 candles (constante da SPEC). Fundamento nulo é
+  "não verificado", nunca forte; LPA abaixo de `minEpsGrowth` ou receita em queda conhecidos suprimem.
+- Confirmação = pivô de alta e, em até `confirmBars` (8) candles, MME9 e MME21 subindo (fechar abaixo de F2
+  volta a esperar); "apoiado nas médias ou rompendo resistência" não é checado além do pivô.
+- Gatilho = máxima + 1 tick, rolando sem expirar; stop = F2 − 1 tick; fechar abaixo dele invalida. O radar
+  expira quando t − início passa de `radarExpiryBars` (104). "MME21/MMA50 descendo" = menor que no anterior.
+- Saída: `exit.targetR` (3R) ou condução (`exit.mode = 'dynamic'`): fechou abaixo da MME21 → stop móvel na
+  mínima desse candle − 1 tick. Só existe a 1ª parte da entrada em etapas.
+
 ## ADR-0013 — Alertas: regras de avaliação e entrega (12/10/2026)
 
 Decisões nossas (a SPEC §10 não detalha):
