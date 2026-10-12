@@ -1,7 +1,7 @@
 import { formatNumber } from '@radar/shared';
 import type { z } from 'zod';
 import { Detector, highestHigh, lowestLow, type Instance } from '../base';
-import { relVolume } from '../pa';
+import { brokeAbove, brokeBelow, closedInsideBelow, falseBreakoutUp, relVolume } from '../pa';
 import type { consolidationSchema } from '../params';
 import type { SeriesBuffer } from '../series';
 import type { SetupEvent, StepContext } from '../types';
@@ -14,32 +14,39 @@ const f = (n: number) => formatNumber(n, 2);
  * - Pré-requisito: tendência de alta antes da caixa (preço acima da MMA50 subindo).
  * - Caixa: 8 a 40 candles, amplitude ≤ 3 × ATR14 medido antes da caixa, contração de volatilidade
  *   (Bollinger 20/2 no menor quintil dos últimos 120 ou ATR5 < ATR20) e volume da caixa abaixo da média.
- * - Gatilho: FECHAMENTO acima do topo da caixa, com volume ≥ 1,5 × média e corpo grande.
+ *   Todo candle que fecha dentro (inclusive o do radar) entra na caixa: topo e base acompanham os
+ *   pavios. Se a caixa passar de maxBars candles sem romper, o radar expira.
+ * - Gatilho: FECHAMENTO acima do topo da caixa (pavio só conta se pa.breakoutByClose = false), com
+ *   volume ≥ 1,5 × média e corpo grande. Sem dado de volume, o filtro não pode ser aplicado.
  *   Decisão nossa: a entrada é na ABERTURA do candle seguinte (o sinal só existe no fechamento).
  * - Reteste (2ª entrada): volta ao topo rompido, não fecha dentro da caixa e retoma; stop mais curto.
- * - Falso rompimento: voltar a fechar dentro da caixa gera alerta; perder a base é saída (stop).
+ * - Falso rompimento (primitiva da §8.1): voltar a fechar dentro da caixa gera alerta; perder a base é
+ *   saída (stop).
  */
 export class Consolidation extends Detector {
   readonly id = 'consolidation' as const;
   protected readonly paramsForEvents: PC;
   /** Caixa já sinalizada (evita repetir o radar a cada candle). */
   private lastBoxStart = -1;
+  /** Uma nova caixa só pode começar aqui ou depois (não reaproveita uma consolidação que expirou). */
+  private minStart = 1;
 
   constructor(private readonly p: PC) {
     super();
     this.paramsForEvents = p;
   }
 
-  /** Procura a maior caixa válida terminando em t (inclusive). */
+  /** Procura a maior caixa válida terminando em t (inclusive), com no máximo `maxLen` candles. */
   private findBox(
     s: SeriesBuffer,
     t: number,
+    maxLen: number,
   ): { start: number; top: number; bottom: number } | null {
     // contração de volatilidade (vale para a caixa toda; calculada uma vez)
     if (!this.contracted(s, t)) return null;
-    for (let len = this.p.maxBars; len >= this.p.minBars; len--) {
+    for (let len = maxLen; len >= this.p.minBars; len--) {
       const start = t - len + 1;
-      if (start < 1) continue;
+      if (start < this.minStart) continue;
       const atrBefore = s.v(s.atr14, start - 1);
       if (!(atrBefore > 0)) continue;
       const top = highestHigh(s, start, t);
@@ -74,6 +81,46 @@ export class Consolidation extends Detector {
     return s.v(s.atr5, t) < s.v(s.atr20, t);
   }
 
+  /** Caixa com o candle t dentro dela (topo e base acompanham os pavios); null se deixou de ser apertada. */
+  private grow(
+    s: SeriesBuffer,
+    t: number,
+    start: number,
+    top: number,
+    bottom: number,
+  ): { top: number; bottom: number } | null {
+    const c = s.c(t);
+    const nTop = Math.max(top, c.high);
+    const nBottom = Math.min(bottom, c.low);
+    if (nTop - nBottom > this.p.maxRangeAtr * s.v(s.atr14, start - 1)) return null;
+    return { top: nTop, bottom: nBottom };
+  }
+
+  /**
+   * Alerta (uma vez) de falso rompimento depois da entrada: voltou a fechar dentro da caixa em até
+   * pa.falseBreakBars candles (SPEC §8.1). A janela conta a partir da entrada: no rompimento é o candle
+   * seguinte ao de rompimento; no reteste, fechar dentro antes da entrada já invalida o setup.
+   */
+  private falseBreakAlert(
+    inst: Instance,
+    s: SeriesBuffer,
+    t: number,
+    ctx: StepContext,
+  ): SetupEvent | null {
+    const top = inst.m.top as number;
+    if (inst.m.falseAlerted || !falseBreakoutUp(s, (inst.entryIndex as number) - 1, t, top, ctx.pa))
+      return null;
+    inst.m.falseAlerted = 1;
+    return this.ev(
+      inst,
+      'acionado',
+      s,
+      t,
+      s.c(t).close,
+      `⚠ Falso rompimento: voltou a fechar dentro da caixa (topo ${f(top)})`,
+    );
+  }
+
   step(s: SeriesBuffer, t: number, ctx: StepContext): SetupEvent[] {
     const out: SetupEvent[] = [];
     const c = s.c(t);
@@ -87,23 +134,8 @@ export class Consolidation extends Detector {
           out.push(ex);
           continue;
         }
-        if (
-          !inst.m.falseAlerted &&
-          t - (inst.m.breakIdx as number) <= ctx.pa.falseBreakBars &&
-          c.close < top
-        ) {
-          inst.m.falseAlerted = 1;
-          out.push(
-            this.ev(
-              inst,
-              'acionado',
-              s,
-              t,
-              c.close,
-              `⚠ Falso rompimento: voltou a fechar dentro da caixa (abaixo de ${f(top)})`,
-            ),
-          );
-        }
+        const fb = this.falseBreakAlert(inst, s, t, ctx);
+        if (fb) out.push(fb);
         if (
           this.p.exit.mode === 'dynamic' &&
           c.close < s.v(s.ema9, t) &&
@@ -125,21 +157,22 @@ export class Consolidation extends Detector {
         continue;
       }
       if (inst.state === 'radar') {
-        if (c.close < bottom) {
-          out.push(this.close(inst, s, t, 'invalidado', null, 'Fechou abaixo da base da caixa'));
+        if (brokeBelow(s, t, bottom, ctx.pa)) {
+          out.push(
+            this.close(
+              inst,
+              s,
+              t,
+              'invalidado',
+              null,
+              ctx.pa.breakoutByClose ? 'Fechou abaixo da base da caixa' : 'Perdeu a base da caixa',
+            ),
+          );
           continue;
         }
-        // caixa cresceu demais?
-        const atrBefore = s.v(s.atr14, (inst.m.start as number) - 1);
-        if (
-          Math.max(top, c.high) - Math.min(bottom, c.low) > this.p.maxRangeAtr * atrBefore &&
-          c.close <= top
-        ) {
-          out.push(this.close(inst, s, t, 'cancelado', null, 'A caixa deixou de ser apertada'));
-          continue;
-        }
-        if (c.close > top) {
+        if (brokeAbove(s, t, top, ctx.pa)) {
           const rv = relVolume(s, t);
+          const hasVol = Number.isFinite(rv);
           const volOk = !this.p.requireVolume || rv >= this.p.breakoutVolMult;
           const bodyOk =
             Math.abs(c.close - c.open) >= this.p.breakoutBodyMult * s.v(s.bodyAvg20, t);
@@ -152,12 +185,15 @@ export class Consolidation extends Detector {
                 t,
                 'cancelado',
                 null,
-                `Rompeu sem confirmação (${!volOk ? `volume ${f(rv)}× a média` : 'corpo pequeno'}): rompimento suspeito`,
+                !volOk && !hasVol
+                  ? 'Rompeu sem confirmação: sem dado de volume, o filtro de volume não pode ser aplicado'
+                  : `Rompeu sem confirmação (${!volOk ? `volume ${f(rv)}× a média` : 'corpo pequeno'}): rompimento suspeito`,
               ),
             );
             continue;
           }
-          const why = `Fechou acima do topo da caixa (${f(top)}) com volume ${f(rv)}× a média`;
+          const how = c.close > top ? 'Fechou acima do topo' : 'O pavio rompeu o topo';
+          const why = `${how} da caixa (${f(top)}) ${hasVol ? `com volume ${f(rv)}× a média` : 'sem dado de volume'}`;
           if (this.p.entry === 'breakout') {
             inst.state = 'armado';
             inst.startIndex = t;
@@ -189,6 +225,28 @@ export class Consolidation extends Detector {
               }),
             );
           }
+          continue;
+        }
+        // fechou dentro: o candle entra na caixa
+        const box = this.grow(s, t, inst.m.start as number, top, bottom);
+        if (!box) {
+          out.push(this.close(inst, s, t, 'cancelado', null, 'A caixa deixou de ser apertada'));
+          continue;
+        }
+        inst.m.top = box.top;
+        inst.m.bottom = box.bottom;
+        if (t - (inst.m.start as number) + 1 > this.p.maxBars) {
+          this.minStart = t + 1;
+          out.push(
+            this.close(
+              inst,
+              s,
+              t,
+              'expirou',
+              null,
+              `A consolidação passou de ${this.p.maxBars} candles sem romper`,
+            ),
+          );
         }
         continue;
       }
@@ -213,11 +271,26 @@ export class Consolidation extends Detector {
           ),
         );
         const ex = this.checkExitEntryBar(inst, s, t);
-        if (ex) out.push(ex);
+        if (ex) {
+          out.push(ex);
+          continue;
+        }
+        const fb = this.falseBreakAlert(inst, s, t, ctx);
+        if (fb) out.push(fb);
         continue;
       }
       if (inst.m.mode === 1) {
-        if (c.close < top) {
+        // com o gatilho definido, a ordem stop executa durante o candle, antes de ele fechar
+        if (!inst.m.retestWait) {
+          const entered = this.tryEnter(inst, s, t, this.p.exit, 'Retomou a alta após o reteste');
+          if (entered.length) {
+            out.push(...entered);
+            const fb = this.active.includes(inst) ? this.falseBreakAlert(inst, s, t, ctx) : null;
+            if (fb) out.push(fb);
+            continue;
+          }
+        }
+        if (closedInsideBelow(s, t, top)) {
           out.push(
             this.close(
               inst,
@@ -225,13 +298,16 @@ export class Consolidation extends Detector {
               t,
               'invalidado',
               null,
-              '⚠ Falso rompimento: voltou a fechar dentro da caixa',
+              falseBreakoutUp(s, inst.m.breakIdx as number, t, top, ctx.pa)
+                ? '⚠ Falso rompimento: voltou a fechar dentro da caixa'
+                : 'Voltou a fechar dentro da caixa antes de retomar: o reteste falhou',
             ),
           );
           continue;
         }
-        if (inst.m.retestWait && c.low <= top + 0.25 * s.v(s.atr14, t)) {
+        if (inst.m.retestWait && c.low <= top + this.p.retestAtr * s.v(s.atr14, t)) {
           inst.m.retestWait = 0;
+          inst.m.retestIdx = t;
           inst.trigger = this.up(c.high, s);
           inst.stop = this.down(Math.min(c.low, top), s);
           out.push(
@@ -246,30 +322,47 @@ export class Consolidation extends Detector {
           );
           continue;
         }
-        if (!inst.m.retestWait && t > inst.startIndex) {
-          const entered = this.tryEnter(inst, s, t, this.p.exit, 'Retomou a alta após o reteste');
-          if (entered.length) {
-            out.push(...entered);
-            continue;
-          }
+        if (!inst.m.retestWait) {
+          // o stop segue abaixo do reteste (nunca volta para a mínima do candle de rompimento)
           inst.trigger = this.up(c.high, s);
-          inst.stop = this.down(Math.min(lowestLow(s, inst.startIndex, t), top), s);
+          inst.stop = this.down(Math.min(lowestLow(s, inst.m.retestIdx as number, t), top), s);
         }
-        if (t - (inst.startIndex as number) > 10)
-          out.push(this.close(inst, s, t, 'expirou', null, 'Sem reteste/retomada em 10 candles'));
+        if (t - inst.startIndex > this.p.retestExpiryBars)
+          out.push(
+            this.close(
+              inst,
+              s,
+              t,
+              'expirou',
+              null,
+              `Sem reteste/retomada em ${this.p.retestExpiryBars} candles`,
+            ),
+          );
       }
     }
 
-    // novo radar: caixa terminando no candle anterior (o candle atual ainda pode romper)
+    // novo radar: caixa terminando no candle anterior (o candle atual ainda pode romper). Se o candle
+    // atual fechar dentro, ele entra na caixa — por isso ela pode ter no máximo maxBars − 1 antes dele.
     if (this.active.length === 0 && t >= 2) {
-      const box = this.findBox(s, t - 1);
-      if (box && box.start !== this.lastBoxStart && c.close <= box.top && c.close >= box.bottom) {
-        this.lastBoxStart = box.start;
+      const found = this.findBox(s, t - 1, this.p.maxBars - 1);
+      const box =
+        found &&
+        found.start !== this.lastBoxStart &&
+        !brokeAbove(s, t, found.top, ctx.pa) &&
+        !brokeBelow(s, t, found.bottom, ctx.pa)
+          ? this.grow(s, t, found.start, found.top, found.bottom)
+          : null;
+      if (found && box) {
+        this.lastBoxStart = found.start;
         const inst: Instance = this.newInstance('buy', t, s);
         inst.m.top = box.top;
         inst.m.bottom = box.bottom;
-        inst.m.start = box.start;
+        inst.m.start = found.start;
         this.active.push(inst);
+        const vol =
+          s.v(s.volSma21, found.start - 1) > 0
+            ? 'com volatilidade e volume contraídos'
+            : 'com volatilidade contraída (volume indisponível: não foi verificado)';
         out.push(
           this.ev(
             inst,
@@ -277,9 +370,9 @@ export class Consolidation extends Detector {
             s,
             t,
             null,
-            `Consolidação apertada de ${t - box.start} candles entre ${f(box.bottom)} e ${f(box.top)}, com volatilidade e volume contraídos`,
+            `Consolidação apertada de ${t - found.start + 1} candles entre ${f(box.bottom)} e ${f(box.top)}, ${vol}`,
             {
-              refs: [box.start, t - 1],
+              refs: [found.start, t],
             },
           ),
         );

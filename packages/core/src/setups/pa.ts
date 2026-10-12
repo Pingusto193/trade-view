@@ -194,8 +194,16 @@ export function brokeBelow(s: SeriesBuffer, t: number, level: number, p: PaParam
 }
 
 /**
+ * Voltou a fechar dentro da região que fica abaixo do nível. Fechar exatamente no nível conta como
+ * dentro: é o complemento de `brokeAbove` por fechamento (mesmo critério de empate).
+ */
+export function closedInsideBelow(s: SeriesBuffer, t: number, level: number): boolean {
+  return s.c(t).close <= level;
+}
+
+/**
  * Falso rompimento para cima: rompeu por fechamento em `breakIdx` e, em até N candles, voltou a fechar
- * abaixo do nível. Só pode ser avaliado em t ≥ breakIdx + 1.
+ * dentro (no nível ou abaixo). Só pode ser avaliado em t ≥ breakIdx + 1.
  */
 export function falseBreakoutUp(
   s: SeriesBuffer,
@@ -205,7 +213,7 @@ export function falseBreakoutUp(
   p: PaParams,
 ): boolean {
   for (let i = breakIdx + 1; i <= Math.min(t, breakIdx + p.falseBreakBars); i++) {
-    if (s.c(i).close <= level) return true;
+    if (closedInsideBelow(s, i, level)) return true;
   }
   return false;
 }
