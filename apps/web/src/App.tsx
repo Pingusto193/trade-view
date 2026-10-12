@@ -1,6 +1,11 @@
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { UpdatePrompt } from './components/UpdatePrompt';
+import { setUnauthorizedHandler } from './lib/api';
+import { useAuth } from './lib/auth';
 import { AboutPage } from './pages/AboutPage';
+import { AccountPage } from './pages/AccountPage';
+import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
 import { ChartPage } from './pages/ChartPage';
 import { InstallPage } from './pages/InstallPage';
 import { SourcesPage } from './pages/SourcesPage';
@@ -10,9 +15,33 @@ const NAV = [
   { to: '/fontes', label: 'Fontes', icon: '🛰️' },
   { to: '/instalar', label: 'Instalar', icon: '📲' },
   { to: '/sobre', label: 'Sobre', icon: 'ℹ️' },
+  { to: '/conta', label: 'Conta', icon: '👤' },
 ];
 
+/** Decide entre primeiro acesso, login, convite ou o app. */
 export function App() {
+  const auth = useAuth();
+  const loc = useLocation();
+  useEffect(() => {
+    setUnauthorizedHandler(() => void useAuth.getState().refresh());
+    void auth.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!auth.loaded) {
+    return <div className="flex h-full items-center justify-center text-muted">Carregando…</div>;
+  }
+  if (!auth.user && !auth.devNoAuth) {
+    const invite =
+      loc.pathname === '/convite' ? new URLSearchParams(loc.search).get('token') : null;
+    if (invite) return <RegisterScreen invite={invite} />;
+    if (auth.needsSetup) return <RegisterScreen />;
+    return <LoginScreen />;
+  }
+  return <Shell />;
+}
+
+function Shell() {
   return (
     <div className="safe-top flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-line bg-panel px-3 py-1.5">
@@ -40,6 +69,7 @@ export function App() {
           <Route path="/fontes" element={<SourcesPage />} />
           <Route path="/instalar" element={<InstallPage />} />
           <Route path="/sobre" element={<AboutPage />} />
+          <Route path="/conta" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/grafico" replace />} />
         </Routes>
       </main>

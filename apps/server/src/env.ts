@@ -23,6 +23,8 @@ export const envSchema = z.object({
   TRUST_PROXY: bool,
   /** Pasta com o build do front (apps/web/dist) para servir em produção. */
   WEB_DIST: z.string().optional(),
+  /** Chave (base64, 32 bytes) do cofre de segredos. Vazia = arquivo app-secret.key ao lado do banco. */
+  APP_SECRET: z.string().optional(),
   ALPACA_KEY_ID: z.string().optional(),
   ALPACA_SECRET_KEY: z.string().optional(),
   BRAPI_TOKEN: z.string().optional(),

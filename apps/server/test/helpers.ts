@@ -87,12 +87,13 @@ export function series(n: number, start = 0): Candle[] {
   }));
 }
 
-export async function testApp(opts: { now?: number } = {}) {
+export async function testApp(opts: { now?: number | (() => number); auth?: boolean } = {}) {
   const fake = new FakeAdapter();
   const env = envSchema.parse({
     NODE_ENV: 'test',
     DATABASE_PATH: ':memory:',
-    RADAR_DEV_NO_AUTH: '1',
+    RADAR_DEV_NO_AUTH: opts.auth ? '0' : '1',
+    PUBLIC_URL: 'http://localhost:5173',
   });
   const db = openDb(':memory:');
   const registry = new AdapterRegistry([fake]);
@@ -101,7 +102,9 @@ export async function testApp(opts: { now?: number } = {}) {
     db,
     registry,
     logger: false,
-    ...(opts.now !== undefined ? { now: () => opts.now as number } : {}),
+    ...(opts.now !== undefined
+      ? { now: typeof opts.now === 'function' ? opts.now : () => opts.now as number }
+      : {}),
   });
   return { ...radar, fake, db };
 }

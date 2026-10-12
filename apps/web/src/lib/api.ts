@@ -9,6 +9,12 @@ export class ApiError extends Error {
   }
 }
 
+let onUnauthorized: (() => void) | null = null;
+/** Registrado pelo AuthGate: sessão expirada → volta para a tela de login. */
+export function setUnauthorizedHandler(fn: () => void) {
+  onUnauthorized = fn;
+}
+
 /** Chamada à API do próprio servidor (mesma origem; cookies de sessão incluídos). */
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
@@ -19,6 +25,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init.headers,
     },
   });
+  if (res.status === 401 && !path.startsWith('/api/auth/')) onUnauthorized?.();
   if (!res.ok) {
     let msg = `Erro ${res.status}`;
     try {

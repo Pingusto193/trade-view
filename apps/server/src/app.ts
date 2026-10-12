@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -8,11 +8,14 @@ import websocket from '@fastify/websocket';
 import type { AdapterRegistry } from '@radar/data';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
+import { SecretBox } from './auth/crypto';
+import { AuthError, AuthService } from './auth/service';
 import type { Db } from './db/client';
 import type { Env } from './env';
 import { CandleStore } from './market/candle-store';
 import { MarketHub } from './market/hub';
 import { MarketService } from './market/service';
+import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
 
 export interface AppDeps {
@@ -28,6 +31,7 @@ export interface RadarApp {
   market: MarketService;
   hub: MarketHub;
   store: CandleStore;
+  auth: AuthService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -67,6 +71,10 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   await app.register(websocket, { options: { maxPayload: 64 * 1024 } });
 
   app.setErrorHandler((err, _req, reply) => {
+    if (err instanceof AuthError) {
+      if (err.retryAfterMs) reply.header('retry-after', Math.ceil(err.retryAfterMs / 1000));
+      return reply.code(err.status).send({ error: err.message });
+    }
     if (err instanceof ZodError) {
       return reply.code(400).send({ error: 'parâmetros inválidos', issues: err.issues });
     }
@@ -76,6 +84,14 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
       .code(status)
       .send({ error: status >= 500 ? 'erro interno' : (err as Error).message });
   });
+
+  const box = SecretBox.load(
+    env.APP_SECRET,
+    env.DATABASE_PATH === ':memory:' ? null : resolve(dirname(env.DATABASE_PATH), 'app-secret.key'),
+  );
+  const auth = new AuthService(db, box, deps.now);
+  installAuthGuard(app, auth, env);
+  authRoutes(app, auth, env);
 
   const store = new CandleStore(db);
   const market = new MarketService(registry, store, deps.now);
@@ -103,5 +119,5 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   }
 
   app.addHook('onClose', async () => hub.closeAll());
-  return { app, market, hub, store };
+  return { app, market, hub, store, auth };
 }

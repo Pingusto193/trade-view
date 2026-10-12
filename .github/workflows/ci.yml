@@ -30,7 +30,7 @@ jobs:
         run: pnpm --filter @radar/web build
 
   reference:
-    name: Indicadores × referência pandas
+    name: Indicadores × referência pandas (regerada no CI)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -38,13 +38,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
       - run: pip install pandas numpy
-      - name: Regera candles sintéticos e valores de referência
+      - run: pnpm install --frozen-lockfile
+      - name: Regera candles sintéticos e valores de referência com o pandas do CI
         run: |
           python tools/reference/generate_candles.py
           python tools/reference/indicators_reference.py
-      - name: A referência commitada precisa bater com a regerada
-        run: git diff --exit-code -- packages/core/test/reference/
+      - name: TypeScript precisa bater com a referência regerada (tolerância 1e-9)
+        run: pnpm vitest run packages/core/test/indicators.reference.test.ts
 
   e2e:
     name: E2E (Playwright, dados simulados)

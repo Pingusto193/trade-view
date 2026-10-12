@@ -53,7 +53,11 @@ describe('B3: emenda COTAHIST + brapi', () => {
       'utf8',
     );
     const brapi = new BrapiAdapter({ fetch: async () => new Response(body) });
-    const env = envSchema.parse({ NODE_ENV: 'test', DATABASE_PATH: ':memory:' });
+    const env = envSchema.parse({
+      NODE_ENV: 'test',
+      DATABASE_PATH: ':memory:',
+      RADAR_DEV_NO_AUTH: '1',
+    });
     const radar = await buildApp({
       env,
       db: openDb(':memory:'),
