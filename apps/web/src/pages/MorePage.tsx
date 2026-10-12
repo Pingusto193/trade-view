@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 
 const ITEMS = [
   {
+    to: '/biblioteca',
+    icon: '📚',
+    label: 'Biblioteca',
+    desc: 'Regras exatas dos setups, indicadores, riscos e críticas',
+  },
+  {
     to: '/fontes',
     icon: '🛰️',
     label: 'Fontes de dados',

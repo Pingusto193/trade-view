@@ -2,16 +2,21 @@ import type { ContextItem, ContextReport } from '@radar/core';
 import type { Timeframe } from '@radar/shared';
 import { TIMEFRAME_LABEL, formatSessionDate } from '@radar/shared';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { libraryPath, type LibrarySlug } from '../library/catalog';
 import { analysisKey, useAnalysis } from '../lib/analysis-store';
+import { HelpLink } from './HelpLink';
 
 function Row<T>({
   title,
   item,
   tone,
+  help,
 }: {
   title: string;
   item: ContextItem<T>;
   tone?: 'good' | 'bad' | 'warn' | 'neutral';
+  help: LibrarySlug;
 }) {
   const [open, setOpen] = useState(false);
   const color =
@@ -38,6 +43,10 @@ function Row<T>({
           {item.why.map((w) => (
             <li key={w}>{w}</li>
           ))}
+          <li className="list-none">
+            <HelpLink slug={help} label={`Ajuda: ${title}`} className="mr-1 align-middle" />
+            Regra exata na Biblioteca
+          </li>
         </ul>
       )}
     </li>
@@ -68,21 +77,24 @@ export function ContextPanel({ id, tf }: { id: string; tf: Timeframe }) {
         </p>
       )}
       <ul>
-        <Row title="Tendência" item={r.trend} tone={trendTone} />
+        <Row title="Tendência" item={r.trend} tone={trendTone} help="painel-contexto" />
         <Row
           title="Força (ADX)"
           item={r.adx}
+          help="adx"
           tone={
             r.adx.value === 'lateral' ? 'warn' : r.adx.value === 'cinzenta' ? 'neutral' : 'good'
           }
         />
         <Row
           title="Estrutura"
+          help="primitivas-price-action"
           item={{ ...r.structure, label: `Topos e fundos: ${r.structure.value}` }}
         />
         <Row
           title="Alinhamento"
           item={r.alignment}
+          help="painel-contexto"
           tone={
             r.alignment.value === 'nenhum'
               ? 'neutral'
@@ -91,18 +103,22 @@ export function ContextPanel({ id, tf }: { id: string; tf: Timeframe }) {
                 : 'bad'
           }
         />
-        <Row title="Média respeitada" item={r.respected} />
-        <Row title="Inclinações" item={r.slopes} />
-        <Row title="Maturidade" item={r.maturity} tone="neutral" />
+        <Row title="Média respeitada" item={r.respected} help="painel-contexto" />
+        <Row title="Inclinações" item={r.slopes} help="medias-moveis" />
+        <Row title="Maturidade" item={r.maturity} tone="neutral" help="painel-contexto" />
         <Row
           title="Escala maior"
           item={r.wind}
+          help="visao-fractal"
           tone={r.wind.value === 'contra' ? 'bad' : r.wind.value === 'a-favor' ? 'good' : 'neutral'}
         />
       </ul>
       <p className="mt-2 text-[10px] text-muted">
-        Leitura automática, objetiva e reproduzível — não é recomendação. Regras exatas na
-        Biblioteca.
+        Leitura automática, objetiva e reproduzível — não é recomendação.{' '}
+        <Link to={libraryPath('painel-contexto')} className="text-accent underline">
+          Regras exatas na Biblioteca
+        </Link>
+        .
       </p>
     </div>
   );

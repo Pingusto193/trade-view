@@ -7,7 +7,21 @@ import {
   type Timeframe,
 } from '@radar/shared';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { libraryPath, type LibrarySlug } from '../library/catalog';
+import { useAlertForm } from '../lib/alerts-store';
 import { analysisKey, useAnalysis, useSetupView } from '../lib/analysis-store';
+import { HelpLink } from './HelpLink';
+
+export const SETUP_HELP: Record<SetupId, LibrarySlug> = {
+  s91: 'setup-9-1',
+  s92: 'setup-9-2',
+  s93: 'setup-9-3',
+  pullback: 'recuo-a-media',
+  consolidation: 'rompimento-consolidacao',
+  elastic: 'elastico',
+  reflexivity: 'reflexividade',
+};
 
 const ALL: SetupId[] = ['s91', 's92', 's93', 'pullback', 'consolidation', 'elastic', 'reflexivity'];
 
@@ -81,12 +95,17 @@ function EventRow({
               {JSON.stringify(e.params, null, 1)}
             </pre>
           </details>
-          <button
-            className="rounded border border-accent px-2 py-0.5 text-accent"
-            onClick={onFocus}
-          >
-            Ver no gráfico
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded border border-accent px-2 py-0.5 text-accent"
+              onClick={onFocus}
+            >
+              Ver no gráfico
+            </button>
+            <Link to={libraryPath(SETUP_HELP[e.setup])} className="text-accent underline">
+              Regras do setup
+            </Link>
+          </div>
         </div>
       )}
     </li>
@@ -148,6 +167,25 @@ export function SetupsPanel({
               {SETUP_LABEL[s].replace('Setup ', '')}
             </button>
           ))}
+          <button
+            className="rounded border border-line px-1.5 py-0.5 text-[11px] text-muted"
+            title="Avisar quando um setup armar ou acionar neste ativo"
+            onClick={() =>
+              useAlertForm.getState().open({
+                symbolId: id,
+                tf,
+                condition: {
+                  kind: 'setup',
+                  setups: ALL.filter((s) => !view.hidden.includes(s)),
+                  states: ['armado', 'acionado'],
+                  sides: ['buy'],
+                },
+                trigger: 'close',
+              })
+            }
+          >
+            🔔 Avisar
+          </button>
           <label className="ml-auto flex items-center gap-1 text-[11px] text-muted">
             <input
               type="checkbox"
@@ -189,7 +227,8 @@ export function SetupsPanel({
       <p className="border-t border-line p-2 text-[10px] leading-snug text-muted">
         Ocorrências no período carregado: {stats.n} encerradas com entrada, {stats.wins} positivas,
         média {formatNumber(stats.avg, 2)}R. <b>Sem custos e sem IR</b>, amostra pequena: isto NÃO é
-        backtest (o laboratório chega na Fase 6).
+        backtest (o laboratório chega na Fase 6).{' '}
+        <HelpLink slug="r-multiplo" label="Ajuda: o que é R" className="align-middle" />
       </p>
     </div>
   );

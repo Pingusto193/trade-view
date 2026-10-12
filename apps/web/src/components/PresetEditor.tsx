@@ -6,7 +6,23 @@ import {
   type IndicatorPreset,
 } from '@radar/core';
 import { useState } from 'react';
+import type { LibrarySlug } from '../library/catalog';
 import { usePrefs } from '../lib/prefs';
+import { HelpLink } from './HelpLink';
+
+const HELP: Record<IndicatorConfig['kind'], LibrarySlug> = {
+  ema: 'medias-moveis',
+  sma: 'medias-moveis',
+  bollinger: 'bandas-de-bollinger',
+  volume: 'volume',
+  adx: 'adx',
+  atr: 'atr-e-stop-atr',
+  stopAtr: 'atr-e-stop-atr',
+  macd: 'macd',
+  rsi: 'ifr',
+  stochastic: 'estocastico',
+  vwap: 'vwap',
+};
 
 type NumKey = { key: string; label: string; step?: number; min?: number };
 
@@ -135,6 +151,7 @@ export function PresetEditor({ preset, onClose }: { preset: IndicatorPreset; onC
                   onChange={(e) => setInd(i, { enabled: e.target.checked })}
                 />
                 <span className="font-medium">{indicatorLabel(cfg)}</span>
+                <HelpLink slug={HELP[cfg.kind]} label={`Ajuda: ${indicatorLabel(cfg)}`} />
                 {'color' in cfg && (
                   <input
                     type="color"

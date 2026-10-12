@@ -1,11 +1,13 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AlertForm } from './components/AlertForm';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { setUnauthorizedHandler } from './lib/api';
 import { useAuth } from './lib/auth';
 import { usePrefs } from './lib/prefs';
 import { AboutPage } from './pages/AboutPage';
 import { AccountPage } from './pages/AccountPage';
+import { AlertsPage } from './pages/AlertsPage';
 import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
 import { ChartPage } from './pages/ChartPage';
 import { InstallPage } from './pages/InstallPage';
@@ -13,10 +15,15 @@ import { MorePage } from './pages/MorePage';
 import { WatchlistsPage } from './pages/WatchlistsPage';
 import { SourcesPage } from './pages/SourcesPage';
 
+// Biblioteca em pedaço separado: o texto das páginas só é baixado quando ela é aberta.
+const LibraryPage = lazy(() => import('./pages/LibraryPage'));
+
 /** Navegação do computador (topo). */
 const NAV = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
   { to: '/listas', label: 'Listas', icon: '☆' },
+  { to: '/alertas', label: 'Alertas', icon: '🔔' },
+  { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
   { to: '/fontes', label: 'Fontes', icon: '🛰️' },
   { to: '/instalar', label: 'Instalar', icon: '📲' },
   { to: '/sobre', label: 'Sobre', icon: 'ℹ️' },
@@ -27,6 +34,7 @@ const NAV = [
 const MOBILE_NAV = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
   { to: '/listas', label: 'Listas', icon: '☆' },
+  { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/mais', label: 'Mais', icon: '☰' },
 ];
 
@@ -84,7 +92,16 @@ function Shell() {
           <Route path="/grafico" element={<ChartPage />} />
           <Route path="/listas" element={<WatchlistsPage />} />
           <Route path="/mais" element={<MorePage />} />
+          <Route path="/alertas" element={<AlertsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
+          <Route
+            path="/biblioteca/:slug?"
+            element={
+              <Suspense fallback={<p className="p-3 text-sm text-muted">Carregando…</p>}>
+                <LibraryPage />
+              </Suspense>
+            }
+          />
           <Route path="/instalar" element={<InstallPage />} />
           <Route path="/sobre" element={<AboutPage />} />
           <Route path="/conta" element={<AccountPage />} />
@@ -107,6 +124,7 @@ function Shell() {
           </NavLink>
         ))}
       </nav>
+      <AlertForm />
       <UpdatePrompt />
     </div>
   );

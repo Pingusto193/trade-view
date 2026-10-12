@@ -7,10 +7,12 @@ import { ChartView } from '../chart/ChartView';
 import { FractalView } from '../chart/FractalView';
 import { DrawingList, DrawingPanel } from '../chart/drawings/DrawingPanel';
 import { DrawingToolbar, TOOL_SHORTCUTS } from '../chart/drawings/DrawingToolbar';
+import { useAlertForm } from '../lib/alerts-store';
 import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
 import { ContextPanel } from '../components/ContextPanel';
+import { HelpLink } from '../components/HelpLink';
 import { SetupsPanel } from '../components/SetupsPanel';
 import { WatchlistPanel } from '../components/WatchlistPanel';
 import { usePrefs, usePreset, type ChartType } from '../lib/prefs';
@@ -140,6 +142,7 @@ export function ChartPage() {
             ))}
           </select>
         )}
+        {fractal && <HelpLink slug="visao-fractal" label="Ajuda: visão fractal (3 escalas)" />}
         <button
           type="button"
           onClick={() => {
@@ -191,6 +194,17 @@ export function ChartPage() {
         >
           ⚙
         </button>
+        <button
+          type="button"
+          onClick={() =>
+            useAlertForm.getState().open({ symbolId: id, tf: fractal ? mapping.setup : tf })
+          }
+          className="rounded border border-line px-2 py-1 text-xs text-muted"
+          title="Criar alerta para este ativo"
+          aria-label="Criar alerta"
+        >
+          🔔
+        </button>
         {(
           [
             ['setups', '◎ Setups'],
@@ -213,7 +227,8 @@ export function ChartPage() {
       {prefs.chartType === 'heikin' && (
         <p className="border-b border-line bg-panel px-2 py-1 text-xs text-warn">
           Heikin-Ashi é só visual: os preços mostrados não são negociáveis. Indicadores e setups
-          usam os candles reais.
+          usam os candles reais.{' '}
+          <HelpLink slug="heikin-ashi" label="Ajuda: Heikin-Ashi" className="align-middle" />
         </p>
       )}
       {editPreset && <PresetEditor preset={preset} onClose={() => setEditPreset(false)} />}

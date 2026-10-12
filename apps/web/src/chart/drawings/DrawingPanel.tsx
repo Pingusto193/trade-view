@@ -1,5 +1,6 @@
 import type { Drawing, Timeframe } from '@radar/shared';
 import { DRAWING_LABEL, TIMEFRAME_LABEL } from '@radar/shared';
+import { useAlertForm } from '../../lib/alerts-store';
 import { useDrawings, useDrawingTool } from '../../lib/drawings-store';
 
 const COLORS = ['#38bdf8', '#f59e0b', '#22c55e', '#ef4444', '#a78bfa', '#f8fafc'];
@@ -48,6 +49,28 @@ export function DrawingPanel({ symbolId, tf }: { symbolId: string; tf: Timeframe
         >
           {d.style.dashed ? 'Linha cheia' : 'Tracejada'}
         </button>
+        {(d.data.kind === 'hline' ||
+          d.data.kind === 'trend' ||
+          d.data.kind === 'ray' ||
+          d.data.kind === 'zone') && (
+          <button
+            className={btn}
+            onClick={() =>
+              useAlertForm.getState().open({
+                symbolId,
+                tf: d.tf ?? tf,
+                condition: {
+                  kind: 'drawing',
+                  drawingId: d.id,
+                  event: d.data.kind === 'zone' ? 'enter' : 'cross-up',
+                },
+                trigger: 'close',
+              })
+            }
+          >
+            🔔 Alerta
+          </button>
+        )}
         {d.data.kind === 'zone' && (
           <button
             className={btn}
