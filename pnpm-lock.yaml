@@ -45,6 +45,18 @@ importers:
         specifier: ^4.6.6
         version: 4.6.6
 
+  packages/data:
+    dependencies:
+      '@radar/core':
+        specifier: workspace:*
+        version: link:../core
+      '@radar/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.6
+
   packages/shared:
     dependencies:
       zod:
