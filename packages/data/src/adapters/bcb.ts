@@ -47,13 +47,14 @@ export class BcbClient {
   private readonly http: HttpClient;
   private readonly base: string;
 
-  constructor(opts: { fetch?: FetchFn; base?: string } = {}) {
+  constructor(opts: { fetch?: FetchFn; base?: string; retries?: number } = {}) {
     this.base = opts.base ?? 'https://api.bcb.gov.br/dados/serie';
     this.http = new HttpClient({
       source: 'Banco Central (SGS)',
       maxRequests: 5,
       perMs: 1000,
       ...(opts.fetch ? { fetch: opts.fetch } : {}),
+      ...(opts.retries !== undefined ? { retries: opts.retries } : {}),
     });
   }
 

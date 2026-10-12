@@ -1,6 +1,7 @@
 import type { Candle, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
 import {
   AdapterRegistry,
+  BcbClient,
   DataSourceError,
   type CandleRequest,
   type MarketDataAdapter,
@@ -115,7 +116,12 @@ export class FakeSenders {
 }
 
 export async function testApp(
-  opts: { now?: number | (() => number); auth?: boolean; senders?: FakeSenders } = {},
+  opts: {
+    now?: number | (() => number);
+    auth?: boolean;
+    senders?: FakeSenders;
+    bcb?: BcbClient;
+  } = {},
 ) {
   const fake = new FakeAdapter();
   const env = envSchema.parse({
@@ -132,6 +138,7 @@ export async function testApp(
     registry,
     logger: false,
     ...(opts.senders ? { senders: opts.senders.senders } : {}),
+    ...(opts.bcb ? { bcb: opts.bcb } : {}),
     ...(opts.now !== undefined
       ? { now: typeof opts.now === 'function' ? opts.now : () => opts.now as number }
       : {}),

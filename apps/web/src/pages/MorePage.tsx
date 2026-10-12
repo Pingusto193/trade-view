@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 
 const ITEMS = [
   {
+    to: '/brasil',
+    icon: '🇧🇷',
+    label: 'Brasil: CDI, Selic e IR',
+    desc: 'Juros atuais do Banco Central e seu treino comparado ao CDI',
+  },
+  {
     to: '/biblioteca',
     icon: '📚',
     label: 'Biblioteca',

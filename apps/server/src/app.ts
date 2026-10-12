@@ -5,7 +5,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
-import type { AdapterRegistry } from '@radar/data';
+import type { AdapterRegistry, BcbClient } from '@radar/data';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { AlertService } from './alerts/service';
@@ -19,8 +19,10 @@ import { MarketService } from './market/service';
 import { SmtpEmail, TelegramHttp, WebPushSender } from './notify/channels';
 import { Notifier, type Senders } from './notify/notifier';
 import { loadVapid } from './notify/vapid';
+import { MacroService } from './macro/service';
 import { PaperService } from './paper/service';
 import { alertRoutes } from './routes/alerts';
+import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
@@ -35,6 +37,8 @@ export interface AppDeps {
   logger?: boolean;
   /** Troca canais de notificação (testes usam canais falsos, sem internet). */
   senders?: Partial<Senders>;
+  /** Cliente do Banco Central (testes usam fixtures). */
+  bcb?: BcbClient;
 }
 
 export interface RadarApp {
@@ -47,6 +51,7 @@ export interface RadarApp {
   alerts: AlertService;
   notifier: Notifier;
   paper: PaperService;
+  macro: MacroService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -162,6 +167,9 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   const paper = new PaperService(db, market, hub, sync, app.log, deps.now);
   paperRoutes(app, paper);
 
+  const macro = new MacroService(db, deps.bcb, deps.now);
+  macroRoutes(app, macro);
+
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
   if (dist && existsSync(dist)) {
@@ -179,5 +187,5 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     paper.close();
     hub.closeAll();
   });
-  return { app, market, hub, store, auth, sync, alerts, notifier, paper };
+  return { app, market, hub, store, auth, sync, alerts, notifier, paper, macro };
 }

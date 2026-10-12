@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { CdiBox } from '../components/CdiBox';
 import { LIBRARY_GROUPS, libraryPath } from '../library/catalog';
 import { Markdown } from '../library/Markdown';
 import { getPage, isLibrarySlug } from '../library/pages';
@@ -28,20 +29,7 @@ const MARKERS = {
       </p>
     </div>
   ),
-  cdi: (
-    <div
-      role="note"
-      className="my-3 rounded border border-line bg-panel-2 px-3 py-2 text-sm"
-      data-testid="cdi-box"
-    >
-      <p className="font-semibold">CDI agora</p>
-      <p className="mt-1 text-muted">
-        Ainda não disponível nesta versão: a taxa será buscada no Banco Central (série 12 do SGS)
-        quando o Painel Brasil chegar (Fase 5). Até lá, compare qualquer resultado com o CDI do
-        mesmo período antes de concluir que uma estratégia “vale a pena”.
-      </p>
-    </div>
-  ),
+  cdi: <CdiBox />,
 };
 
 function Index() {

@@ -10,6 +10,7 @@ import { usePrefs } from './lib/prefs';
 import { AboutPage } from './pages/AboutPage';
 import { AccountPage } from './pages/AccountPage';
 import { AlertsPage } from './pages/AlertsPage';
+import { BrasilPage } from './pages/BrasilPage';
 import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
 import { ChartPage } from './pages/ChartPage';
 import { InstallPage } from './pages/InstallPage';
@@ -28,6 +29,7 @@ const NAV = [
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
+  { to: '/brasil', label: 'Brasil', icon: '🇧🇷' },
   { to: '/fontes', label: 'Fontes', icon: '🛰️' },
   { to: '/instalar', label: 'Instalar', icon: '📲' },
   { to: '/sobre', label: 'Sobre', icon: 'ℹ️' },
@@ -101,6 +103,7 @@ function Shell() {
           <Route path="/mais" element={<MorePage />} />
           <Route path="/alertas" element={<AlertsPage />} />
           <Route path="/treino" element={<TrainingPage />} />
+          <Route path="/brasil" element={<BrasilPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route
             path="/biblioteca/:slug?"
