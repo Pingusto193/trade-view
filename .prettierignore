@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+docs/SPEC.md
+packages/data/fixtures
+packages/core/test/reference
+*.md
