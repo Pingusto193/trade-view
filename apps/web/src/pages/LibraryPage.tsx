@@ -12,25 +12,45 @@ const CATEGORY_LABEL: Record<string, string> = {
   aviso: 'Aviso importante',
 };
 
-/** Blocos automáticos que substituem os marcadores das páginas. */
-const MARKERS = {
-  laboratorio: (
-    <div
-      role="note"
-      className="my-3 rounded border border-line bg-panel-2 px-3 py-2 text-sm"
-      data-testid="lab-results"
-    >
-      <p className="font-semibold">Resultados medidos no laboratório</p>
-      <p className="mt-1 text-muted">
-        Ainda não há medição. O laboratório (Fase 6) vai testar este setup nos seus ativos com
-        custos, imposto de renda e comparação com o CDI e com o comprar-e-segurar; os números
-        aparecerão aqui sozinhos. As ocorrências do painel de Setups do gráfico <b>não</b> são
-        backtest: não têm custos, impostos nem amostra suficiente.
-      </p>
-    </div>
-  ),
-  cdi: <CdiBox />,
+/** Página da Biblioteca → setup do laboratório (para o botão "testar"). */
+const LAB_SETUP: Record<string, string> = {
+  'setup-9-1': 's91',
+  'setup-9-2': 's92',
+  'setup-9-3': 's93',
+  'recuo-a-media': 'pullback',
+  'rompimento-consolidacao': 'consolidation',
+  elastico: 'elastic',
+  reflexividade: 'reflexivity',
 };
+
+/** Blocos automáticos que substituem os marcadores das páginas. */
+function markersFor(slug: string) {
+  const setup = LAB_SETUP[slug];
+  return {
+    laboratorio: (
+      <div
+        role="note"
+        className="my-3 rounded border border-line bg-panel-2 px-3 py-2 text-sm"
+        data-testid="lab-results"
+      >
+        <p className="font-semibold">Resultados medidos no laboratório</p>
+        <p className="mt-1 text-muted">
+          Os números deste setup dependem do ativo, do tempo gráfico e do período: teste no
+          laboratório com os candles reais da fonte, custos, imposto de renda e comparação com o CDI
+          e com o comprar-e-segurar. As ocorrências do painel de Setups do gráfico <b>não</b> são
+          backtest: não têm custos, impostos nem amostra suficiente.
+        </p>
+        <Link
+          to={setup ? `/laboratorio?setup=${setup}` : '/laboratorio'}
+          className="mt-2 inline-block rounded border border-accent px-2 py-1 text-accent"
+        >
+          🧪 Testar no laboratório
+        </Link>
+      </div>
+    ),
+    cdi: <CdiBox />,
+  };
+}
 
 function Index() {
   const [q, setQ] = useState('');
@@ -136,7 +156,7 @@ function PageView({ slug }: { slug: string }) {
         </nav>
       )}
       <div className="mt-2 text-[15px]">
-        <Markdown blocks={page.blocks} markers={MARKERS} />
+        <Markdown blocks={page.blocks} markers={markersFor(slug)} />
       </div>
       {page.meta.relacionados.length > 0 && (
         <section className="mt-8 border-t border-line pt-3">

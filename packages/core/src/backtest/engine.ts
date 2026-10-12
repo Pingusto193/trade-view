@@ -34,6 +34,11 @@ export interface BacktestConfig {
   costs?: CostModel;
   /** Mercados com margem (futuros) podem passar do capital; os outros, não. */
   allowLeverage?: boolean;
+  /**
+   * Só compras. Vender a descoberto exige aluguel de ações (B3) ou margem/derivativos (cripto),
+   * custos que este motor ainda não simula; com vendas ligadas o resultado fica otimista.
+   */
+  longOnly?: boolean;
 }
 
 export interface BtTrade {
@@ -158,6 +163,10 @@ export function runBacktest(candles: readonly Candle[], cfg: BacktestConfig): Ba
     engine.events.length = 0; // o backtest só precisa dos eventos do candle
     for (const ev of events) {
       if (ev.state === 'acionado' && ev.entryIndex === ev.index && ev.price === ev.entry) {
+        if (cfg.longOnly && ev.side === 'sell') {
+          skip('venda (apostar na queda) desligada');
+          continue;
+        }
         if (open) {
           skip('já posicionado neste ativo');
           continue;

@@ -54,6 +54,15 @@ const cfg = (over: Partial<BacktestConfig> = {}): BacktestConfig => ({
 describe('backtest', () => {
   const candles = walk(2500, 7);
 
+  it('só compras: sinais de venda viram "pulados" com o motivo, nunca trade', () => {
+    const both = runBacktest(candles, cfg());
+    const sells = both.trades.filter((t) => t.side === 'sell').length;
+    expect(sells).toBeGreaterThan(0);
+    const long = runBacktest(candles, cfg({ longOnly: true }));
+    expect(long.trades.every((t) => t.side === 'buy')).toBe(true);
+    expect(long.skipped['venda (apostar na queda) desligada']).toBeGreaterThanOrEqual(sells);
+  });
+
   it('sem custos, o R de cada trade bate com o do detector (mesma lógica, sem duplicar)', () => {
     const r = runBacktest(candles, cfg());
     expect(r.trades.length).toBeGreaterThan(20);

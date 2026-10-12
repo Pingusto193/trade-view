@@ -14,6 +14,7 @@ import { BrasilPage } from './pages/BrasilPage';
 import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
 import { ChartPage } from './pages/ChartPage';
 import { InstallPage } from './pages/InstallPage';
+import { LabPage } from './pages/LabPage';
 import { MorePage } from './pages/MorePage';
 import { WatchlistsPage } from './pages/WatchlistsPage';
 import { SourcesPage } from './pages/SourcesPage';
@@ -28,6 +29,7 @@ const NAV = [
   { to: '/treino', label: 'Treino', icon: '🎯' },
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
+  { to: '/laboratorio', label: 'Laboratório', icon: '🧪' },
   { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
   { to: '/brasil', label: 'Brasil', icon: '🇧🇷' },
   { to: '/fontes', label: 'Fontes', icon: '🛰️' },
@@ -104,6 +106,7 @@ function Shell() {
           <Route path="/alertas" element={<AlertsPage />} />
           <Route path="/treino" element={<TrainingPage />} />
           <Route path="/brasil" element={<BrasilPage />} />
+          <Route path="/laboratorio" element={<LabPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route
             path="/biblioteca/:slug?"

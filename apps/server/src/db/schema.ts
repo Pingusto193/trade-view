@@ -393,3 +393,26 @@ export const tradePlans = sqliteTable(
     index('trade_plans_position_idx').on(t.positionId),
   ],
 );
+
+/** Execuções do laboratório: tudo fica salvo (registro de tentativas, SPEC §12.3). */
+export const labRuns = sqliteTable(
+  'lab_runs',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at').notNull(),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    /** Setups ordenados (família de tentativas). */
+    setupsKey: text('setups_key').notNull(),
+    /** Hash do pedido completo (parâmetros incluídos). */
+    configHash: text('config_hash').notNull(),
+    result: text('result').notNull(),
+  },
+  (t) => [
+    index('lab_runs_user_idx').on(t.userId, t.createdAt),
+    index('lab_runs_family_idx').on(t.userId, t.symbolId, t.setupsKey),
+  ],
+);

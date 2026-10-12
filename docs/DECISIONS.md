@@ -164,3 +164,27 @@ Decisões nossas:
 - **Anti-revanche**: pausa recomendada a partir de 2 stops no dia ou 4 em 7 dias (padrões *, editáveis
   nas preferências). Nunca bloqueia (SPEC: "nunca bloqueia de forma irreversível").
 - Os avisos automáticos vistos na hora da entrada ficam gravados no plano (o que você sabia ao entrar).
+
+## ADR-0016 — Laboratório: veredito, sensibilidade e o que fica de fora (12/10/2026)
+
+Decisões nossas (não do vídeo nem da SPEC), todas visíveis na tela:
+
+- **Veredito em degraus**, do mais cético ao menos: inconclusivo (< 30 trades) → reprovado (expectativa
+  ≤ 0 depois de custos, ou resultado ≤ 0 depois do IR simulado) → evidência fraca (< 30 trades no teste)
+  → reprovado (teste fora da amostra ≤ 0 em R ou em dinheiro depois do IR) → promissor (vizinho do
+  parâmetro com expectativa ≤ 0, ou perdeu para o CDI) → evidência fraca (< 100 trades no total) →
+  aprovado. "Aprovado" sempre vem com "passado não garante futuro".
+- **Sensibilidade**: varia só o número "*" principal dos 2 primeiros setups escolhidos (alvo em R
+  1,5/2/2,5/3; desvios da Bollinger 2,5/3/3,5; queda mínima da reflexividade 40/50/60%). Estabilidade =
+  os vizinhos imediatos do valor usado também positivos.
+- **Monte Carlo**: 5.000 reamostragens com semente fixa (42) por execução, para caber no tempo de resposta;
+  a SPEC pede 10 mil* — fica como parâmetro a subir quando o laboratório rodar em segundo plano.
+- **Só compras por padrão**: vender a descoberto exige aluguel (B3) ou margem (cripto), que ainda não
+  simulamos; ligar "Incluir vendas" grava o aviso "resultado otimista".
+- **Moeda**: o resultado fica na moeda do ativo; quando não é real, o aviso diz que a comparação com o
+  CDI ignora o câmbio.
+- **Registro de tentativas**: toda execução fica salva; "variações" = mesmo usuário + ativo + conjunto de
+  setups (qualquer parâmetro). Acima de 5, aviso explícito de desconfiança.
+- Ainda não feitos (pendentes da SPEC §12.3): **walk-forward** (hoje só a separação 70/30*) e o aviso de
+  viés de sobrevivência específico para "composição atual de índice" (hoje o aviso é genérico, em toda
+  execução).

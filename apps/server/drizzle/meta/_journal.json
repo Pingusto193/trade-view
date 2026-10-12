@@ -29,6 +29,13 @@
       "when": 1791813357170,
       "tag": "0003_trade_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791829448982,
+      "tag": "0004_lab_runs",
+      "breakpoints": true
     }
   ]
 }

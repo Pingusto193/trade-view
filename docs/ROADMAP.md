@@ -74,8 +74,11 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 6 — Laboratório e treino completo
 
-- [ ] Backtest barra a barra, custos, IR, CDI e buy & hold
-- [ ] Métricas, antiautoengano (amostra, fora da amostra, sensibilidade, Monte Carlo, registro de tentativas)
+- [x] Backtest barra a barra com os mesmos detectores, custos, tamanho pelo risco, IR (B3), CDI e buy & hold
+  (`packages/core/src/backtest`)
+- [~] Métricas e antiautoengano: amostra, treino/teste 70/30, sensibilidade, Monte Carlo, registro de
+  tentativas, veredito (ADR-0016) e tela `/laboratorio` com curva de capital, distribuição de R e
+  resultado por mês/ano. Falta: walk-forward e aviso de sobrevivência por composição de índice
 - [ ] Experimentos E1–E7
 - [ ] Replay, exercícios de leitura, trilha, feedback por trade, painel de prontidão
 

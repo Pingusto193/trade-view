@@ -122,6 +122,22 @@ export class MacroService {
     return this.inflight;
   }
 
+  /**
+   * Garante o CDI guardado desde `from` (ex.: início de um backtest de 10 anos). Busca só o trecho que
+   * falta; se o BCB falhar, segue sem (o laboratório diz que não há CDI para o período).
+   */
+  async ensureCdiFrom(from: number): Promise<void> {
+    const first = this.load(SGS.CDI_DIARIO).at(0)?.date;
+    if (first !== undefined && first <= from + 7 * DAY) return;
+    const to = first ?? this.now();
+    try {
+      const pts = await this.bcb.getSeries(SGS.CDI_DIARIO, from, to);
+      this.save(SGS.CDI_DIARIO, pts);
+    } catch {
+      // sem CDI antigo: quem chamou mostra a ausência
+    }
+  }
+
   /** CDI acumulado entre duas datas (fração), ou null sem dados que cubram o período. */
   cdiBetween(from: number, to: number): { acc: number; days: number; until: number } | null {
     const pts = this.load(SGS.CDI_DIARIO, from, to);

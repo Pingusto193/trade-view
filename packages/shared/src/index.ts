@@ -6,3 +6,4 @@ export * from './drawings';
 export * from './prefs';
 export * from './alerts';
 export * from './paper';
+export * from './lab';

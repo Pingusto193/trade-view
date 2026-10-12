@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 
 const ITEMS = [
   {
+    to: '/laboratorio',
+    icon: '🧪',
+    label: 'Laboratório',
+    desc: 'Teste setups no passado real, com custos, IR e comparação com o CDI',
+  },
+  {
     to: '/brasil',
     icon: '🇧🇷',
     label: 'Brasil: CDI, Selic e IR',
