@@ -245,7 +245,9 @@ export function ChartView(props: ChartViewProps) {
           DADOS SIMULADOS — não representam nenhum mercado real
         </div>
       )}
-      <div className="relative min-h-0 flex-1">
+      {/* isolate: os z-index internos do Lightweight Charts (alça entre painéis = 50) ficam presos
+          aqui dentro e nunca passam por cima de diálogos e painéis do app */}
+      <div className="relative isolate min-h-0 flex-1">
         <div ref={box} className="absolute inset-0" data-testid="chart-canvas" />
         <Legend hover={hover} meta={meta} tf={tf} />
         {error && (

@@ -67,3 +67,36 @@ test('sem rolagem horizontal da página (cabe em 375 px)', async ({ page }) => {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('diálogos ficam acima das alças internas do gráfico (toque não é roubado)', async ({
+  page,
+}) => {
+  await page.goto('/grafico?id=sim:SIMACAO&tf=1d');
+  await expect(page.getByTestId('chart-canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Real', exact: true }).click();
+  const btn = page
+    .getByRole('dialog', { name: 'Mudar para o modo Real' })
+    .getByRole('button', { name: 'Continuar no treino' });
+  const b = (await btn.boundingBox())!;
+  // põe a alça entre painéis do gráfico (z-index 50 da biblioteca) exatamente sob o botão
+  const moved = await page.evaluate(
+    (y) => {
+      const h = [
+        ...document.querySelectorAll<HTMLDivElement>('[data-testid="chart-canvas"] div'),
+      ].find((d) => d.style.zIndex === '50');
+      if (!h) return false;
+      Object.assign(h.style, {
+        position: 'fixed',
+        top: `${y - 10}px`,
+        left: '0',
+        width: '100%',
+        height: '20px',
+      });
+      return true;
+    },
+    b.y + b.height / 2,
+  );
+  expect(moved).toBe(true);
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await expect(page.getByRole('dialog', { name: 'Mudar para o modo Real' })).toBeHidden();
+});
