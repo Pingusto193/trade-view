@@ -7,6 +7,7 @@ import { ChartView } from '../chart/ChartView';
 import { FractalView } from '../chart/FractalView';
 import { DrawingList, DrawingPanel } from '../chart/drawings/DrawingPanel';
 import { DrawingToolbar, TOOL_SHORTCUTS } from '../chart/drawings/DrawingToolbar';
+import { useTicket } from '../components/OrderTicket';
 import { useAlertForm } from '../lib/alerts-store';
 import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { PresetEditor } from '../components/PresetEditor';
@@ -194,6 +195,16 @@ export function ChartPage() {
         >
           ⚙
         </button>
+        {prefs.mode === 'treino' && (
+          <button
+            type="button"
+            onClick={() => useTicket.getState().open(id, fractal ? mapping.setup : tf)}
+            className="whitespace-nowrap rounded border border-train/70 bg-train/15 px-2 py-1 text-xs font-semibold text-train"
+            title="Comprar com dinheiro fictício (preço real)"
+          >
+            🎯 Treino
+          </button>
+        )}
         <button
           type="button"
           onClick={() =>

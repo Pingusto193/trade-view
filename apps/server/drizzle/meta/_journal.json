@@ -15,6 +15,13 @@
       "when": 1791809501967,
       "tag": "0001_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791811527142,
+      "tag": "0002_paper",
+      "breakpoints": true
     }
   ]
 }

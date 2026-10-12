@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AlertForm } from './components/AlertForm';
+import { ModeSwitch, TrainBanner } from './components/ModeSwitch';
+import { OrderTicket } from './components/OrderTicket';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { setUnauthorizedHandler } from './lib/api';
 import { useAuth } from './lib/auth';
@@ -14,6 +16,7 @@ import { InstallPage } from './pages/InstallPage';
 import { MorePage } from './pages/MorePage';
 import { WatchlistsPage } from './pages/WatchlistsPage';
 import { SourcesPage } from './pages/SourcesPage';
+import { TrainingPage } from './pages/TrainingPage';
 
 // Biblioteca em pedaço separado: o texto das páginas só é baixado quando ela é aberta.
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
@@ -21,6 +24,7 @@ const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 /** Navegação do computador (topo). */
 const NAV = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
+  { to: '/treino', label: 'Treino', icon: '🎯' },
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
@@ -33,6 +37,7 @@ const NAV = [
 /** Barra de baixo do celular: só as telas principais + "Mais". */
 const MOBILE_NAV = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
+  { to: '/treino', label: 'Treino', icon: '🎯' },
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/mais', label: 'Mais', icon: '☰' },
@@ -85,7 +90,9 @@ function Shell() {
             </NavLink>
           ))}
         </nav>
+        <ModeSwitch />
       </header>
+      <TrainBanner />
       <main className="min-h-0 flex-1 overflow-auto">
         <Routes>
           <Route path="/" element={<Navigate to="/grafico" replace />} />
@@ -93,6 +100,7 @@ function Shell() {
           <Route path="/listas" element={<WatchlistsPage />} />
           <Route path="/mais" element={<MorePage />} />
           <Route path="/alertas" element={<AlertsPage />} />
+          <Route path="/treino" element={<TrainingPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route
             path="/biblioteca/:slug?"
@@ -125,6 +133,7 @@ function Shell() {
         ))}
       </nav>
       <AlertForm />
+      <OrderTicket />
       <UpdatePrompt />
     </div>
   );

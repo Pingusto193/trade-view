@@ -148,6 +148,18 @@ Nesta sessão `webkit.org` e `core.telegram.org` não abriram diretamente (DNS b
 
 **Decisões:** o Radar manda no máximo 1 mensagem por segundo por chat do Telegram, respeita `retry_after` e corta o texto em 4.000 caracteres; no iPhone, a tela guiada só mostra o botão "Ativar notificações" quando o app está aberto pela Tela de Início.
 
+## 14. Custos usados no Modo Treino (padrões editáveis por conta)
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| B3, ações, pessoa física: emolumentos ≈ 0,030% do volume no swing (negociação 0,005% + liquidação 0,025%); day trade ≈ 0,023% até R$ 1 milhão/dia. Fontes divergem (há quem cite 0,039%). Tabela oficial de ações à vista não aberta. | 🟡 (corretoras; divergente) | [Toro](https://blog.toroinvestimentos.com.br/bolsa/emolumentos/), [Funds Explorer](https://www.fundsexplorer.com.br/artigos/emolumentos/), [B3 — tarifas](https://www.b3.com.br/pt_br/produtos-e-servicos/tarifas/listados-a-vista-e-derivativos/renda-variavel/tarifas-de-acoes-e-fundos-de-investimento/opcoes-de-acoes/) | 12/10/2026 |
+| Binance (global), spot, usuário comum: taxa base ≈ 0,1% por execução (desconto com BNB e por volume). Binance.US tem tabela diferente. | 🟡 (fontes secundárias; página oficial não aberta) | [Cointelegraph](https://cointelegraph.com/news/binance-us-cuts-spot-trading-fees-to-near-zero-in-push-to-undercut-rivals), [Binance.US](https://blog.binance.us/zero-fee-trading/) | 12/10/2026 |
+| Corretagem de ações no Brasil: muitas corretoras cobram zero, outras não; ações dos EUA dependem da corretora internacional escolhida. | ❌ (varia; o usuário informa) | — | — |
+
+**Decisões (padrões do Treino):** B3 = 0,03% + 1 tick de derrapagem; cripto = 0,1% + spread de 0,02%;
+EUA = 1 tick de derrapagem, sem taxa; forex = 2 ticks + spread de 0,02%. Todos editáveis na conta de
+treino. Spread de cripto e derrapagens são **decisão nossa**, não medidos.
+
 ## 12. Bibliotecas (npm, consultado direto no registro em 12/10/2026)
 
 | Pacote                       | Versão         | Licença          | Observação                                                                                                                                                                           |

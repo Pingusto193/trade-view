@@ -79,7 +79,21 @@ describe('isolamento entre usuários', () => {
     expect((await as(b, 'PUT', `/api/alerts/${created.id}`, alert)).statusCode).toBe(404);
     expect((await as(b, 'DELETE', `/api/alerts/${created.id}`)).statusCode).toBe(404);
     expect((await as(a, 'GET', '/api/alerts')).json().alerts).toHaveLength(1);
+    // contas de treino também
+    const acct = (await post('/api/paper/accounts', { initialBalance: 1000 }, a)).json();
+    expect((await as(b, 'GET', `/api/paper/accounts/${acct.id}/state`)).statusCode).toBe(404);
+    expect((await as(b, 'GET', '/api/paper/accounts')).json().accounts).toEqual([]);
+    expect(
+      (
+        await post(
+          '/api/paper/orders',
+          { accountId: acct.id, symbolId: 'fake:AAA', side: 'buy', type: 'market', qty: 1 },
+          b,
+        )
+      ).statusCode,
+    ).toBe(404);
     // sem login: nada
+    expect((await t.app.inject({ url: '/api/paper/accounts' })).statusCode).toBe(401);
     expect((await t.app.inject({ url: '/api/alerts' })).statusCode).toBe(401);
     expect((await t.app.inject({ url: '/api/notify/settings' })).statusCode).toBe(401);
   });

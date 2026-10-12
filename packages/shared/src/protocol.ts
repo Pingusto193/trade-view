@@ -61,7 +61,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   /** Algo mudou em outro aparelho: o navegador recarrega o tópico (desenhos, listas, preferências). */
   z.object({
     type: z.literal('sync'),
-    topic: z.enum(['drawings', 'watchlists', 'presets', 'prefs', 'alerts']),
+    topic: z.enum(['drawings', 'watchlists', 'presets', 'prefs', 'alerts', 'paper']),
     symbolId: z.string().optional(),
     origin: z.string().optional(),
   }),

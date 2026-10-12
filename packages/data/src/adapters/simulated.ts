@@ -46,10 +46,41 @@ function gauss(r: () => number): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r());
 }
 
-/** Nível "de fundo" contínuo no tempo (tendências lentas), em múltiplos do preço-base. */
-function level(base: number, tMs: number): number {
-  const d = tMs / DAY;
-  return base * Math.exp(0.25 * Math.sin(d / 60) + 0.1 * Math.sin(d / 13) + 0.02 * Math.sin(d * 3));
+/** Primeiro dia do passeio aleatório diário (determinístico a partir daqui). */
+const EPOCH_DAY = Math.floor(Date.UTC(2010, 0, 1) / DAY);
+const walks = new Map<string, number[]>();
+
+/**
+ * Logaritmo do fechamento do dia `dk` em múltiplos do preço-base: tendência lenta (ondas de meses) +
+ * passeio aleatório com leve volta à média (σ ≈ 1,5% ao dia). Sem padrões periódicos de curto prazo,
+ * que fariam setups parecerem melhores ou piores do que num passeio aleatório.
+ */
+function dayLog(symbol: string, dk: number): number {
+  const slow = 0.15 * Math.sin(dk / 90);
+  const i = Math.max(0, dk - EPOCH_DAY);
+  let w = walks.get(symbol);
+  if (!w) {
+    w = [0];
+    walks.set(symbol, w);
+  }
+  while (w.length <= i) {
+    const j = w.length;
+    const r = rng(seedOf(symbol) ^ Math.imul(EPOCH_DAY + j, 2654435761));
+    const prev = w[j - 1] as number;
+    w.push(prev + 0.015 * gauss(r) - 0.01 * prev);
+  }
+  return slow + (w[i] as number);
+}
+
+const dayClose = (symbol: string, base: number, dk: number) => base * Math.exp(dayLog(symbol, dk));
+
+/** Nível contínuo dentro do dia: interpola (em log) do fechamento anterior ao fechamento do dia. */
+function level(symbol: string, base: number, tMs: number): number {
+  const dk = Math.floor(tMs / DAY);
+  const f = (tMs - dk * DAY) / DAY;
+  const a = dayLog(symbol, dk - 1);
+  const b = dayLog(symbol, dk);
+  return base * Math.exp(a + (b - a) * f);
 }
 
 /**
@@ -71,9 +102,9 @@ function minuteSeries(symbol: string, base: number, from: number, to: number): C
       const minutesIntoDay = Math.floor((t - dk * DAY) / 60_000);
       for (let i = 0; i < minutesIntoDay; i++) noise = 0.97 * noise + 0.0009 * gauss(r);
     }
-    const open = level(base, t) * Math.exp(noise);
+    const open = level(symbol, base, t) * Math.exp(noise);
     noise = 0.97 * noise + 0.0009 * gauss(r);
-    const close = level(base, t + 60_000) * Math.exp(noise);
+    const close = level(symbol, base, t + 60_000) * Math.exp(noise);
     const high = Math.max(open, close) * (1 + Math.abs(0.0004 * gauss(r)));
     const low = Math.min(open, close) * (1 - Math.abs(0.0004 * gauss(r)));
     out.push({ time: t, open, high, low, close, volume: Math.round(50 + 100 * r()) });
@@ -155,11 +186,16 @@ export class SimulatedAdapter implements MarketDataAdapter {
     const lastDay = Math.floor(to / DAY);
     for (let dk = firstDay; dk <= lastDay; dk++) {
       const r = rng(seedOf(req.symbol) ^ (dk * 104729));
-      const open = level(base, dk * DAY) * Math.exp(0.004 * gauss(r));
-      const close = level(base, (dk + 1) * DAY) * Math.exp(0.004 * gauss(r));
-      const high = Math.max(open, close) * (1 + Math.abs(0.008 * gauss(r)));
-      const low = Math.min(open, close) * (1 - Math.abs(0.008 * gauss(r)));
-      days.push({ time: dk * DAY, open, high, low, close, volume: Math.round(1e5 * (0.5 + r())) });
+      const prev = dayClose(req.symbol, base, dk - 1);
+      // abertura perto do fechamento anterior (pequeno gap), fechamento = passeio do dia
+      const open = prev * Math.exp(0.002 * gauss(r));
+      const close = dayClose(req.symbol, base, dk);
+      const high = Math.max(open, close) * (1 + Math.abs(0.006 * gauss(r)));
+      const low = Math.min(open, close) * (1 - Math.abs(0.006 * gauss(r)));
+      // volume com cauda e maior em dias de movimento grande
+      const move = Math.abs(Math.log(close / prev));
+      const volume = Math.round(1e5 * Math.exp(0.4 * gauss(r)) * (1 + 20 * move));
+      days.push({ time: dk * DAY, open, high, low, close, volume });
     }
     const out = req.tf === '1d' ? days : aggregate(days, '1d', req.tf, 'UTC');
     return out.slice(-limit);

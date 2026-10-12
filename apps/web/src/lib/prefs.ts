@@ -21,6 +21,8 @@ interface PrefsState extends Prefs {
   setFractalId(id: string): void;
   setRisk(p: Partial<Pick<Prefs, 'capital' | 'riskPct' | 'maxRiskPct'>>): void;
   setSetupParams(p: Record<string, unknown>): void;
+  setMode(mode: Prefs['mode']): void;
+  setPaperAccount(id: string): void;
   pushRecent(id: string, tf: Timeframe): void;
   loadFromServer(): Promise<void>;
   savePreset(p: IndicatorPreset): Promise<void>;
@@ -61,6 +63,14 @@ export const usePrefs = create<PrefsState>()(
       setRisk: (p) => {
         set(p);
         pushToServer(p);
+      },
+      setMode: (mode) => {
+        set({ mode });
+        pushToServer({ mode });
+      },
+      setPaperAccount: (paperAccountId) => {
+        set({ paperAccountId });
+        pushToServer({ paperAccountId });
       },
       setSetupParams: (setupParams) => {
         set({ setupParams });

@@ -19,7 +19,9 @@ import { MarketService } from './market/service';
 import { SmtpEmail, TelegramHttp, WebPushSender } from './notify/channels';
 import { Notifier, type Senders } from './notify/notifier';
 import { loadVapid } from './notify/vapid';
+import { PaperService } from './paper/service';
 import { alertRoutes } from './routes/alerts';
+import { paperRoutes } from './routes/paper';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
 import { userDataRoutes } from './routes/userdata';
@@ -44,6 +46,7 @@ export interface RadarApp {
   sync: SyncHub;
   alerts: AlertService;
   notifier: Notifier;
+  paper: PaperService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -156,6 +159,9 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   );
   alertRoutes(app, alerts, notifier, sync, env.PUBLIC_URL);
 
+  const paper = new PaperService(db, market, hub, sync, app.log, deps.now);
+  paperRoutes(app, paper);
+
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
   if (dist && existsSync(dist)) {
@@ -170,7 +176,8 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
 
   app.addHook('onClose', async () => {
     alerts.close();
+    paper.close();
     hub.closeAll();
   });
-  return { app, market, hub, store, auth, sync, alerts, notifier };
+  return { app, market, hub, store, auth, sync, alerts, notifier, paper };
 }

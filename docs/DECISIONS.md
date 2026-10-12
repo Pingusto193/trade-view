@@ -124,3 +124,31 @@ Decisões nossas (a SPEC §10 não detalha):
   1 mensagem/s por chat e respeito a `retry_after`. **E-mail**: SMTP do `.env`. **Push**: chaves VAPID do
   `.env` ou geradas uma vez em `vapid.json` (trocar invalida as assinaturas); 404/410 apagam a assinatura.
 - Alertas de **stop e alvo de planos** ficam para a Fase 5 (planos ainda não existem).
+
+## ADR-0014 — Modo Treino ao vivo: execução realista com preço real (12/10/2026)
+
+Pedido explícito do usuário: aprender com dinheiro fictício, mas **sempre com dados reais e atuais**.
+Decisões nossas:
+
+- **Preço real da fonte**, nunca simulado (o simulador só existe em desenvolvimento e é proibido em produção).
+  Ativos com atraso (B3 pela brapi) executam no preço atrasado, e a posição mostra o aviso.
+- **Só vale o que negociou depois da ordem**: o servidor reconstrói, a cada atualização do candle de 1 min,
+  a faixa negociada desde a atualização anterior (máxima/mínima novas). Limitação: toques entre duas
+  atualizações que não renovam a máxima/mínima do minuto não são vistos (com a Binance, a cada 1–2 s, o
+  efeito é pequeno; com fontes por consulta, maior).
+- **Custos sempre**: meio spread + derrapagem em ticks nas ordens a mercado e stop; limitada não derrapa e
+  só executa se o preço passar **além** do limite; taxas proporcionais e corretagem em toda execução.
+  Padrões por mercado em DATA_SOURCES §14, editáveis por conta.
+- Gap contra no stop → abertura; alvo com gap a favor → no alvo; stop e alvo juntos → stop; no intervalo
+  da entrada, só o stop (mesmas regras do backtest, `fills.ts`).
+- **Só compras** nesta versão: venda a descoberto exige aluguel de ações ou margem, custos que ainda não
+  simulamos — liberar sem eles deixaria o treino melhor que o real.
+- **Sem alavancagem**: a compra precisa caber no saldo (cotação do dólar incluída).
+- **Dólar**: USDT/BRL ao vivo da Binance como aproximação do dólar; se faltar, a cotação manual da conta;
+  sem nenhuma das duas, a ordem é recusada com explicação. A cotação usada fica em cada execução.
+- **Reinício** com novo saldo encerra posições pelo último preço e cancela ordens; o histórico fica (fases).
+- **Stop só anda a favor**: afastar exige confirmação e grava "stop movido para trás" (estatística de
+  disciplina). Trade sem stop não tem R e conta como indisciplina.
+- **IR simulado** só para a B3 (motor `apurarB3`); cripto e EUA mostram "ainda não simulado".
+- Chave **Treino/Real** nas preferências do servidor (treino é o padrão); no Real a faixa some e o Radar
+  continua sem enviar ordens.

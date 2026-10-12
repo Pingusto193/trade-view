@@ -46,6 +46,12 @@ const SHORT: Record<SetupId, string> = {
 /** Painéis que ganham área própria. ATR fica só na legenda (SPEC: "ATR 14 (exibição)"). */
 const SUB_PANES: readonly Pane[] = ['volume', 'adx', 'macd', 'rsi', 'stochastic'];
 
+export interface PaperLine {
+  price: number;
+  title: string;
+  kind: 'entry' | 'stop' | 'target' | 'order';
+}
+
 export interface HoverInfo {
   time: number; // UTC ms real
   candle: Candle | null;
@@ -82,6 +88,7 @@ export class ChartController {
   readonly drawings: DrawingManager | null = null;
   private markers: ISeriesMarkersPluginApi<Time> | null = null;
   private setupLines: IPriceLine[] = [];
+  private paperLines: IPriceLine[] = [];
 
   constructor(
     container: HTMLElement,
@@ -532,6 +539,26 @@ export class ChartController {
       if (o.state === 'acionado') add(o.entry, '#e2e8f0', `Entrada ${name}`, LineStyle.Solid);
       add(o.stop, '#ef4444', `Stop ${name}`);
       add(o.target, '#22c55e', `Alvo ${name}`);
+    }
+  }
+
+  /** Posições e ordens do Modo Treino deste ativo (roxo = dinheiro fictício). */
+  setPaperLines(lines: readonly PaperLine[]): void {
+    for (const l of this.paperLines) this.price.removePriceLine(l);
+    this.paperLines = [];
+    const color = { entry: '#a855f7', stop: '#ef4444', target: '#22c55e', order: '#c084fc' };
+    for (const l of lines) {
+      if (!Number.isFinite(l.price)) continue;
+      this.paperLines.push(
+        this.price.createPriceLine({
+          price: l.price,
+          color: color[l.kind],
+          lineWidth: l.kind === 'entry' ? 2 : 1,
+          lineStyle: l.kind === 'entry' ? LineStyle.Solid : LineStyle.Dotted,
+          axisLabelVisible: true,
+          title: l.title,
+        }),
+      );
     }
   }
 

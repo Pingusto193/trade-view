@@ -261,3 +261,112 @@ export const notifySettings = sqliteTable('notify_settings', {
   email: text('email'),
   updatedAt: integer('updated_at').notNull(),
 });
+
+// ------------------------------------------------------------------ Modo Treino (dinheiro fictício)
+
+export const paperAccounts = sqliteTable(
+  'paper_accounts',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    initialBalance: real('initial_balance').notNull(),
+    /** Saldo em R$ (dinheiro fictício). */
+    cash: real('cash').notNull(),
+    generation: integer('generation').notNull().default(1),
+    /** Custos por mercado que substituem os padrões (JSON). */
+    costs: text('costs').notNull().default('{}'),
+    fxManual: real('fx_manual'),
+    createdAt: integer('created_at').notNull(),
+    resetAt: integer('reset_at'),
+  },
+  (t) => [index('paper_accounts_user_idx').on(t.userId)],
+);
+
+export const paperOrders = sqliteTable(
+  'paper_orders',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => paperAccounts.id, { onDelete: 'cascade' }),
+    userId: integer('user_id').notNull(),
+    symbolId: text('symbol_id').notNull(),
+    side: text('side').notNull(),
+    type: text('type').notNull(),
+    qty: real('qty').notNull(),
+    price: real('price'),
+    stopLoss: real('stop_loss'),
+    takeProfit: real('take_profit'),
+    status: text('status').notNull(),
+    reason: text('reason'),
+    note: text('note').notNull().default(''),
+    /** Preço de referência quando a ordem foi criada. */
+    refPrice: real('ref_price'),
+    createdAt: integer('created_at').notNull(),
+    filledAt: integer('filled_at'),
+    fillPrice: real('fill_price'),
+    generation: integer('generation').notNull(),
+  },
+  (t) => [index('paper_orders_account_idx').on(t.accountId, t.status)],
+);
+
+export const paperPositions = sqliteTable(
+  'paper_positions',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => paperAccounts.id, { onDelete: 'cascade' }),
+    userId: integer('user_id').notNull(),
+    symbolId: text('symbol_id').notNull(),
+    market: text('market').notNull(),
+    currency: text('currency').notNull(),
+    pointValue: real('point_value').notNull(),
+    tick: real('tick').notNull(),
+    qty: real('qty').notNull(),
+    /** Quantidade máxima atingida (para o R e a apuração). */
+    maxQty: real('max_qty').notNull(),
+    avgPrice: real('avg_price').notNull(),
+    stop: real('stop'),
+    target: real('target'),
+    initialStop: real('initial_stop'),
+    entryFx: real('entry_fx').notNull(),
+    /** Custo de entrada em R$ (para devolver ao saldo e apurar). */
+    costBrl: real('cost_brl').notNull(),
+    realizedBrl: real('realized_brl').notNull().default(0),
+    feesBrl: real('fees_brl').notNull().default(0),
+    /** Valor total vendido em R$ (base da isenção do IR). */
+    salesBrl: real('sales_brl').notNull().default(0),
+    status: text('status').notNull(),
+    openedAt: integer('opened_at').notNull(),
+    closedAt: integer('closed_at'),
+    delayNote: text('delay_note'),
+    generation: integer('generation').notNull(),
+  },
+  (t) => [index('paper_positions_account_idx').on(t.accountId, t.status)],
+);
+
+export const paperEvents = sqliteTable(
+  'paper_events',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => paperAccounts.id, { onDelete: 'cascade' }),
+    time: integer('time').notNull(),
+    kind: text('kind').notNull(),
+    symbolId: text('symbol_id'),
+    positionId: text('position_id'),
+    orderId: text('order_id'),
+    price: real('price'),
+    qty: real('qty'),
+    pnlBrl: real('pnl_brl'),
+    feesBrl: real('fees_brl'),
+    fx: real('fx'),
+    detail: text('detail').notNull().default(''),
+  },
+  (t) => [index('paper_events_account_idx').on(t.accountId, t.time)],
+);

@@ -5,8 +5,9 @@ import { TIMEFRAME_LABEL } from '@radar/shared';
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { analysisKey, useAnalysis, useSetupView } from '../lib/analysis-store';
 import { newDrawingId, useDrawings, useDrawingTool } from '../lib/drawings-store';
+import { usePaper } from '../lib/paper-store';
 import { usePrefs, type ChartType } from '../lib/prefs';
-import { ChartController, type HoverInfo } from './controller';
+import { ChartController, type HoverInfo, type PaperLine } from './controller';
 import { Legend } from './Legend';
 import { LiveSeries } from './live-series';
 import { SourceBadge } from './SourceBadge';
@@ -123,6 +124,35 @@ export function ChartView(props: ChartViewProps) {
       controller.setOpenSetups(a.open, v.hidden);
     };
     const unsubView = useSetupView.subscribe(applyView);
+
+    // Modo Treino: posição e ordens deste ativo no gráfico
+    const applyPaper = () => {
+      const st = usePaper.getState().state;
+      const lines: PaperLine[] = [];
+      if (st && usePrefs.getState().mode === 'treino') {
+        for (const p of st.positions.filter((x) => x.symbolId === id)) {
+          lines.push({ price: p.avgPrice, title: `Treino ${p.qty}`, kind: 'entry' });
+          if (p.stop !== null) lines.push({ price: p.stop, title: 'Stop treino', kind: 'stop' });
+          if (p.target !== null)
+            lines.push({ price: p.target, title: 'Alvo treino', kind: 'target' });
+        }
+        for (const o of st.orders.filter((x) => x.symbolId === id && x.price !== null)) {
+          lines.push({
+            price: o.price as number,
+            title: `${o.side === 'buy' ? 'Compra' : 'Venda'} ${o.type === 'limit' ? 'lim.' : 'stop'} treino`,
+            kind: 'order',
+          });
+        }
+      }
+      controller.setPaperLines(lines);
+    };
+    const unsubPaper = usePaper.subscribe(applyPaper);
+    if (usePrefs.getState().mode === 'treino' && !usePaper.getState().loaded) {
+      void usePaper
+        .getState()
+        .load()
+        .catch(() => undefined);
+    }
     const unsubFocus = useAnalysis.subscribe((st, prev) => {
       if (st.focus && st.focus !== prev.focus && st.focus.key === aKey) {
         controller.focusIndex(st.focus.index);
@@ -145,6 +175,7 @@ export function ChartView(props: ChartViewProps) {
         setEmpty(candles.length === 0);
         controller.setData(candles, m, visibleBars);
         setHover(controller.lastHover());
+        applyPaper();
         indicatorWorker.post({
           type: 'reset',
           key,
@@ -167,6 +198,7 @@ export function ChartView(props: ChartViewProps) {
     void series.start();
 
     return () => {
+      unsubPaper();
       unsubView();
       unsubFocus();
       unsubDrawings();

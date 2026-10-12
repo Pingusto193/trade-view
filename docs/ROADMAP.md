@@ -63,8 +63,12 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 - [ ] Calculadora de posição por mercado; plano de trade com checklist e avisos
 - [ ] Diário com eventos (stop movido para trás etc.) e estatísticas
-- [ ] Painel Brasil (CDI, Selic, IR da B3 com apuração mensal)
-- [ ] Chave Treino/Real, conta fictícia, ordens simuladas executadas pelo servidor
+- [~] Painel Brasil (CDI, Selic, IR da B3 com apuração mensal) — motor de apuração mensal pronto e testado
+  (`packages/core/src/tax/b3.ts`); falta o painel e o CDI/Selic ao vivo do BCB
+- [x] Chave Treino/Real, conta fictícia com **saldo editável**, ordens simuladas executadas pelo servidor
+  com preço real (a mercado, limitada, stop, stop/alvo da posição), custos, diário básico e IR simulado
+  da B3 — prioridade pedida pelo usuário (ADR-0014). Falta: venda a descoberto, parciais pela boleta,
+  plano de trade completo e feedback por trade
 
 ## Fase 6 — Laboratório e treino completo
 
