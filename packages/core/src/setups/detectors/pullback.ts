@@ -1,7 +1,7 @@
 import { formatNumber } from '@radar/shared';
 import type { z } from 'zod';
 import { Detector, lowestLow } from '../base';
-import { hammer, insideBar, relVolume, strongBear, strongBull, volumeDrying } from '../pa';
+import { hammer, insideBar, relVolume, slope, strongBear, strongBull, volumeDrying } from '../pa';
 import type { pullbackSchema } from '../params';
 import type { SeriesBuffer } from '../series';
 import type { SetupEvent, StepContext } from '../types';
@@ -28,6 +28,11 @@ type MaKey = keyof typeof MA_LABEL;
  * - Pontuação de recuo saudável: volume secando, candles menores que os do impulso, fundo anterior
  *   preservado. Alertas: queda com volume alto, barra de força de baixa.
  * - Invalidação: perde o fundo do recuo; a média vira para baixo e é perdida; escala maior contra.
+ *   As que dependem do fechamento só valem se a ordem stop não executou no candle (depois da
+ *   execução valem stop e alvo).
+ * - Expiração (decisão nossa): armado sem acionar em `expiryBars` candles; radar sem armar em
+ *   `radarExpiryBars` candles depois de aparecer (senão fica preso a um topo antigo e, como só há
+ *   uma ocorrência por vez, bloqueia os recuos seguintes).
  */
 export class Pullback extends Detector {
   readonly id = 'pullback' as const;
@@ -53,8 +58,8 @@ export class Pullback extends Detector {
       return { ok: false, why: 'estrutura de topos e fundos não é de alta' };
     if (!(s.v(s.sma50, t) > s.v(s.sma50, t - 1)))
       return { ok: false, why: 'MMA50 não está subindo' };
-    if (!(s.v(s.ema21, t) > s.v(s.ema21, t - 5)))
-      return { ok: false, why: 'MME21 não está subindo' };
+    // inclinação da MME21 com o passo configurável (pa.slopeLookback, SPEC §8.1)
+    if (!(slope(s, s.ema21, t, ctx.pa) > 0)) return { ok: false, why: 'MME21 não está subindo' };
     if (ctx.higher && ctx.higher.trend === 'baixa')
       return { ok: false, why: `escala maior (${ctx.higher.tfLabel}) em baixa` };
     return { ok: true, why: 'estrutura de alta, MME21 e MMA50 subindo' };
@@ -127,7 +132,36 @@ export class Pullback extends Detector {
         }
         continue;
       }
-      // radar ou armado: invalidações
+      // radar ou armado: a escala maior já é conhecida na abertura do candle
+      if (ctx.higher && ctx.higher.trend === 'baixa') {
+        out.push(
+          this.close(
+            inst,
+            s,
+            t,
+            'invalidado',
+            null,
+            `A escala maior (${ctx.higher.tfLabel}) mudou para baixa`,
+          ),
+        );
+        continue;
+      }
+      // a ordem stop executa durante o pregão: confere o gatilho ANTES das invalidações que dependem
+      // do fechamento (senão um candle que rompe e fecha fraco some como "invalidado", sem a perda)
+      if (inst.state === 'armado' && t > inst.startIndex) {
+        const entered = this.tryEnter(
+          inst,
+          s,
+          t,
+          this.p.exit,
+          `Rompeu a máxima do candle anterior (${f(inst.trigger ?? 0)})`,
+        );
+        if (entered.length) {
+          out.push(...entered);
+          continue;
+        }
+      }
+      // sem execução: invalidações pelo fechamento
       const pbLow = lowestLow(s, inst.m.swingIdx as number, t);
       if (c.close < (inst.m.priorLow as number)) {
         out.push(
@@ -155,51 +189,40 @@ export class Pullback extends Detector {
         );
         continue;
       }
-      if (ctx.higher && ctx.higher.trend === 'baixa') {
+      if (inst.state === 'armado' && t - inst.startIndex >= this.p.expiryBars) {
         out.push(
-          this.close(
-            inst,
-            s,
-            t,
-            'invalidado',
-            null,
-            `A escala maior (${ctx.higher.tfLabel}) mudou para baixa`,
-          ),
+          this.close(inst, s, t, 'expirou', null, `Não acionou em ${this.p.expiryBars} candles`),
         );
         continue;
-      }
-      if (inst.state === 'armado' && t > inst.startIndex) {
-        const entered = this.tryEnter(
-          inst,
-          s,
-          t,
-          this.p.exit,
-          `Rompeu a máxima do candle anterior (${f(inst.trigger ?? 0)})`,
-        );
-        if (entered.length) {
-          out.push(...entered);
-          continue;
-        }
-        if (t - inst.startIndex >= this.p.expiryBars) {
-          out.push(
-            this.close(inst, s, t, 'expirou', null, `Não acionou em ${this.p.expiryBars} candles`),
-          );
-          continue;
-        }
       }
       // (re)arma no fechamento de um candle na região da média
       const near =
         c.low <= s.v(ma, t) + this.p.nearAtr * atr && c.close >= s.v(ma, t) - this.p.nearAtr * atr;
-      if (!near) continue;
-      const score = this.score(
-        s,
-        t,
-        inst.m.swingIdx as number,
-        inst.m.impulseStart as number,
-        inst.m.priorLow as number,
-        ctx,
-      );
-      if (this.p.requireHealthy && (score.points < 2 || score.alerts.length > 0)) continue;
+      const score = near
+        ? this.score(
+            s,
+            t,
+            inst.m.swingIdx as number,
+            inst.m.impulseStart as number,
+            inst.m.priorLow as number,
+            ctx,
+          )
+        : null;
+      if (!score || (this.p.requireHealthy && (score.points < 2 || score.alerts.length > 0))) {
+        // radar que não arma não pode ficar preso a um topo antigo e bloquear os recuos seguintes
+        if (inst.state === 'radar' && t - inst.startIndex >= this.p.radarExpiryBars)
+          out.push(
+            this.close(
+              inst,
+              s,
+              t,
+              'expirou',
+              null,
+              `Não armou em ${this.p.radarExpiryBars} candles`,
+            ),
+          );
+        continue;
+      }
       const pattern = strongBull(s, t, ctx.pa)
         ? 'candle de força'
         : hammer(s, t, ctx.pa)
