@@ -1,7 +1,7 @@
 import type { Candle, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
+import type { BcbClient } from '@radar/data';
 import {
   AdapterRegistry,
-  BcbClient,
   DataSourceError,
   type CandleRequest,
   type MarketDataAdapter,
