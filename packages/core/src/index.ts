@@ -25,3 +25,7 @@ export * from './backtest/engine';
 export * from './backtest/metrics';
 export * from './backtest/montecarlo';
 export * from './backtest/walkforward';
+export * from './experiments/tails';
+export * from './experiments/costs';
+export * from './experiments/compare';
+export * from './experiments/drawdown-buys';

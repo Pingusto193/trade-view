@@ -8,6 +8,12 @@ const ITEMS = [
     desc: 'Teste setups no passado real, com custos, IR e comparação com o CDI',
   },
   {
+    to: '/laboratorio/experimentos',
+    icon: '🔬',
+    label: 'Verificar o youtuber',
+    desc: 'Experimentos prontos (E1–E7) com hipótese, método, resultado e limitações',
+  },
+  {
     to: '/brasil',
     icon: '🇧🇷',
     label: 'Brasil: CDI, Selic e IR',

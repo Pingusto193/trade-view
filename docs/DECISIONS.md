@@ -305,6 +305,31 @@ Decisões nossas (não do vídeo nem da SPEC), todas visíveis na tela:
   CDI ignora o câmbio.
 - **Registro de tentativas**: toda execução fica salva; "variações" = mesmo usuário + ativo + conjunto de
   setups (qualquer parâmetro). Acima de 5, aviso explícito de desconfiança.
-- Ainda não feitos (pendentes da SPEC §12.3): **walk-forward** (hoje só a separação 70/30*) e o aviso de
-  viés de sobrevivência específico para "composição atual de índice" (hoje o aviso é genérico, em toda
-  execução).
+- **Walk-forward** (adicionado depois): treino ancorado em 50% do período e 5 trechos de teste; em cada
+  corte escolhe o melhor valor do número "*" principal do 1º setup usando só trades já encerrados e mede no
+  trecho seguinte. Expectativa fora da amostra ≤ 0 impede o "aprovado" (fica "promissor").
+- Ainda não feito: aviso de viés de sobrevivência específico para "composição atual de índice" no
+  laboratório (hoje o aviso é genérico, em toda execução; os experimentos avisam pela lista escolhida).
+
+## ADR-0017 — Experimentos "Verificar o youtuber" (12/10/2026)
+
+Decisões nossas para a SPEC §12.4 (tela `/laboratorio/experimentos`):
+
+- **Mesmo motor**: E1, E3, E4, E5 e a Reflexividade do E7 rodam `runBacktest` com os detectores do app, custos
+  padrão do mercado, risco de 1% por trade, R$ 10 mil e só compras. Resultados em R de todos os ativos somados.
+- **Comparação**: teste t de Welch na diferença de expectativa (R por trade); |t| ≥ 2 (≈ 95%) = "maior que o
+  barulho do acaso", senão "dentro do barulho". "Teste" = últimos 30% do período de cada ativo.
+- **Histórico pedido**: diário 2.600 candles (~10 anos), semanal 1.040 (~20 anos), mensal 240, 60 min 5.000;
+  ativo com menos de 80 candles fechados ou escala que a fonte não oferece vira linha de erro (nunca inventa).
+- **Conjuntos sugeridos** (editáveis): 20 ações conhecidas da B3, 5 criptos e 5 ativos dos EUA. Composição e
+  liquidez não verificadas hoje (🟡); a lista atual é viés de sobrevivência e isso aparece nas limitações.
+- **E2**: além da curva normal (0,135% por lado), compara com um passeio aleatório normal de mesma volatilidade
+  medido com a mesma régua (20 séries, semente fixa), porque a banda de 20 candles não segue a curva normal nem
+  num mundo normal. "Voltou à média" = tocou a média central em até 10 candles; casos sem 10 candles depois
+  ficam fora.
+- **E6**: stop típico = 1 × ATR14 (mediana), custo de ida e volta = 2 × (taxa + meio spread + derrapagem) +
+  corretagem diluída em R$ 10 mil; IR só na B3, 20% em 5/15/60 min e 15% no diário, sobre o que sobra (sem
+  isenção nem compensação). Supõe os 40% de acerto do vídeo em qualquer escala (premissa, não fato).
+- **E7**: compra ingênua no 1º fechamento a −50% do topo de 52 semanas, segurando 52 semanas sem stop e sem
+  custos (otimista de propósito); cada queda conta uma vez. Reflexividade sem fundamentos (não verificados).
+- Execução em segundo plano, um ativo por vez, uma por usuário; servidor reiniciado marca a execução como erro.

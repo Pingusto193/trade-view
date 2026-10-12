@@ -7,3 +7,4 @@ export * from './prefs';
 export * from './alerts';
 export * from './paper';
 export * from './lab';
+export * from './experiments';

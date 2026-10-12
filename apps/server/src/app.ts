@@ -19,10 +19,12 @@ import { MarketService } from './market/service';
 import { SmtpEmail, TelegramHttp, WebPushSender } from './notify/channels';
 import { Notifier, type Senders } from './notify/notifier';
 import { loadVapid } from './notify/vapid';
+import { ExperimentService } from './experiments/service';
 import { LabService } from './lab/service';
 import { MacroService } from './macro/service';
 import { PaperService } from './paper/service';
 import { alertRoutes } from './routes/alerts';
+import { experimentRoutes } from './routes/experiments';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
@@ -55,6 +57,7 @@ export interface RadarApp {
   paper: PaperService;
   macro: MacroService;
   lab: LabService;
+  experiments: ExperimentService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -193,6 +196,8 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
 
   const lab = new LabService(db, market, macro, deps.now);
   labRoutes(app, lab);
+  const experiments = new ExperimentService(db, market, deps.now);
+  experimentRoutes(app, experiments);
 
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
@@ -211,5 +216,5 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     paper.close();
     hub.closeAll();
   });
-  return { app, market, hub, store, auth, sync, alerts, notifier, paper, macro, lab };
+  return { app, market, hub, store, auth, sync, alerts, notifier, paper, macro, lab, experiments };
 }

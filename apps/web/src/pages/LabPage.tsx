@@ -15,7 +15,7 @@ import {
   type Timeframe,
 } from '@radar/shared';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { HelpLink } from '../components/HelpLink';
 import {
   EquityChart,
@@ -788,6 +788,12 @@ export function LabPage() {
       <h1 className="text-xl font-semibold">
         Laboratório <HelpLink slug="expectativa" label="Ajuda: expectativa" />
       </h1>
+      <Link
+        to="/laboratorio/experimentos"
+        className="inline-block rounded border border-accent px-2 py-1 text-sm text-accent"
+      >
+        🔬 Verificar o youtuber: experimentos prontos E1–E7
+      </Link>
       <p className="text-sm text-muted">
         Teste um setup no passado real do ativo antes de usar dinheiro. O laboratório é cético de
         propósito: com poucos trades, sem teste fora da amostra ou perdendo para o CDI, ele não

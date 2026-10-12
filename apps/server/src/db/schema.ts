@@ -416,3 +416,19 @@ export const labRuns = sqliteTable(
     index('lab_runs_family_idx').on(t.userId, t.symbolId, t.setupsKey),
   ],
 );
+
+/** Experimentos "Verificar o youtuber" (SPEC §12.4): cada execução guardada inteira. */
+export const experimentRuns = sqliteTable(
+  'experiment_runs',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    experimentId: text('experiment_id').notNull(),
+    createdAt: integer('created_at').notNull(),
+    status: text('status', { enum: ['running', 'done', 'error'] }).notNull(),
+    run: text('run').notNull(),
+  },
+  (t) => [index('experiment_runs_user_idx').on(t.userId, t.experimentId, t.createdAt)],
+);

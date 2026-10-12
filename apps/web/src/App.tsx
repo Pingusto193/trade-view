@@ -13,6 +13,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { BrasilPage } from './pages/BrasilPage';
 import { LoginScreen, RegisterScreen } from './pages/AuthScreens';
 import { ChartPage } from './pages/ChartPage';
+import { ExperimentsPage } from './pages/ExperimentsPage';
 import { InstallPage } from './pages/InstallPage';
 import { LabPage } from './pages/LabPage';
 import { MorePage } from './pages/MorePage';
@@ -107,6 +108,7 @@ function Shell() {
           <Route path="/treino" element={<TrainingPage />} />
           <Route path="/brasil" element={<BrasilPage />} />
           <Route path="/laboratorio" element={<LabPage />} />
+          <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route
             path="/biblioteca/:slug?"
