@@ -57,6 +57,13 @@
       "when": 1791915235513,
       "tag": "0007_real_journal",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791931018660,
+      "tag": "0008_mt5_agent",
+      "breakpoints": true
     }
   ]
 }
