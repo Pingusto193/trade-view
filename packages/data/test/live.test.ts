@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { BcbClient, BinanceAdapter, SGS } from '../src';
+import { computeFundamentals } from '@radar/core';
+import {
+  BcbClient,
+  BinanceAdapter,
+  CVM_SOURCE,
+  CvmClient,
+  SEC_SOURCE,
+  SGS,
+  SecEdgarClient,
+  cvmFactsFor,
+} from '../src';
 
 /**
  * Testes de integração REAIS — só rodam com RADAR_LIVE_TESTS=1 e internet.
@@ -26,4 +36,33 @@ describe.skipIf(!live)('integração real (internet)', () => {
     expect(selic[0]?.value).toBeGreaterThan(0);
     expect(cdi.length).toBe(5);
   }, 30_000);
+
+  // SEC exige identificação com contato: SEC_USER_AGENT="Seu nome seu@email" pnpm test:live
+  it.skipIf(!process.env.SEC_USER_AGENT)(
+    'SEC EDGAR: ticker → CIK e companyfacts da Apple (AAPL)',
+    async () => {
+      const sec = new SecEdgarClient({ userAgent: process.env.SEC_USER_AGENT });
+      const cik = (await sec.tickers()).get('AAPL')?.cik;
+      expect(cik).toBeGreaterThan(0);
+      const facts = await sec.companyFacts(cik!);
+      const fu = computeFundamentals(facts.facts, { source: SEC_SOURCE, asOf: Date.now() });
+      expect(fu.periodEnd).toBeGreaterThan(Date.now() - 550 * 86_400_000);
+      expect(fu.revenueNoDecline === null).toBe(false);
+    },
+    60_000,
+  );
+
+  it('CVM: FCA (ticker → CNPJ) e DFP do ano passado para a PETR4', async () => {
+    const cvm = new CvmClient();
+    const y = new Date().getUTCFullYear();
+    const map = await cvm.fca(y).catch(() => cvm.fca(y - 1));
+    const petr = map.get('PETR4');
+    expect(petr?.cnpj).toMatch(/^\d{14}$/);
+    const lines = [...(await cvm.dfp(y - 2)).lines, ...(await cvm.dfp(y - 1)).lines].filter(
+      (l) => l.cnpj === petr!.cnpj,
+    );
+    const { facts } = cvmFactsFor(lines, petr!.shareClass);
+    const fu = computeFundamentals(facts, { source: CVM_SOURCE, asOf: Date.now() });
+    expect(fu.revenueNoDecline === null && fu.epsGrowth2y === null).toBe(false);
+  }, 300_000);
 });
