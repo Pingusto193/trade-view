@@ -6,6 +6,7 @@ import {
   costModelSchema,
   exitHit,
   feedbackCandleLimit,
+  journalStats,
   marketFill,
   marketState,
   orderFill,
@@ -444,45 +445,17 @@ export class PaperService {
       riskPct: this.riskPctAtEntry(acc, p, closed),
       stopMovedBack: movedBack.has(p.id),
     }));
-    const n = trades.length;
-    const wins = trades.filter((t) => t.realizedBrl > 0).length;
-    const withR = trades.filter((t) => t.r !== null);
-    let peak = acc.initialBalance;
-    let equity = acc.initialBalance;
-    let ddBrl = 0;
-    let ddPct = 0;
-    for (const t of trades) {
-      equity += t.realizedBrl;
-      peak = Math.max(peak, equity);
-      ddBrl = Math.max(ddBrl, peak - equity);
-      ddPct = Math.max(ddPct, peak > 0 ? (peak - equity) / peak : 0);
-    }
-    const stats: PaperStats = {
-      trades: n,
-      wins,
-      winRate: n ? wins / n : null,
-      avgR: withR.length
-        ? round(withR.reduce((s, t) => s + (t.r ?? 0), 0) / withR.length, 2)
-        : null,
-      expectancyBrl: n ? round(trades.reduce((s, t) => s + t.realizedBrl, 0) / n) : null,
-      totalBrl: round(trades.reduce((s, t) => s + t.realizedBrl, 0)),
-      feesBrl: round(trades.reduce((s, t) => s + t.feesBrl, 0)),
-      maxDrawdownBrl: round(ddBrl),
-      maxDrawdownPct: round(ddPct * 100, 2),
-      withoutStop: trades.filter((t) => t.initialStop === null).length,
-      stopMovedBack: trades.filter((t) => movedBack.has(t.id)).length,
-      withPlan: trades.filter((t) => t.plan?.released).length,
-      disciplinePct: n
-        ? round(
-            (trades.filter(
-              (t) => t.plan?.released && t.initialStop !== null && !movedBack.has(t.id),
-            ).length /
-              n) *
-              100,
-            1,
-          )
-        : null,
-    };
+    const stats: PaperStats = journalStats(
+      trades.map((t) => ({
+        realizedBrl: t.realizedBrl,
+        feesBrl: t.feesBrl,
+        r: t.r,
+        hasStop: t.initialStop !== null,
+        stopMovedBack: movedBack.has(t.id),
+        planReleased: t.plan?.released === true,
+      })),
+      acc.initialBalance,
+    );
     // IR simulado: só operações da B3 (cripto e EUA têm regras próprias, ainda não simuladas)
     const b3 = closed.filter((p) => p.market === 'b3');
     const sells = b3.length
