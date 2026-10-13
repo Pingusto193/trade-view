@@ -78,7 +78,11 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 | OANDA v20: candles históricos desde 2005; token pessoal gerado no portal; conta demo disponível. | 🟡                                 | [OANDA Getting Started](https://developer.oanda.com/rest-live-v20/introduction/) | 12/10/2026 |
 | OANDA aceita residentes no Brasil?                                                               | ❌                                 | Não encontrado                                                                   | 12/10/2026 |
 | Volume em forex = "tick volume" da corretora.                                                    | ✅ (natureza do mercado de balcão) | —                                                                                | —          |
-| Situação regulatória de corretoras de forex para PF no Brasil (CVM).                             | ❌                                 | A verificar                                                                      | —          |
+| Mercado de forex abre domingo 17h e fecha sexta 17h, horário de Nova York (24 h por dia nesse intervalo). | 🟡 (fontes secundárias concordam) | [Benzinga](https://benzinga.com/money/forex-trading-hours), [Investing.com](https://investing.com/brokers/guides/forex/can-you-trade-forex-7-days-a-week), [Dukascopy](https://www.dukascopy.com/plugins/fxMarketWatch/forex-market-hours/) | 13/10/2026 |
+| A CVM emite alertas frequentes contra corretoras estrangeiras de forex/CFD que captam clientes no Brasil sem autorização (art. 15 da Lei 6.385/76); forex e CFD são tratados como derivativos (art. 2º). A CVM considera o mercado de alto risco. | 🟡 (imprensa citando a CVM; página de alertas da CVM não aberta) | [InfoMoney](https://www.infomoney.com.br/?p=2678997), [Suno](https://www.suno.com.br/noticias/?p=71336) | 13/10/2026 |
+| Situação regulatória exata de uma corretora de forex específica para pessoa física no Brasil. | ❌ | Consultar a lista de alertas da CVM antes de abrir conta | — |
+
+**Decisão (ADR-0022):** forex entra pelo agente MT5 (§16), com selo "tick volume" e janela semanal de Nova York.
 
 ## 6. Fundamentos
 
@@ -186,7 +190,39 @@ como suposição, nunca como fato.
 | ------------------------------------------------------------------------------------------------------ | ---- | --------------------------------------------------------- | -------------------------------------------------------------- |
 | Volume da brapi (ações da B3) cobre o mercado inteiro ("volume completo")                              | ❌   | adaptador brapi (`volume: 'complete'`), página Volume     | Conferir na documentação da brapi; se não confirmar, rebaixar  |
 | Lote padrão de 100 ações e mercado fracionário (1 a 99) na B3                                          | ❌   | adaptador brapi (`lotSize: 100`), calculadora, Biblioteca | Conferir na B3 (regra de lote) e registrar com link            |
-| Brasília em UTC−3 o ano todo (sem horário de verão)                                                    | ❌   | página VWAP (texto evita afirmar)                         | Registrar com o decreto que encerrou o horário de verão        |
+| Brasília em UTC−3 o ano todo (sem horário de verão)                                                    | 🟡   | página VWAP (texto evita afirmar); agente MT5 (fuso da B3) | O [Decreto 9.772/2019](https://planalto.gov.br/ccivil_03/_ato2019-2022/2019/decreto/d9772.htm) encerrou o horário de verão (visto pelo buscador em 13/10/2026); o UTC−3 vem da base de fusos (IANA `America/Sao_Paulo`) |
 | Barras intradiárias da Alpaca (IEX) incluem ou não pré e pós-mercado                                   | ❌   | VWAP intradiária das ações dos EUA                        | Conferir na documentação da Alpaca                             |
 | Candle ao vivo das ações dos EUA com volume só da IEX × histórico com volume consolidado               | 🟡   | filtro de volume da consolidação (ao vivo × laboratório)  | Medir a diferença com dados reais; avisar na tela se relevante |
 | Lista sugerida de 20 ações da B3 dos experimentos (composição e liquidez atuais)                       | 🟡   | `packages/shared/src/experiments.ts`, ADR-0017            | Conferir com a carteira teórica do Ibovespa da data            |
+
+## 16. MetaTrader 5 — agente `agents/mt5-bridge` (B3 em tempo real e forex)
+
+Nesta sessão `mql5.com` e `metatrader5.com` **não abriram diretamente** (DNS bloqueado no ambiente). O PyPI
+abriu: o pacote oficial foi baixado (`pip download MetaTrader5==5.0.6231`) e o `__init__.py` e o
+`METADATA` foram lidos; nomes de funções e campos foram conferidos nas strings do módulo binário `_core`.
+Nenhuma chamada a um terminal MT5 real foi feita daqui (o pacote só roda no Windows).
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| Pacote oficial `MetaTrader5` (MetaQuotes), versão **5.0.6231** de 27/09/2026, licença **MIT**, `Requires-Python >=3.6,<4` (classificadores 3.6 a 3.14), depende de `numpy>=1.7`. Só há arquivos para **Windows x86-64** (nenhum para Linux/macOS). | ✅ (PyPI + METADATA do pacote) | [PyPI — MetaTrader5](https://pypi.org/project/MetaTrader5/) | 13/10/2026 |
+| Assinaturas no módulo oficial: `initialize([path],[server],[login],[password])`, `shutdown()`, `last_error()`, `terminal_info()`, `symbol_info(symbol)`, `symbol_select(symbol,[enable])`, `symbol_info_tick(symbol)`, `copy_rates_from_pos(symbol, timeframe, start_pos, count)`. | ✅ (lido no pacote oficial) | Pacote 5.0.6231; [doc oficial](https://www.mql5.com/en/docs/integration/python_metatrader5) não aberta | 13/10/2026 |
+| O mesmo pacote também **envia ordens** (`order_send`, `order_check`, `Buy`, `Sell`, `Close`) e lê a conta (`account_info`, `positions_get`, `history_deals_get`). O agente do Radar **não usa nenhuma dessas** (um teste automático procura esses nomes no código do agente). | ✅ (lido no pacote) | Pacote 5.0.6231 (`__init__.py`) | 13/10/2026 |
+| Constantes de escala: `TIMEFRAME_M1=1`, `M5=5`, `M15=15`, `M30=30`, `H1=1\|0x4000`, `D1=24\|0x4000`, `W1=1\|0x8000`, `MN1=1\|0xC000`. Códigos de `last_error()`: `RES_S_OK=1`, `RES_E_FAIL=-1`, `RES_E_NOT_FOUND=-4`, `RES_E_AUTH_FAILED=-6`, `RES_E_INTERNAL_FAIL_CONNECT=-10004` etc. | ✅ | Pacote 5.0.6231 (`__init__.py`) | 13/10/2026 |
+| `trade_calc_mode`: `FOREX=0`, `FUTURES=1`, `CFD=2`, `CFDINDEX=3`, `CFDLEVERAGE=4`, `FOREX_NO_LEVERAGE=5`, `EXCH_STOCKS=32`, `EXCH_FUTURES=33`, `EXCH_OPTIONS=34`, `EXCH_OPTIONS_MARGIN=36`, `EXCH_BONDS=37`. | ✅ | Pacote 5.0.6231 (`__init__.py`) | 13/10/2026 |
+| Campos existentes: barra = `time, open, high, low, close, tick_volume, spread, real_volume`; tick = `time, bid, ask, last, volume, time_msc, flags, volume_real`; símbolo = `name, description, path, exchange, currency_base, currency_profit, digits, point, trade_tick_size, trade_tick_value, trade_contract_size, volume_min, volume_step, trade_calc_mode`; terminal = `company, connected`. Na posição 0 de `copy_rates_from_pos` fica a barra mais recente (em formação); o vetor volta da mais antiga para a mais nova. | 🟡 (nomes vistos no binário oficial; significado e ordem por fontes secundárias) | Pacote 5.0.6231; [guia de terceiros](https://mcp-metatrader5-server.readthedocs.io/en/latest/market_data_guide/) | 13/10/2026 |
+| `initialize()` sem login e senha se conecta ao terminal **já aberto e logado** (não precisa da senha da corretora). | 🟡 (guias e fórum; doc oficial não aberta) | [Fórum MQL5](https://www.mql5.com/en/forum/393357/29246235), [guia](https://codemia.io/knowledge-hub/path/initializing_metatrader_in_python) | 13/10/2026 |
+| **Horário das barras:** a doc oficial diz que o MT5 guarda os horários em UTC, mas relatos no fórum MQL5 mostram valores no **relógio do servidor da corretora** (ex.: UTC+3), iguais aos do MQL5 (`TimeCurrent`). Não existe função que informe o fuso do servidor nem o histórico de mudanças dele. | 🟡 **contraditório** | [Fórum 517653](https://www.mql5.com/en/forum/517653), [Fórum 515951](https://www.mql5.com/en/forum/515951), [Fórum 516958](https://www.mql5.com/en/forum/516958) | 13/10/2026 |
+| A opção "Máx. barras no gráfico" (Ferramentas → Opções → Gráficos) limita quantas barras o terminal entrega pelas funções de cópia. | 🟡 (biblioteca de terceiros + relato no fórum) | [bbstrader](https://bbstrader.readthedocs.io/en/latest/_modules/bbstrader/metatrader/rates.html), [Fórum MQL5 (ru)](https://www.mql5.com/ru/forum/121010/3201042) | 13/10/2026 |
+| **Tick volume** = número de mudanças de preço (ticks) no intervalo, **não** a quantidade negociada; em ações e bolsa, volume é o dos negócios executados. | 🟡 (trecho da ajuda oficial visto pelo buscador) | [Ajuda MT5 — indicadores de volume](https://www.metatrader5.com/en/terminal/help/indicators/volume_indicators), [blog MQL5](https://www.mql5.com/en/blogs/post/774938) | 13/10/2026 |
+| No forex o `real_volume` costuma vir **zero** (balcão, sem volume central); o `last` do tick também é 0. | 🟡 (fontes de terceiros e fórum) | [Trading Wyckoff](https://tradingwyckoff.com/en/tick-volume-vs-real-volume/), [Fórum MQL5](https://www.mql5.com/en/forum/18935/743520) | 13/10/2026 |
+| Fuso do servidor MT5 das corretoras da B3 (horário de Brasília?) e das de forex (muitas usariam UTC+2/UTC+3, "fechamento de Nova York"). | ❌ | Não encontrado; o agente detecta pelo tick e aceita configuração | — |
+| Nomes dos ativos variam por corretora (contínuos do mini-índice e mini-dólar como `WIN$N`/`WDO$N`, sufixos como `EURUSD.a`). | ❌ | O guia manda copiar o nome da "Observação de Mercado" | — |
+| Se os dados da B3 no MT5 da corretora são em tempo real e se há cobrança. | ❌ (varia por corretora) | Perguntar à corretora | — |
+| Horário de negociação do mini-índice e do mini-dólar (usamos 09:00–18:30 como janela larga). | ❌ | Conferir na B3 | — |
+| Python no Windows (instalador do python.org): a opção de colocar o Python no PATH vem **desligada** por padrão; o "py launcher" vem ligado. | 🟡 (docs.python.org 3.10/3.11 via buscador) | [Using Python on Windows](https://docs.python.org/3.10/using/windows.html) | 13/10/2026 |
+| Windows: atalho na pasta aberta por `Win + R` → `shell:startup` abre o programa ao entrar no Windows. | 🟡 (sites de terceiros) | [Computer Hope](https://www.computerhope.com/issues/ch001606.htm) | 13/10/2026 |
+
+**Decisões (ADR-0022):** o agente manda os horários **crus** do MT5 e o fuso que configurou/detectou; o
+servidor converte para UTC (ADR-0006). Escalas lidas do MT5: M1, M5, M15, M30, H1 e D1 (o semanal e o
+mensal são montados a partir do diário, com a semana começando na segunda). Volume: forex = tick volume;
+B3 = `real_volume` quando a corretora manda, senão tick volume (com aviso).
