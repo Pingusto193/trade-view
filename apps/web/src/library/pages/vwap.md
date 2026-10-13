@@ -33,11 +33,11 @@ A VWAP é **opcional** e vem **desligada** no preset "Padrão do canal".
 - **Candles fora do horário regular**: todos os candles com a mesma data local entram na conta. Se a fonte trouxer negócios antes da abertura ou depois do fechamento, eles também pesam.
 - **Candle em formação**: o último valor é recalculado a cada atualização do preço e do volume, e só fica definitivo quando o candle fecha.
 - Usa os candles reais, mesmo com o gráfico em [Heikin-Ashi](/biblioteca/heikin-ashi).
-- **Teste limitado**: a conta é conferida contra uma implementação independente (em Python), mas o teste de referência usa candles **diários**, em que a VWAP é só o preço típico de cada candle. A soma ao longo do dia (o caso que importa, no intradiário) e o recomeço pela data local da bolsa ainda não têm teste próprio.
+- **Teste limitado**: a conta é conferida contra uma implementação independente (em Python), mas o teste de referência usa candles **diários**, em que a VWAP é só o preço típico de cada candle. A soma ao longo do dia já tem teste próprio; o recomeço pela data local da bolsa ainda não.
 
 ### Só faz sentido no intradiário
 
-No diário, semanal e mensal, **cada candle tem uma data própria**. A VWAP recomeça a cada candle e fica igual ao preço típico dele: (máxima + mínima + fechamento) ÷ 3. Nessas escalas, a linha não tem utilidade.
+No diário, semanal e mensal, **cada candle tem uma data própria**: a VWAP recomeçaria a cada candle e ficaria igual ao preço típico dele, (máxima + mínima + fechamento) ÷ 3. Por isso, nessas escalas o Radar **não desenha** a VWAP e a legenda mostra o aviso "VWAP só faz sentido no intradiário".
 
 Hoje, as ações da B3 no Radar só têm candles diários, semanais e mensais. Por isso, a VWAP só é útil, na prática, em escalas de 1 a 60 minutos de cripto e de ações dos EUA.
 
@@ -69,7 +69,7 @@ VWAP no 3º candle = 50.700,00 ÷ 5.000 = **R$ 10,14**. Uma média simples dos t
 - **Sem volume, sem VWAP**: se a fonte não informa volume, a linha não aparece.
 - **É uma aproximação**: o Radar usa um preço típico por candle, não o preço de cada negócio. Quem calcula com os negócios um a um, ou com candles de outro tamanho, chega a um número um pouco diferente.
 - **Cripto não tem pregão**: o mercado funciona 24 horas, e o recomeço à meia-noite UTC é só uma convenção. A VWAP de quem usa outro horário de corte é diferente.
-- **Escala errada**: no diário ou acima, a linha vira só o preço típico de cada candle (veja acima).
+- **Escala errada**: no diário ou acima ela não teria utilidade; o Radar esconde a linha e avisa na legenda (veja acima).
 - **Candles fora do horário regular**: se entrarem na conta, mudam a VWAP do dia em relação à de quem só considera o pregão regular.
 
 ## De onde veio

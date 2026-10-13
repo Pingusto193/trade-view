@@ -70,12 +70,17 @@ export function Legend({
               : formatNumber(v.value, v.pane === 'price' || v.pane === 'atr' ? d : 1)}
           </span>
         ))}
-        {skipped.map((s) => (
-          <span key={s.id} className="text-muted" data-testid="legend-skipped">
-            {s.reason}
-          </span>
-        ))}
       </div>
+      {/* fora do bloco recolhível: no celular a linha de valores começa fechada */}
+      {skipped.length > 0 && (
+        <div className="mt-0.5 flex flex-wrap gap-x-2 rounded bg-bg/70 px-1">
+          {skipped.map((s) => (
+            <span key={s.id} className="text-warn" data-testid="legend-skipped">
+              ⚠ {s.reason}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
