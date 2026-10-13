@@ -9,11 +9,13 @@ import {
   walkForward,
   type BacktestResult,
   type BtTrade,
+  type Fundamentals,
   type Metrics,
   type SetupParams,
 } from '@radar/core';
 import {
   formatNumber,
+  formatSessionDate,
   type LabMetrics,
   type LabRun,
   type LabRunInput,
@@ -25,8 +27,12 @@ import {
 import { and, desc, eq } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { labRuns } from '../db/schema';
+import { FundamentalsService } from '../fundamentals/service';
 import type { MacroService } from '../macro/service';
 import type { MarketService } from '../market/service';
+
+/** Espera máxima pelos balanços no laboratório (o download continua em segundo plano). */
+const LAB_FUNDAMENTALS_WAIT_MS = 20_000;
 
 /** Parâmetro "*" variado no mapa de sensibilidade de cada setup (SPEC §12.3). */
 const SENSITIVITY: Record<string, { path: string[]; values: number[] }> = {
@@ -111,7 +117,48 @@ export class LabService {
     private readonly market: MarketService,
     private readonly macro: MacroService,
     private readonly now: () => number = Date.now,
+    /** Fundamentos ponto a ponto para a reflexividade; ausente = só a parte gráfica. */
+    private readonly fund: FundamentalsService | null = null,
   ) {}
+
+  /**
+   * Fundamentos SEM look-ahead para o backtest da reflexividade (ADR-0024): em cada candle, só os
+   * balanços publicados antes dele. Sem fonte, sem datas de publicação ou com a fonte demorando, o
+   * teste roda sem o filtro e o laboratório diz isso.
+   */
+  private async fundamentalsAt(
+    meta: SymbolMeta,
+    from: number,
+  ): Promise<{ at?: (time: number) => Fundamentals | null; notes: string[] }> {
+    const graphOnly =
+      'a reflexividade foi testada só na parte gráfica (fundamentos "não verificados" em todos os sinais).';
+    if (!this.fund || !FundamentalsService.supports(meta))
+      return { notes: [`Sem fonte de fundamentos para este ativo: ${graphOnly}`] };
+    const r = await Promise.race([
+      this.fund.timeline(meta, from),
+      new Promise<'demorou'>((ok) =>
+        setTimeout(() => ok('demorou'), LAB_FUNDAMENTALS_WAIT_MS).unref?.(),
+      ),
+    ]);
+    if (r === 'demorou')
+      return {
+        notes: [
+          `Os balanços ainda estão sendo baixados: ${graphOnly} Rode de novo em alguns minutos.`,
+        ],
+      };
+    const tl = r.timeline;
+    if (!tl) return { notes: [...r.notes, `Nenhum balanço com data de publicação: ${graphOnly}`] };
+    return {
+      at: (time) => tl.at(time),
+      notes: [
+        `Fundamentos ponto a ponto: em cada candle, só balanços publicados ANTES dele (sem look-ahead). Primeiro balanço com data: ${formatSessionDate(tl.firstFiled!)}; antes disso, "não verificados".`,
+        ...(tl.undated
+          ? [`${tl.undated} valores sem data de publicação ficaram de fora do teste.`]
+          : []),
+        ...r.notes,
+      ],
+    };
+  }
 
   private family(userId: number, symbolId: string, setupsKey: string): number {
     return this.db
@@ -177,6 +224,9 @@ export class LabService {
       );
     }
     const costs = input.costs ?? DEFAULT_COSTS[meta.market];
+    const fund = input.setups.includes('reflexivity')
+      ? await this.fundamentalsAt(meta, candles[0]!.time)
+      : { notes: [] };
     const base = {
       setups: input.setups,
       tf: input.tf,
@@ -193,6 +243,7 @@ export class LabService {
       riskPct: input.riskPct,
       costs,
       longOnly: !input.allowShort,
+      ...(fund.at ? { fundamentalsAt: fund.at } : {}),
     };
     const r: BacktestResult = runBacktest(candles, { ...base, params });
     const taxB3 = meta.market === 'b3';
@@ -259,7 +310,7 @@ export class LabService {
             ? ` Com ${formatNumber(input.capital, 0)} de capital não dá para comprar o lote mínimo deste ativo.`
             : ''),
       );
-    const dataNotes = [...meta.notes];
+    const dataNotes = [...meta.notes, ...fund.notes];
     if (meta.adjusted === 'no')
       dataNotes.push(
         '⚠ Dados SEM ajuste por proventos e desdobramentos: quedas falsas podem gerar sinais e stops que não existiram.',

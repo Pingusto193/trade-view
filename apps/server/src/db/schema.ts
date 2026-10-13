@@ -55,6 +55,49 @@ export const macroSeries = sqliteTable(
   (t) => [primaryKey({ columns: [t.code, t.date] })],
 );
 
+/**
+ * Fundamentos (ADR-0024): valores publicados pela SEC (entity = CIK) e pela CVM (entity = CNPJ só com
+ * dígitos), um por documento. Cache longo: fundamentos mudam por trimestre. Nada é apagado; uma
+ * reapresentação entra como documento novo, com a sua data de publicação (`filed`).
+ */
+export const fundamentalFacts = sqliteTable(
+  'fundamental_facts',
+  {
+    /** 'sec' ou 'cvm'. */
+    source: text('source').notNull(),
+    entity: text('entity').notNull(),
+    /** 'eps' (lucro por ação) ou 'revenue' (receita). */
+    metric: text('metric').notNull(),
+    /** SEC: tag XBRL; CVM: "con|3.99.01.02|PN" (demonstração, conta e rótulo). */
+    concept: text('concept').notNull(),
+    rank: integer('rank').notNull(),
+    start: integer('start').notNull(),
+    end: integer('end').notNull(),
+    value: real('value').notNull(),
+    doc: text('doc').notNull(),
+    /** Meia-noite UTC do dia em que ficou público; null = desconhecido (fica fora do laboratório). */
+    filed: integer('filed'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.source, t.entity, t.concept, t.start, t.end, t.doc] }),
+    index('fundamental_facts_entity_idx').on(t.source, t.entity),
+  ],
+);
+
+/** Mapas oficiais ticker → empresa (SEC: company_tickers.json; CVM: FCA). */
+export const fundamentalTickers = sqliteTable(
+  'fundamental_tickers',
+  {
+    source: text('source').notNull(),
+    ticker: text('ticker').notNull(),
+    entity: text('entity').notNull(),
+    name: text('name'),
+    /** Só CVM: ON, PN, PNA… ou UNIT. */
+    shareClass: text('share_class'),
+  },
+  (t) => [primaryKey({ columns: [t.source, t.ticker] })],
+);
+
 // ------------------------------------------------------------------ contas e sessões
 
 export const users = sqliteTable('users', {

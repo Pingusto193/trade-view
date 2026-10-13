@@ -36,10 +36,12 @@ import {
   type SymbolMeta,
   type Timeframe,
 } from '@radar/shared';
+import { CVM_SOURCE, SEC_SOURCE } from '@radar/data';
 import { and, asc, eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
 import { scanResults, scans, watchlistItems, watchlists } from '../db/schema';
+import type { FundamentalsService } from '../fundamentals/service';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
 import { readPrefs, userSetupParams } from '../prefs';
@@ -157,6 +159,8 @@ export class ScannerService {
     private readonly log: FastifyBaseLogger,
     private readonly simulated: boolean,
     private readonly now: () => number = Date.now,
+    /** Fundamentos (SEC EDGAR/CVM); ausente = "não verificados". */
+    private readonly fund: FundamentalsService | null = null,
   ) {
     // varreduras que estavam rodando quando o servidor caiu não vão terminar
     for (const r of this.db.select().from(scanResults).where(eq(scanResults.running, true)).all()) {
@@ -595,9 +599,23 @@ export class ScannerService {
     this.sync.notify(job.userId, { type: 'sync', topic: 'scanner' });
   }
 
-  /** Fundamentos (SPEC §8.8): nenhuma fonte ligada ainda (SEC EDGAR/CVM na Fase 7) = não verificado. */
-  private fundamentals(_symbolId: string): Fundamentals | null {
-    return null;
+  /**
+   * Fundamentos de hoje (SPEC §8.8, ADR-0024): SEC EDGAR para os EUA e CVM para a B3, com cache longo.
+   * Falha da fonte vira "não verificado" com o motivo; nunca derruba a linha do ativo.
+   */
+  private async fundamentals(meta: SymbolMeta): Promise<Fundamentals | null> {
+    if (!this.fund) return null;
+    try {
+      return await this.fund.forSymbol(meta);
+    } catch (err) {
+      this.log.warn({ err, symbol: meta.id }, 'scanner: falha nos fundamentos');
+      return {
+        epsGrowth2y: null,
+        revenueNoDecline: null,
+        source: meta.market === 'us' ? SEC_SOURCE : CVM_SOURCE,
+        notes: [`Falha ao ler os fundamentos: ${(err as Error).message}.`],
+      };
+    }
   }
 
   /** Semanal FECHADO pedido à fonte; reaproveitado enquanto não fechar semana nova. */
@@ -689,7 +707,7 @@ export class ScannerService {
         tz: meta.session.timezone,
         tick: meta.tickSize,
         params,
-        fundamentals: this.fundamentals(symbolId),
+        fundamentals: await this.fundamentals(meta),
         volume: resp.meta.volume,
       });
       return { ...head, source, analysis, notes };

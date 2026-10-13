@@ -33,6 +33,11 @@ export const envSchema = z.object({
   ALPACA_KEY_ID: z.string().optional(),
   ALPACA_SECRET_KEY: z.string().optional(),
   BRAPI_TOKEN: z.string().optional(),
+  /**
+   * Fundamentos dos EUA (SEC EDGAR): a SEC exige que todo acesso automático se identifique com nome e
+   * e-mail de contato no User-Agent. Vazio = fundamentos dos EUA desligados ("não configurada").
+   */
+  SEC_USER_AGENT: z.string().optional(),
   /** E-mail dos alertas (SMTP). Sem SMTP_HOST, o canal e-mail fica indisponível. */
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().default(587),
