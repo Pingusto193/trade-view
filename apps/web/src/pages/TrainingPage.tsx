@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HelpLink } from '../components/HelpLink';
 import { ReadinessPanel } from '../components/ReadinessPanel';
+import { TradeFeedbackPanel } from '../components/TradeFeedback';
 import { TrainingVsCdi } from './BrasilPage';
 import { usePaper } from '../lib/paper-store';
 import { usePrefs } from '../lib/prefs';
@@ -272,6 +273,45 @@ function PositionRow({ p }: { p: PaperPosition }) {
   );
 }
 
+/** Um trade encerrado do diário, com o feedback (SPEC §13) aberto sob demanda. */
+function JournalRow({ t }: { t: PaperPosition }) {
+  const [feedback, setFeedback] = useState(false);
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 py-1.5">
+      <span className="font-medium">{t.symbolId.split(':')[1]}</span>
+      <span className="text-muted">
+        {formatDateTime(t.openedAt)} → {t.closedAt ? formatDateTime(t.closedAt) : '—'}
+      </span>
+      <b className={t.realizedBrl >= 0 ? 'text-up' : 'text-down'}>{formatBRL(t.realizedBrl)}</b>
+      <span>{t.r === null ? 'R —' : `${formatNumber(t.r, 2)}R`}</span>
+      <span className="text-muted">custos {formatBRL(t.feesBrl)}</span>
+      <span className={t.plan?.released ? 'text-up' : 'text-warn'}>
+        {t.plan ? (t.plan.released ? 'plano ✓' : 'plano incompleto') : 'sem plano'}
+      </span>
+      {t.plan?.hasScreenshot && (
+        <a
+          href={`/api/paper/positions/${t.id}/screenshot`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent underline"
+        >
+          print
+        </a>
+      )}
+      <button
+        type="button"
+        className="rounded border border-line px-2 py-0.5 text-xs text-accent"
+        aria-expanded={feedback}
+        onClick={() => setFeedback(!feedback)}
+      >
+        {feedback ? 'Esconder feedback' : 'Ver feedback'}
+      </button>
+      {t.plan?.reason && <span className="w-full text-xs text-muted">“{t.plan.reason}”</span>}
+      {feedback && <TradeFeedbackPanel positionId={t.id} realR={t.r} />}
+    </li>
+  );
+}
+
 function Journal() {
   const { journal, loadJournal } = usePaper();
   const [all, setAll] = useState(false);
@@ -334,31 +374,7 @@ function Journal() {
       )}
       <ul className="divide-y divide-line text-sm">
         {journal.trades.map((t) => (
-          <li key={t.id} className="flex flex-wrap gap-x-3 py-1.5">
-            <span className="font-medium">{t.symbolId.split(':')[1]}</span>
-            <span className="text-muted">
-              {formatDateTime(t.openedAt)} → {t.closedAt ? formatDateTime(t.closedAt) : '—'}
-            </span>
-            <b className={t.realizedBrl >= 0 ? 'text-up' : 'text-down'}>
-              {formatBRL(t.realizedBrl)}
-            </b>
-            <span>{t.r === null ? 'R —' : `${formatNumber(t.r, 2)}R`}</span>
-            <span className="text-muted">custos {formatBRL(t.feesBrl)}</span>
-            <span className={t.plan?.released ? 'text-up' : 'text-warn'}>
-              {t.plan ? (t.plan.released ? 'plano ✓' : 'plano incompleto') : 'sem plano'}
-            </span>
-            {t.plan?.hasScreenshot && (
-              <a
-                href={`/api/paper/positions/${t.id}/screenshot`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-accent underline"
-              >
-                print
-              </a>
-            )}
-            {t.plan?.reason && <span className="w-full text-xs text-muted">“{t.plan.reason}”</span>}
-          </li>
+          <JournalRow key={t.id} t={t} />
         ))}
         {journal.trades.length === 0 && (
           <li className="py-2 text-xs text-muted">Nenhum trade encerrado ainda.</li>

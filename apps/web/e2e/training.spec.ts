@@ -67,6 +67,24 @@ test('modo treino: conta com dinheiro fictício escolhido, compra pelo gráfico,
   await expect(diario.getByText('custos R$ 0,00')).toHaveCount(0);
   await expect(diario.getByText('plano ✓').first()).toBeVisible();
 
+  // feedback depois do trade (SPEC §13): cada item com ícone, palavra e o porquê em números
+  await diario.getByRole('button', { name: 'Ver feedback' }).first().click();
+  const fb = diario.getByRole('region', { name: 'Feedback do trade' }).first();
+  const plano = fb.getByTestId('feedback-plano');
+  await expect(plano).toContainText('Entrou com plano liberado?');
+  await expect(plano).toHaveAttribute('data-status', 'ok');
+  await expect(plano).toContainText('✓');
+  const risco = fb.getByTestId('feedback-risco');
+  await expect(risco).toContainText(/Arriscou \d+,\d{2}% do patrimônio/);
+  await expect(risco).toHaveAttribute('data-status', 'ok');
+  const stop = fb.getByTestId('feedback-stop');
+  await expect(stop).toContainText('Stop respeitado?');
+  await expect(stop).toHaveAttribute('data-status', 'ok');
+  // gatilho conferido pelo mesmo detector; resultado em R comparado ao setup puro
+  await expect(fb.getByTestId('feedback-gatilho')).toContainText('Entrou no gatilho do setup?');
+  await expect(fb.getByTestId('feedback-compare')).toContainText('Seu trade (com custos)');
+  await expect(fb).toContainText('não promete resultado');
+
   // painel de prontidão: mostra o que falta, com números, e diz que é régua nossa
   const pront = page.getByTestId('readiness');
   await expect(pront).toContainText('Painel de prontidão');
