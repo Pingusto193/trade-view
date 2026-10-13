@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 
 const ITEMS = [
   {
+    to: '/scanner',
+    icon: '📡',
+    label: 'Scanner',
+    desc: 'Onde há setup armado agora, nas suas listas e nos conjuntos sugeridos',
+  },
+  {
     to: '/laboratorio',
     icon: '🧪',
     label: 'Laboratório',

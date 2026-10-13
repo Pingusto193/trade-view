@@ -2,15 +2,7 @@ import type { ScanRow, TrendValue } from '@radar/shared';
 
 /** Colunas ordenáveis da tabela do scanner. */
 export type ScanSortKey =
-  | 'symbol'
-  | 'close'
-  | 'setups'
-  | 'trend'
-  | 'adx'
-  | 'ddTf'
-  | 'dd52'
-  | 'relVolume'
-  | 'source';
+  'symbol' | 'close' | 'setups' | 'trend' | 'adx' | 'ddTf' | 'dd52' | 'relVolume' | 'source';
 
 export type SortDir = 'asc' | 'desc';
 

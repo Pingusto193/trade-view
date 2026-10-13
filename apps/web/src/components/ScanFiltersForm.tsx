@@ -56,7 +56,11 @@ function clean(f: ScanFilters): ScanFilters {
   if (!out.slopes?.length) delete out.slopes;
   if (out.adxMin === undefined || Number.isNaN(out.adxMin)) delete out.adxMin;
   if (out.minRelVolume === undefined || Number.isNaN(out.minRelVolume)) delete out.minRelVolume;
-  if (out.fundamentals && out.fundamentals.minEpsGrowth === undefined && !out.fundamentals.revenueNoDecline)
+  if (
+    out.fundamentals &&
+    out.fundamentals.minEpsGrowth === undefined &&
+    !out.fundamentals.revenueNoDecline
+  )
     delete out.fundamentals;
   return out;
 }
@@ -100,7 +104,15 @@ function Chip({
   );
 }
 
-function Group({ title, active, children }: { title: string; active: number; children: ReactNode }) {
+function Group({
+  title,
+  active,
+  children,
+}: {
+  title: string;
+  active: number;
+  children: ReactNode;
+}) {
   return (
     <details className="rounded border border-line" open={active > 0 || undefined}>
       <summary className="cursor-pointer px-2 py-1.5 text-sm">
@@ -212,7 +224,9 @@ export function ScanFiltersForm({
           Limpar filtros
         </button>
         <span className="text-xs text-muted">
-          {total === 0 ? 'Sem filtros: mostra todos.' : `${total} critério(s): precisa cumprir todos.`}
+          {total === 0
+            ? 'Sem filtros: mostra todos.'
+            : `${total} critério(s): precisa cumprir todos.`}
         </span>
       </div>
 
@@ -285,7 +299,11 @@ export function ScanFiltersForm({
       >
         <div className="flex flex-wrap gap-1" role="group" aria-label="Tendência">
           {TRENDS.map((t) => (
-            <Chip key={t} on={Boolean(value.trend?.includes(t))} onClick={() => set({ trend: toggle(value.trend, t) })}>
+            <Chip
+              key={t}
+              on={Boolean(value.trend?.includes(t))}
+              onClick={() => set({ trend: toggle(value.trend, t) })}
+            >
               {t}
             </Chip>
           ))}
@@ -298,11 +316,10 @@ export function ScanFiltersForm({
         />
       </Group>
 
-      <Group
-        title="Médias"
-        active={(value.respected ? 1 : 0) + (value.slopes?.length ?? 0)}
-      >
-        <p className="text-xs text-muted">Média que o ativo respeita (segurou os últimos recuos):</p>
+      <Group title="Médias" active={(value.respected ? 1 : 0) + (value.slopes?.length ?? 0)}>
+        <p className="text-xs text-muted">
+          Média que o ativo respeita (segurou os últimos recuos):
+        </p>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Média respeitada">
           {RESPECT_MAS.map((m) => (
             <Chip
@@ -318,26 +335,30 @@ export function ScanFiltersForm({
           Inclinação (subindo, descendo ou plana pela inclinação em 5 candles ÷ ATR):
         </p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3">
-          {([...SCAN_MAS.map((m) => ['tf', m] as const), ...WEEKLY_MAS.map((m) => ['1w', m] as const)]).map(
-            ([scale, ma]) => (
-              <label key={`${scale}:${ma}`} className="flex items-center justify-between gap-1 text-xs text-muted">
-                {SCAN_MA_LABEL[ma]}
-                {scale === '1w' ? ' semanal' : ''}
-                <select
-                  className="rounded border border-line bg-panel px-1 py-0.5 text-xs text-text"
-                  value={slopeOf(scale, ma)}
-                  onChange={(e) => setSlope(scale, ma, e.target.value as SlopeDir | '')}
-                >
-                  <option value="">qualquer</option>
-                  {SLOPE_DIRS.map((d) => (
-                    <option key={d} value={d}>
-                      {SLOPE_TEXT[d]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ),
-          )}
+          {[
+            ...SCAN_MAS.map((m) => ['tf', m] as const),
+            ...WEEKLY_MAS.map((m) => ['1w', m] as const),
+          ].map(([scale, ma]) => (
+            <label
+              key={`${scale}:${ma}`}
+              className="flex items-center justify-between gap-1 text-xs text-muted"
+            >
+              {SCAN_MA_LABEL[ma]}
+              {scale === '1w' ? ' semanal' : ''}
+              <select
+                className="rounded border border-line bg-panel px-1 py-0.5 text-xs text-text"
+                value={slopeOf(scale, ma)}
+                onChange={(e) => setSlope(scale, ma, e.target.value as SlopeDir | '')}
+              >
+                <option value="">qualquer</option>
+                {SLOPE_DIRS.map((d) => (
+                  <option key={d} value={d}>
+                    {SLOPE_TEXT[d]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
         </div>
       </Group>
 
@@ -411,8 +432,8 @@ export function ScanFiltersForm({
           Receita sem queda
         </label>
         <p className="text-[11px] text-warn">
-          Ainda não há fonte de fundamentos ligada (SEC/CVM). Quem depender disso aparece à parte como
-          “fundamentos não verificados” — nunca como aprovado.{' '}
+          Ainda não há fonte de fundamentos ligada (SEC/CVM). Quem depender disso aparece à parte
+          como “fundamentos não verificados” — nunca como aprovado.{' '}
           <Link to={libraryPath('reflexividade')} className="text-accent underline">
             Reflexividade na Biblioteca
           </Link>

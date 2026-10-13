@@ -18,6 +18,7 @@ import { InstallPage } from './pages/InstallPage';
 import { LabPage } from './pages/LabPage';
 import { MorePage } from './pages/MorePage';
 import { WatchlistsPage } from './pages/WatchlistsPage';
+import { ScannerPage } from './pages/ScannerPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { TrainingPage } from './pages/TrainingPage';
 
@@ -31,6 +32,7 @@ const NAV = [
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/laboratorio', label: 'Laboratório', icon: '🧪' },
+  { to: '/scanner', label: 'Scanner', icon: '📡' },
   { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
   { to: '/brasil', label: 'Brasil', icon: '🇧🇷' },
   { to: '/fontes', label: 'Fontes', icon: '🛰️' },
@@ -108,6 +110,7 @@ function Shell() {
           <Route path="/treino" element={<TrainingPage />} />
           <Route path="/brasil" element={<BrasilPage />} />
           <Route path="/laboratorio" element={<LabPage />} />
+          <Route path="/scanner" element={<ScannerPage />} />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route

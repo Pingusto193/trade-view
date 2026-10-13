@@ -29,7 +29,8 @@ const pct = (v: number | null | undefined) =>
   v === null || v === undefined ? '—' : `${formatNumber(v * 100, 0)}%`;
 const num = (v: number | null | undefined, d = 1) =>
   v === null || v === undefined ? '—' : formatNumber(v, d);
-const when = (t: number, tf: Timeframe) => (isIntraday(tf) ? formatDateTime(t) : formatSessionDate(t));
+const when = (t: number, tf: Timeframe) =>
+  isIntraday(tf) ? formatDateTime(t) : formatSessionDate(t);
 const ARROW: Record<SlopeDir, string> = { subindo: '↑', descendo: '↓', plana: '→' };
 
 /** Link do ativo: abre o gráfico no modo 3 escalas (SPEC §14). */
@@ -74,12 +75,16 @@ function Slopes({ r }: { r: ScanRow }) {
   if (!a) return <>—</>;
   const tf = SCAN_MAS.map((m) => `${SCAN_MA_LABEL[m]} ${a.slopes[m] ? ARROW[a.slopes[m]] : '–'}`);
   const w = a.weekly
-    ? WEEKLY_MAS.map((m) => `${SCAN_MA_LABEL[m]} ${a.weekly!.slopes[m] ? ARROW[a.weekly!.slopes[m]!] : '–'}`)
+    ? WEEKLY_MAS.map(
+        (m) => `${SCAN_MA_LABEL[m]} ${a.weekly!.slopes[m] ? ARROW[a.weekly!.slopes[m]!] : '–'}`,
+      )
     : null;
   return (
     <span className="text-[11px] whitespace-nowrap">
       {tf.join(' ')}
-      <span className="block text-muted">{w ? `semanal: ${w.join(' ')}` : 'semanal: sem dado'}</span>
+      <span className="block text-muted">
+        {w ? `semanal: ${w.join(' ')}` : 'semanal: sem dado'}
+      </span>
     </span>
   );
 }
@@ -92,9 +97,21 @@ const COLUMNS: { key: ScanSortKey | null; label: string; title?: string }[] = [
   { key: 'adx', label: 'ADX' },
   { key: null, label: 'Média respeitada' },
   { key: null, label: 'Inclinações' },
-  { key: 'ddTf', label: 'Queda 52 candles', title: 'Queda desde o topo dos últimos 52 candles desta escala' },
-  { key: 'dd52', label: 'Queda 52 semanas', title: 'Queda desde o topo das últimas 52 semanas fechadas' },
-  { key: 'relVolume', label: 'Vol. relativo', title: 'Volume do último candle ÷ média dos 21 anteriores' },
+  {
+    key: 'ddTf',
+    label: 'Queda 52 candles',
+    title: 'Queda desde o topo dos últimos 52 candles desta escala',
+  },
+  {
+    key: 'dd52',
+    label: 'Queda 52 semanas',
+    title: 'Queda desde o topo das últimas 52 semanas fechadas',
+  },
+  {
+    key: 'relVolume',
+    label: 'Vol. relativo',
+    title: 'Volume do último candle ÷ média dos 21 anteriores',
+  },
   { key: 'source', label: 'Fonte e atraso' },
   { key: null, label: 'Filtros' },
 ];
@@ -110,7 +127,10 @@ function Table({
   tf: Timeframe;
   open(id: string): void;
 }) {
-  const [sort, setSort] = useState<{ key: ScanSortKey; dir: SortDir }>({ key: 'symbol', dir: 'asc' });
+  const [sort, setSort] = useState<{ key: ScanSortKey; dir: SortDir }>({
+    key: 'symbol',
+    dir: 'asc',
+  });
   const sorted = useMemo(() => sortRows(rows, sort.key, sort.dir), [rows, sort]);
   const click = (key: ScanSortKey) =>
     setSort((s) =>
@@ -170,7 +190,9 @@ function Table({
                 </td>
                 <td className="px-2 py-1.5 tabular-nums">
                   {a ? formatNumber(a.lastClose, r.decimals) : '—'}
-                  {a && <span className="block text-[11px] text-muted">{when(a.lastTime, tf)}</span>}
+                  {a && (
+                    <span className="block text-[11px] text-muted">{when(a.lastTime, tf)}</span>
+                  )}
                 </td>
                 <td className="px-2 py-1.5">
                   {a?.setups.length ? (
@@ -217,7 +239,10 @@ function Table({
                   ) : o?.pass ? (
                     <span className="text-up">✓ passou</span>
                   ) : (
-                    <span className={o?.chartOnly ? 'text-warn' : 'text-muted'} title={o?.reasons.join('\n')}>
+                    <span
+                      className={o?.chartOnly ? 'text-warn' : 'text-muted'}
+                      title={o?.reasons.join('\n')}
+                    >
                       {o?.reasons[0] ?? '—'}
                       {(o?.reasons.length ?? 0) > 1 ? ` (+${o!.reasons.length - 1})` : ''}
                     </span>
@@ -267,7 +292,9 @@ function Card({
               </span>
             </span>
           )}
-          {a && <span className="block text-[11px] text-muted">fechou em {when(a.lastTime, tf)}</span>}
+          {a && (
+            <span className="block text-[11px] text-muted">fechou em {when(a.lastTime, tf)}</span>
+          )}
         </span>
         {a && <Sparkline values={a.spark} decimals={r.decimals} />}
       </button>
@@ -294,9 +321,7 @@ function Card({
           </div>
         )
       )}
-      {r.notes.length > 0 && (
-        <p className="mt-1 text-[11px] text-warn">{r.notes.join(' ')}</p>
-      )}
+      {r.notes.length > 0 && <p className="mt-1 text-[11px] text-warn">{r.notes.join(' ')}</p>}
       <p className="mt-1 border-t border-line/60 pt-1 text-[11px] text-muted">{sourceText(r)}</p>
     </li>
   );
@@ -306,7 +331,13 @@ function Card({
  * Resultado do scanner: abas (passaram / só parte gráfica / todos / erros), tabela ordenável e cartões
  * com mini-gráfico. Os filtros da tela são aplicados de novo pelo core (sem varrer de novo).
  */
-export function ScanResults({ snapshot, filters }: { snapshot: ScanSnapshot; filters: ScanFilters }) {
+export function ScanResults({
+  snapshot,
+  filters,
+}: {
+  snapshot: ScanSnapshot;
+  filters: ScanFilters;
+}) {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('pass');
   const [mode, setMode] = useState<Mode>('tabela');
@@ -327,7 +358,9 @@ export function ScanResults({ snapshot, filters }: { snapshot: ScanSnapshot; fil
       ? [{ id: 'chart' as const, label: `Só a parte gráfica (${groups.chart.length})` }]
       : []),
     { id: 'all', label: `Todos (${groups.all.length})` },
-    ...(groups.errors.length ? [{ id: 'errors' as const, label: `Erros (${groups.errors.length})` }] : []),
+    ...(groups.errors.length
+      ? [{ id: 'errors' as const, label: `Erros (${groups.errors.length})` }]
+      : []),
   ];
   const current = tabs.some((t) => t.id === tab) ? tab : 'pass';
   const rows = groups[current];
@@ -373,14 +406,13 @@ export function ScanResults({ snapshot, filters }: { snapshot: ScanSnapshot; fil
       {current === 'chart' && (
         <p className="text-xs text-warn">
           Passam em tudo, menos nos fundamentos, que não puderam ser verificados (nenhuma fonte de
-          fundamentos ligada ainda). Não é “aprovado”: confira o lucro e a receita por conta própria.
+          fundamentos ligada ainda). Não é “aprovado”: confira o lucro e a receita por conta
+          própria.
         </p>
       )}
       {rows.length === 0 ? (
         <p className="rounded border border-line p-3 text-sm text-muted">
-          {current === 'pass'
-            ? 'Nenhum ativo passou em todos os filtros.'
-            : 'Nada aqui.'}
+          {current === 'pass' ? 'Nenhum ativo passou em todos os filtros.' : 'Nada aqui.'}
         </p>
       ) : mode === 'tabela' ? (
         <Table rows={rows} outcome={outcome} tf={tf} open={open} />
