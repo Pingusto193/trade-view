@@ -23,6 +23,7 @@ export * from './tax/b3';
 export * from './paper/engine';
 export * from './paper/feedback';
 export * from './paper/replay';
+export * from './learn/exercise';
 export * from './journal/stats';
 export * from './journal/real';
 export * from './journal/compare';
