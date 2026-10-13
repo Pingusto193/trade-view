@@ -27,6 +27,7 @@ import {
 import { SymbolSearch } from '../components/SymbolSearch';
 import { useLab } from '../lib/lab-store';
 import { usePrefs } from '../lib/prefs';
+import { labChanges } from '../lib/setup-param-fields';
 
 const pct = (v: number | null | undefined, d = 1) =>
   v === null || v === undefined ? '—' : `${formatNumber(v * 100, d)}%`;
@@ -85,9 +86,29 @@ function Section({
   );
 }
 
+function ParamsNote({ changed }: { changed: number }) {
+  return (
+    <p className="mt-1 text-xs text-muted" data-testid="lab-params">
+      Parâmetros:{' '}
+      {changed === 0 ? (
+        'padrão'
+      ) : (
+        <span className="text-warn">
+          personalizados ({changed} {changed === 1 ? 'valor alterado' : 'valores alterados'})
+        </span>
+      )}{' '}
+      ·{' '}
+      <Link to="/setups/parametros" className="text-accent underline">
+        editar
+      </Link>
+    </p>
+  );
+}
+
 function Form() {
   const recent = usePrefs((s) => s.recent);
   const { running, run } = useLab();
+  const setupParams = usePrefs((s) => s.setupParams);
   // a Biblioteca e o gráfico abrem o laboratório já com ativo/setup: /laboratorio?id=…&setup=…
   const [params] = useSearchParams();
   const qSetup = params.get('setup');
@@ -111,7 +132,16 @@ function Form() {
       aria-label="Configurar teste"
       onSubmit={(e) => {
         e.preventDefault();
-        void run({ symbolId, tf, setups, capital, riskPct, bars, allowShort });
+        void run({
+          symbolId,
+          tf,
+          setups,
+          capital,
+          riskPct,
+          bars,
+          allowShort,
+          params: setupParams ?? {},
+        });
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -147,6 +177,7 @@ function Form() {
             </label>
           ))}
         </div>
+        <ParamsNote changed={labChanges(setupParams, setups).length} />
       </fieldset>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <label className="text-sm">
@@ -701,6 +732,9 @@ function Result({ run }: { run: LabRun }) {
         <b>{run.symbol}</b> · {TIMEFRAME_LABEL[run.input.tf]} ·{' '}
         {run.input.setups.map((s) => SETUP_LABEL[s]).join(' + ')} · {when(run.from)} a{' '}
         {when(run.to)} ({formatNumber(run.bars, 0)} candles)
+        {labChanges(run.input.params, run.input.setups).length > 0 && (
+          <span className="text-warn"> · parâmetros personalizados</span>
+        )}
       </p>
       <Verdict run={run} />
       {run.dataNotes.length > 0 && (

@@ -20,6 +20,12 @@ const ITEMS = [
     desc: 'Experimentos prontos (E1–E7) com hipótese, método, resultado e limitações',
   },
   {
+    to: '/setups/parametros',
+    icon: '🎛️',
+    label: 'Parâmetros dos setups',
+    desc: 'Alvo, stop e filtros de cada setup (com aviso contra ajustar demais)',
+  },
+  {
     to: '/brasil',
     icon: '🇧🇷',
     label: 'Brasil: CDI, Selic e IR',

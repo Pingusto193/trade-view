@@ -19,6 +19,7 @@ import { LabPage } from './pages/LabPage';
 import { MorePage } from './pages/MorePage';
 import { WatchlistsPage } from './pages/WatchlistsPage';
 import { ScannerPage } from './pages/ScannerPage';
+import { SetupParamsPage } from './pages/SetupParamsPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { TrainingPage } from './pages/TrainingPage';
 
@@ -111,6 +112,7 @@ function Shell() {
           <Route path="/brasil" element={<BrasilPage />} />
           <Route path="/laboratorio" element={<LabPage />} />
           <Route path="/scanner" element={<ScannerPage />} />
+          <Route path="/setups/parametros" element={<SetupParamsPage />} />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route
