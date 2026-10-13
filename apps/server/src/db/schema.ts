@@ -533,3 +533,31 @@ export const realEvents = sqliteTable(
   },
   (t) => [index('real_events_trade_idx').on(t.tradeId, t.time)],
 );
+
+/**
+ * Sessões de REPLAY (SPEC §13): o servidor guarda o trecho do passado inteiro, mas só entrega ao
+ * navegador os candles já revelados (`cursor`). O livro (ordens, posição, trades) é JSON do core.
+ */
+export const replaySessions = sqliteTable(
+  'replay_sessions',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    /** Ativo e datas escondidos até o fim (sorteio). */
+    hidden: integer('hidden', { mode: 'boolean' }).notNull(),
+    meta: text('meta').notNull(),
+    candles: text('candles').notNull(),
+    /** Candles revelados (o primeiro "agora" é candles[startIndex − 1]). */
+    startIndex: integer('start_index').notNull(),
+    cursor: integer('cursor').notNull(),
+    book: text('book').notNull(),
+    status: text('status', { enum: ['ativa', 'encerrada'] }).notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [index('replay_sessions_user_idx').on(t.userId, t.createdAt)],
+);

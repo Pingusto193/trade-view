@@ -1,6 +1,13 @@
 import type { Candle } from '@radar/shared';
 import { stopMovedBack } from '../journal/real';
-import { exitHit, orderFill, type CostModel, type Interval, type OrderType } from './engine';
+import {
+  exitHit,
+  marketFill,
+  orderFill,
+  type CostModel,
+  type Interval,
+  type OrderType,
+} from './engine';
 import type { FeedbackExitKind } from './feedback';
 
 /**
@@ -340,4 +347,21 @@ export function replayStep(b0: ReplayBook, c: Candle, newId: () => string): Repl
     }
   }
   return events.length ? { ...b, events: [...b.events, ...events] } : b;
+}
+
+/**
+ * Fim da sessão: ordens pendentes caem e a posição aberta é vendida no ÚLTIMO fechamento revelado,
+ * com os custos de uma venda a mercado (saída "manual").
+ */
+export function replayFinish(b0: ReplayBook, last: Candle): ReplayBook {
+  let b: ReplayBook = { ...b0, orders: [] };
+  const p = b.position;
+  if (!p) return b;
+  const f = marketFill('sell', last.close, p.qty, b.tick, b.pointValue, b.costs);
+  const r = close(b, p, p.qty, f.price, f.fees, last.time, 'manual');
+  b = r.book;
+  return {
+    ...b,
+    events: [...b.events, { ...r.event, detail: `Fim do replay — ${r.event.detail}` }],
+  };
 }
