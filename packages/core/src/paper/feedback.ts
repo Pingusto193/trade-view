@@ -58,6 +58,11 @@ export interface FeedbackTrade {
   closedAt: number;
   /** Preço médio de entrada (já com derrapagem). */
   entryPrice: number;
+  /**
+   * Custo de execução por unidade embutido na entrada (meio spread + derrapagem). O gatilho é comparado
+   * com o preço ANTES dos custos, senão uma compra abaixo do gatilho pareceria "no gatilho".
+   */
+  entryCostPerUnit?: number;
   initialStop: number | null;
   /** Stop em vigor na saída (pode ter andado a favor). */
   stopAtExit: number | null;
@@ -258,6 +263,8 @@ export function tradeFeedback(i: FeedbackInput): TradeFeedback {
           const desde = since ? ` desde ${when(since.time)}` : '';
           const T = inst.trigger;
           const E = t.entryPrice;
+          // preço de mercado antes dos custos (spread/derrapagem não contam como "chegar ao gatilho")
+          const raw = E - (t.entryCostPerUnit ?? 0);
           if (inst.state === 'radar' || T === null)
             items.push({
               key: 'gatilho',
@@ -267,7 +274,7 @@ export function tradeFeedback(i: FeedbackInput): TradeFeedback {
             });
           else {
             // compra: no gatilho ou além (meio tick de folga para arredondamento)
-            const ok = E >= T - i.tick / 2;
+            const ok = raw >= T - i.tick / 2;
             const diff = T > 0 ? ((E - T) / T) * 100 : 0;
             const acima = E > T ? ` (${pct(diff)} acima)` : '';
             let detalhe: string;
@@ -330,6 +337,13 @@ export function tradeFeedback(i: FeedbackInput): TradeFeedback {
         titulo,
         detalhe: `Sem stop na entrada: a perda não tinha limite (o seu limite é ${lim} do patrimônio por trade).`,
       });
+    else if (t.initialStop >= t.entryPrice)
+      items.push({
+        key: 'risco',
+        status: 'sem-dados',
+        titulo,
+        detalhe: `A entrada (${px(t.entryPrice)}) saiu no stop ou abaixo dele (${px(t.initialStop)}), provavelmente por gap: o risco planejado não se aplica a este trade.`,
+      });
     else if (t.riskPct === null)
       items.push({
         key: 'risco',
@@ -365,7 +379,7 @@ export function tradeFeedback(i: FeedbackInput): TradeFeedback {
         detalhe:
           'Entrou sem stop. Sem stop não existe R, e uma queda grande pode levar muito do saldo.',
       });
-    else if (t.stopMovedBack)
+    else if (t.stopMovedBack || t.stopAtExit === null || t.stopAtExit < t.initialStop - i.tick / 2)
       items.push({
         key: 'stop',
         status: 'atencao',
@@ -387,9 +401,14 @@ export function tradeFeedback(i: FeedbackInput): TradeFeedback {
     const push = (status: FeedbackStatus, detalhe: string) =>
       items.push({ key: 'saida', status, titulo, detalhe });
     const stop = t.stopAtExit ?? t.initialStop;
+    // alvo trazido para perto e executado = realização antecipada, avaliada como saída à mão
+    const nearerTarget =
+      t.exitKind === 'alvo' && t.target !== null && t.exitPrice < t.target - i.tick / 2;
+    const como = nearerTarget ? 'aproximou o alvo e saiu' : 'saiu à mão';
     if (t.exitKind === 'stop')
       push('ok', `Saiu no stop (a ${px(t.exitPrice)}): a regra de saída foi seguida.`);
-    else if (t.exitKind === 'alvo') push('ok', `Saiu no alvo planejado (a ${px(t.exitPrice)}).`);
+    else if (t.exitKind === 'alvo' && !nearerTarget)
+      push('ok', `Saiu no alvo planejado (a ${px(t.exitPrice)}).`);
     else if (t.exitKind === 'reinicio')
       push(
         'sem-dados',
@@ -426,7 +445,7 @@ export function tradeFeedback(i: FeedbackInput): TradeFeedback {
             : '';
         push(
           'atencao',
-          `Você saiu à mão a ${px(t.exitPrice)}, e depois o preço chegou ao alvo de ${px(t.target)} (${when(hit.time)}) antes do ${stopTxt}: realizou cedo.${missed}`,
+          `Você ${como} a ${px(t.exitPrice)}, e depois o preço chegou ao alvo planejado de ${px(t.target)} (${when(hit.time)}) antes do ${stopTxt}: realizou cedo.${missed}`,
         );
       } else if (hit?.kind === 'stop')
         push(

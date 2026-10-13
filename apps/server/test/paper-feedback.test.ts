@@ -121,7 +121,7 @@ describe('feedback depois do trade de treino (rota)', () => {
     expect(by.stop).toMatchObject({ status: 'ok' });
     // saiu a 173,38 e o preço chegou ao alvo de 175,65 depois
     expect(by.saida!.status).toBe('atencao');
-    expect(by.saida!.detalhe).toMatch(/173,38.*alvo de 175,65.*realizou cedo/);
+    expect(by.saida!.detalhe).toMatch(/173,38.*alvo planejado de 175,65.*realizou cedo/);
     expect(by['setup-puro']!.status).toBe('atencao');
     expect(fb.pure).toMatchObject({ setup: 's92', state: 'encerrado', exit: 'alvo' });
     expect(fb.pure!.setupR).toBeCloseTo(2, 6);

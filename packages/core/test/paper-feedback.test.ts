@@ -379,7 +379,7 @@ describe('f. saída: realizou cedo? (até 20 candles depois da saída)', () => {
     );
     expect(x.status).toBe('atencao');
     expect(x.detalhe).toMatch(
-      /alvo de 110,00 \(23\/03\/2020\) antes do stop de 95,00: realizou cedo/,
+      /alvo planejado de 110,00 \(23\/03\/2020\) antes do stop de 95,00: realizou cedo/,
     );
     expect(x.detalhe).toMatch(/cerca de 1,20R/);
   });
@@ -519,5 +519,71 @@ describe('g. setup puro (a mesma ocorrência, até o fim)', () => {
     expect(item(noR, 'setup-puro').status).toBe('sem-dados');
     expect(item(noR, 'setup-puro').detalhe).toMatch(/não tem R/);
     expect(item(tradeFeedback(input(null, { plan: null })), 'setup-puro').status).toBe('sem-dados');
+  });
+});
+
+describe('correções da revisão adversarial', () => {
+  it('F4: compra 1 tick abaixo do gatilho com custos embutidos não vira "no gatilho"', () => {
+    // gatilho 170,21; preço de mercado 170,20 + 0,05 de spread/derrapagem = 170,25 executado
+    const fb = tradeFeedback(
+      input(fixture92().list, { trade: { entryPrice: 170.25, entryCostPerUnit: 0.05 } }),
+    );
+    expect(item(fb, 'gatilho').status).toBe('atencao');
+    // sem custos informados, o mesmo preço executado ficaria "no gatilho" (comportamento antigo)
+    const old = tradeFeedback(input(fixture92().list, { trade: { entryPrice: 170.25 } }));
+    expect(item(old, 'gatilho').status).toBe('ok');
+  });
+
+  it('F2: stop retirado ou mais baixo que o inicial conta como afastado, mesmo sem evento', () => {
+    const removed = tradeFeedback(input(null, { trade: { stopAtExit: null } }));
+    expect(item(removed, 'stop').status).toBe('atencao');
+    const lower = tradeFeedback(input(null, { trade: { stopAtExit: 166 } }));
+    expect(item(lower, 'stop').status).toBe('atencao');
+    const higher = tradeFeedback(input(null, { trade: { stopAtExit: 169 } }));
+    expect(item(higher, 'stop').status).toBe('ok');
+  });
+
+  it('F5: entrada abaixo do stop (gap) = risco planejado não se aplica (sem dizer "sem stop")', () => {
+    const fb = tradeFeedback(input(null, { trade: { entryPrice: 160, initialStop: 167.49 } }));
+    const r = item(fb, 'risco');
+    expect(r.status).toBe('sem-dados');
+    expect(r.detalhe).toMatch(/gap/);
+    expect(r.detalhe).not.toMatch(/Sem stop/);
+  });
+});
+
+describe('F1: alvo aproximado e executado = realização antecipada', () => {
+  function flat(after: readonly (readonly [number, number, number, number])[]): Candle[] {
+    const b = new Bars();
+    for (let k = 0; k < 80; k++) b.add(100, 100.5, 99.5, 100);
+    b.add(103, 104.5, 102.5, 104);
+    for (const [o, h, l, c] of after) b.add(o, h, l, c);
+    return b.list;
+  }
+  const t: Partial<FeedbackTrade> = {
+    openedAt: at(78),
+    closedAt: at(80),
+    entryPrice: 100,
+    initialStop: 95,
+    stopAtExit: 95,
+    target: 110,
+    exitPrice: 104,
+    exitKind: 'alvo',
+  };
+  const plan = { ...PLAN, setup: 'manual' };
+
+  it('saiu num alvo mais perto e o preço depois chegou ao alvo planejado = atenção', () => {
+    const x = item(tradeFeedback(input(flat([[104, 111, 103, 110]]), { plan, trade: t })), 'saida');
+    expect(x.status).toBe('atencao');
+    expect(x.detalhe).toMatch(/aproximou o alvo e saiu a 104,00/);
+  });
+
+  it('borda: saiu exatamente no alvo planejado = ok', () => {
+    const x = item(
+      tradeFeedback(input(flat([]), { plan, trade: { ...t, exitPrice: 110 } })),
+      'saida',
+    );
+    expect(x.status).toBe('ok');
+    expect(x.detalhe).toMatch(/alvo planejado/);
   });
 });

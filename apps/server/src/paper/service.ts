@@ -633,6 +633,9 @@ export class PaperService {
         candlesError = `fonte indisponível: ${(err as Error).message}`;
       }
     }
+    // meio spread + derrapagem embutidos no preço de entrada (o gatilho compara com o preço de mercado)
+    const cm = this.costs(acc, p.market as Market);
+    const entryCost = (p.avgPrice * cm.spreadPct) / 2 + cm.slippageTicks * p.tick;
     const fb = tradeFeedback({
       candles,
       candlesError,
@@ -648,6 +651,7 @@ export class PaperService {
         openedAt,
         closedAt,
         entryPrice: p.avgPrice,
+        entryCostPerUnit: entryCost,
         initialStop: p.initialStop,
         stopAtExit: p.stop,
         target: entryOrder?.takeProfit ?? p.target,
