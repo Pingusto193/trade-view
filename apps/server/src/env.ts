@@ -21,6 +21,11 @@ export const envSchema = z.object({
   RADAR_DEV_NO_AUTH: bool,
   /** Ligue só quando o servidor estiver atrás de um proxy (ex.: Caddy), para ler o IP real. */
   TRUST_PROXY: bool,
+  /**
+   * Limite geral de requisições por minuto por IP. Atrás do Caddy sem TRUST_PROXY, todos os aparelhos
+   * dividem o mesmo IP. Os testes de ponta a ponta sobem com um limite alto (vários testes por segundo).
+   */
+  RATE_LIMIT_MAX: z.coerce.number().int().min(10).default(600),
   /** Pasta com o build do front (apps/web/dist) para servir em produção. */
   WEB_DIST: z.string().optional(),
   /** Chave (base64, 32 bytes) do cofre de segredos. Vazia = arquivo app-secret.key ao lado do banco. */

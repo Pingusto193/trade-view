@@ -88,7 +88,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     crossOriginEmbedderPolicy: false,
   });
   await app.register(rateLimit, {
-    max: 600,
+    max: env.RATE_LIMIT_MAX,
     timeWindow: '1 minute',
     // req.ip pode faltar em conexões injetadas (testes); nunca em conexões reais.
     keyGenerator: (req) => req.ip ?? 'desconhecido',

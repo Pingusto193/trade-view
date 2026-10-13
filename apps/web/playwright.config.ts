@@ -52,6 +52,8 @@ export default defineConfig({
         HOST: '127.0.0.1',
         DATABASE_PATH: ':memory:',
         RADAR_SIMULATED: '1',
+        // vários testes por segundo, todos do mesmo IP: o limite de produção (600/min) estouraria
+        RATE_LIMIT_MAX: '100000',
         RADAR_DEV_NO_AUTH: '1',
       },
     },
@@ -73,6 +75,8 @@ export default defineConfig({
         HOST: '127.0.0.1',
         DATABASE_PATH: ':memory:',
         RADAR_SIMULATED: '1',
+        // vários testes por segundo, todos do mesmo IP: o limite de produção (600/min) estouraria
+        RATE_LIMIT_MAX: '100000',
         RADAR_DEV_NO_AUTH: '0',
         PUBLIC_URL: `http://localhost:${AUTH_WEB_PORT}`,
       },

@@ -429,7 +429,17 @@ export function TrainingPage() {
     return () => clearInterval(timer);
   }, [load]);
 
-  if (!loaded) return <p className="p-3 text-sm text-muted">Carregando…</p>;
+  if (!loaded)
+    return error ? (
+      <div className="p-3 text-sm" role="alert">
+        <p className="text-down">Não foi possível carregar o treino: {error}</p>
+        <button className="mt-2 rounded border border-line px-3 py-1" onClick={() => void load()}>
+          Tentar de novo
+        </button>
+      </div>
+    ) : (
+      <p className="p-3 text-sm text-muted">Carregando…</p>
+    );
   if (accounts.length === 0)
     return (
       <div className="mx-auto max-w-xl p-3">

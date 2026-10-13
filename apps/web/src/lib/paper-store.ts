@@ -57,8 +57,14 @@ export const usePaper = create<Store>()((set, get) => ({
   journal: null,
   error: null,
   async load() {
-    const r = await api<{ accounts: PaperAccount[] }>('/api/paper/accounts');
-    set({ accounts: r.accounts, loaded: true });
+    try {
+      const r = await api<{ accounts: PaperAccount[] }>('/api/paper/accounts');
+      set({ accounts: r.accounts, loaded: true, error: null });
+    } catch (e) {
+      // sem isso a tela ficaria presa em "Carregando…": mostra o erro e deixa tentar de novo
+      set({ error: (e as Error).message });
+      return;
+    }
     await get().refresh();
   },
   activeId() {
