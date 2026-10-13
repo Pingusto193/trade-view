@@ -81,8 +81,9 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 | Mercado de forex abre domingo 17h e fecha sexta 17h, horário de Nova York (24 h por dia nesse intervalo). | 🟡 (fontes secundárias concordam) | [Benzinga](https://benzinga.com/money/forex-trading-hours), [Investing.com](https://investing.com/brokers/guides/forex/can-you-trade-forex-7-days-a-week), [Dukascopy](https://www.dukascopy.com/plugins/fxMarketWatch/forex-market-hours/) | 13/10/2026 |
 | A CVM emite alertas frequentes contra corretoras estrangeiras de forex/CFD que captam clientes no Brasil sem autorização (art. 15 da Lei 6.385/76); forex e CFD são tratados como derivativos (art. 2º). A CVM considera o mercado de alto risco. | 🟡 (imprensa citando a CVM; página de alertas da CVM não aberta) | [InfoMoney](https://www.infomoney.com.br/?p=2678997), [Suno](https://www.suno.com.br/noticias/?p=71336) | 13/10/2026 |
 | Situação regulatória exata de uma corretora de forex específica para pessoa física no Brasil. | ❌ | Consultar a lista de alertas da CVM antes de abrir conta | — |
+| Lote padrão = 100.000 unidades da moeda base; mini = 10.000; micro = 1.000. Pip = 0,0001 (0,01 nos pares cotados em iene). Valor do pip = pip × unidades, na moeda de COTAÇÃO do par (convertido pelo câmbio do momento). Lote mínimo e passo variam por corretora. | 🟡 | [FXCM](https://www.fxcm.com/za/insights/how-is-the-value-of-a-pip-determined/), [BabyPips](https://www.babypips.com/forexpedia/Lot) | 13/10/2026 |
 
-**Decisão (ADR-0022):** forex entra pelo agente MT5 (§16), com selo "tick volume" e janela semanal de Nova York.
+**Decisão (ADR-0023):** forex entra pelo agente MT5 (§16), com selo "tick volume" e janela semanal de Nova York.
 
 ## 6. Fundamentos
 
@@ -112,7 +113,7 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | Mini-índice (WIN): R$ 0,20 por ponto; variação mínima de 5 pontos (R$ 1,00 por tick por contrato). Vencimento em meses pares, quarta-feira mais próxima do dia 15. | 🟡   | [B3 Bora Investir — glossário](https://borainvestir.b3.com.br/glossario/mini-indice/), blogs                                                                              | 12/10/2026 |
 | Mini-dólar (WDO): US$ 10.000 por contrato; R$ 10,00 por ponto.                                                                                                     | 🟡   | [B3 Bora Investir — glossário](https://borainvestir.b3.com.br/glossario/mini-dolar/), [Toro](https://blog.toroinvestimentos.com.br/mini-dolar-o-que-e-como-funciona-wdo/) | 12/10/2026 |
-| Tick do WDO = 0,5 ponto (R$ 5,00).                                                                                                                                 | ❌   | Não confirmado                                                                                                                                                            | —          |
+| Tick do WDO = 0,5 ponto (R$ 5,00 por contrato); cotação em pontos = dólar × 1000. | 🟡 | [Nelogica — ticks](https://ajuda.nelogica.com.br/hc/pt-br/articles/4401991544987-O-que-s%C3%A3o-e-para-que-servem-os-ticks), [XP — minicontratos](https://conteudos.xpi.com.br/aprenda-a-investir/relatorios/minicontratos/), [Traders Brasil](https://traders.com.br/blog/posts/o-que-e-mini-dolar-wdo) (site da B3 inacessível daqui) | 13/10/2026 |
 | Margens: variam por corretora.                                                                                                                                     | —    | Usuário deve informar                                                                                                                                                     | —          |
 
 ## 9. Impostos
@@ -222,7 +223,7 @@ Nenhuma chamada a um terminal MT5 real foi feita daqui (o pacote só roda no Win
 | Python no Windows (instalador do python.org): a opção de colocar o Python no PATH vem **desligada** por padrão; o "py launcher" vem ligado. | 🟡 (docs.python.org 3.10/3.11 via buscador) | [Using Python on Windows](https://docs.python.org/3.10/using/windows.html) | 13/10/2026 |
 | Windows: atalho na pasta aberta por `Win + R` → `shell:startup` abre o programa ao entrar no Windows. | 🟡 (sites de terceiros) | [Computer Hope](https://www.computerhope.com/issues/ch001606.htm) | 13/10/2026 |
 
-**Decisões (ADR-0022):** o agente manda os horários **crus** do MT5 e o fuso que configurou/detectou; o
+**Decisões (ADR-0023):** o agente manda os horários **crus** do MT5 e o fuso que configurou/detectou; o
 servidor converte para UTC (ADR-0006). Escalas lidas do MT5: M1, M5, M15, M30, H1 e D1 (o semanal e o
 mensal são montados a partir do diário, com a semana começando na segunda). Volume: forex = tick volume;
 B3 = `real_volume` quando a corretora manda, senão tick volume (com aviso).

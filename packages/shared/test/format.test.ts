@@ -6,6 +6,7 @@ import {
   formatNumber,
   formatPercent,
   formatSessionDate,
+  formatTrim,
   formatVolume,
 } from '../src/format';
 
@@ -19,6 +20,15 @@ describe('formatação PT-BR', () => {
   it('formata números e percentuais com vírgula decimal', () => {
     expect(formatNumber(1234.5678, 2)).toBe('1.234,57');
     expect(formatPercent(0.0125)).toBe('1,25%');
+  });
+
+  it('formatTrim tira só os zeros decimais que sobram (nunca o zero de um inteiro)', () => {
+    expect(formatTrim(50)).toBe('50');
+    expect(formatTrim(100)).toBe('100');
+    expect(formatTrim(0.1)).toBe('0,1');
+    expect(formatTrim(1234.5)).toBe('1.234,5');
+    expect(formatTrim(0.00001, 5)).toBe('0,00001');
+    expect(formatTrim(Number.NaN)).toBe('—');
   });
 
   it('formata volume compacto', () => {

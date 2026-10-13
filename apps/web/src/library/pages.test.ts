@@ -61,7 +61,7 @@ describe('páginas da Biblioteca', () => {
             );
           } else {
             expect(href, `${slug}: rota interna`).toMatch(
-              /^\/(grafico|fontes|sobre|listas|setups\/parametros)/,
+              /^\/(grafico|fontes|sobre|listas|setups\/parametros|diario|calculadora)/,
             );
           }
         }

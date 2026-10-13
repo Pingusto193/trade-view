@@ -20,6 +20,8 @@ import { MorePage } from './pages/MorePage';
 import { WatchlistsPage } from './pages/WatchlistsPage';
 import { ScannerPage } from './pages/ScannerPage';
 import { SetupParamsPage } from './pages/SetupParamsPage';
+import { RealJournalPage } from './pages/RealJournalPage';
+import { CalculatorPage } from './pages/CalculatorPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { TrainingPage } from './pages/TrainingPage';
 
@@ -30,6 +32,7 @@ const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const NAV = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
   { to: '/treino', label: 'Treino', icon: '🎯' },
+  { to: '/diario', label: 'Diário', icon: '📓' },
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/laboratorio', label: 'Laboratório', icon: '🧪' },
@@ -43,9 +46,21 @@ const NAV = [
 ];
 
 /** Barra de baixo do celular: só as telas principais + "Mais". */
-const MOBILE_NAV = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: string;
+  real?: Omit<NavItem, 'real'>;
+}
+const MOBILE_NAV: NavItem[] = [
   { to: '/grafico', label: 'Gráfico', icon: '📈' },
-  { to: '/treino', label: 'Treino', icon: '🎯' },
+  // no modo Real o lugar do Treino é do diário real (o treino continua em "Mais")
+  {
+    to: '/treino',
+    label: 'Treino',
+    icon: '🎯',
+    real: { to: '/diario', label: 'Diário', icon: '📓' },
+  },
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/mais', label: 'Mais', icon: '☰' },
@@ -75,6 +90,7 @@ export function App() {
 }
 
 function Shell() {
+  const mode = usePrefs((s) => s.mode);
   // logado: carrega preferências e presets do servidor (fonte da verdade)
   useEffect(() => {
     void usePrefs.getState().loadFromServer();
@@ -113,6 +129,8 @@ function Shell() {
           <Route path="/laboratorio" element={<LabPage />} />
           <Route path="/scanner" element={<ScannerPage />} />
           <Route path="/setups/parametros" element={<SetupParamsPage />} />
+          <Route path="/diario" element={<RealJournalPage />} />
+          <Route path="/calculadora" element={<CalculatorPage />} />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route
@@ -130,7 +148,7 @@ function Shell() {
         </Routes>
       </main>
       <nav className="safe-bottom flex border-t border-line bg-panel lg:hidden">
-        {MOBILE_NAV.map((n) => (
+        {MOBILE_NAV.map((x) => (mode === 'real' && x.real ? x.real : x)).map((n) => (
           <NavLink
             key={n.to}
             to={n.to}

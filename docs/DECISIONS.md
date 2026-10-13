@@ -403,3 +403,29 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
   contando só os setups marcados e a leitura dos candles.
 - **Fora daqui**: custos (corretagem, spread, slippage) e parâmetros dos experimentos E1–E7 continuam
   fixos nos padrões; os experimentos sempre usam os padrões para serem comparáveis.
+
+## ADR-0022 — Diário real, calculadora por mercado e comparação treino × real (13/10/2026)
+
+- **Diário real** (`/diario`): o usuário digita as execuções da corretora (entrada, parciais, aumento,
+  saída), com custos em R$ e câmbio do dia nos ativos em moeda estrangeira. O Radar não envia ordens.
+  Resultado, R e IR são calculados a partir das execuções (`realTrade` no core), nunca digitados.
+- **Custo médio**: entradas formam o preço médio em R$; cada saída realiza (saída − médio) × qtd ×
+  valor do ponto, menos a taxa dela e a parte proporcional das taxas de entrada. O R usa o risco da
+  primeira montagem da posição (entrada média até a primeira saída × maior quantidade).
+- **Stop só anda a favor**: afastar exige confirmação e grava "stop movido para trás" (conta na
+  disciplina). Tirar o stop conta como para trás. Stop no preço médio grava "breakeven".
+- **IR estimado**: só B3 (ações com a isenção de R$ 20 mil; minicontratos sem isenção). Day trade =
+  saída no mesmo dia (São Paulo) de uma entrada — simplificação; a corretora pode casar diferente.
+  Cripto, EUA e forex ficam de fora (regras em disputa ou próprias; DATA_SOURCES §9).
+- **Estatísticas**: `journalStats` (core) é a única implementação; o treino passou a usá-la. Sem
+  saldo inicial no real, a "pior queda" é só em R$.
+- **Comparação treino × real** (`compareJournals`): só conclui com ≥ 20 trades encerrados em cada
+  lado; "diferença grande" = R médio ≥ 0,3R menor, acerto ou disciplina ≥ 15 p.p. menor, ou ≥ 10% dos
+  trades com stop para trás. Limites nossos, arbitrários. Replay entra quando existir.
+- **Calculadora** (`/calculadora`): ações da B3 (lote 100 + fracionário), WIN (R$ 0,20/ponto), WDO
+  (R$ 10/ponto), EUA (ações inteiras), cripto e forex (passo editável; forex em lotes de 100.000 na
+  moeda de cotação). Fatos 🟡 em DATA_SOURCES §5 e §8.
+- **Plano com setup vazio** passou a ser aceito (antes a boleta do treino recusava com "parâmetros
+  inválidos"); a falta conta como plano incompleto.
+- **Menu**: no modo Real, a barra de baixo do celular mostra "Diário" no lugar de "Treino".
+

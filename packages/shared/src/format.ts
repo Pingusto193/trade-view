@@ -28,6 +28,15 @@ export function formatNumber(value: number, decimals = 2): string {
   }).format(value);
 }
 
+/** Número em PT-BR sem zeros sobrando: 50 → "50"; 0,10 → "0,1"; 1234,5 → "1.234,5". */
+export function formatTrim(value: number, maxDecimals = 8): string {
+  if (!Number.isFinite(value)) return '—';
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDecimals,
+  }).format(value);
+}
+
 export function formatPercent(value: number, decimals = 2): string {
   if (!Number.isFinite(value)) return '—';
   return `${formatNumber(value * 100, decimals)}%`;

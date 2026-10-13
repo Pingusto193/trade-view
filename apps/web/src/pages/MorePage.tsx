@@ -2,6 +2,19 @@ import { Link } from 'react-router-dom';
 
 const ITEMS = [
   {
+    to: '/diario',
+    icon: '📓',
+    label: 'Diário real',
+    desc: 'Trades feitos na sua corretora, com estatísticas, IR estimado e comparação com o treino',
+  },
+  { to: '/treino', icon: '🎯', label: 'Treino', desc: 'Conta fictícia com preços reais' },
+  {
+    to: '/calculadora',
+    icon: '🧮',
+    label: 'Calculadora de posição',
+    desc: 'Quantidade pelo risco: ações, minicontratos, EUA, cripto e forex',
+  },
+  {
     to: '/scanner',
     icon: '📡',
     label: 'Scanner',
