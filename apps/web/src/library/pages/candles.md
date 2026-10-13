@@ -68,6 +68,6 @@ As três perguntas e a ideia de que um padrão de candle só vale em região rel
 
 ## Críticas
 
-- Um candle sozinho carrega pouca informação. Nomes como "martelo" parecem precisos, mas cada autor e cada plataforma usa números diferentes. Os números do Radar são padrões arbitrários da especificação. No código eles são parâmetros, mas ainda não há tela para mudá-los nem teste no laboratório que os calibre.
+- Um candle sozinho carrega pouca informação. Nomes como "martelo" parecem precisos, mas cada autor e cada plataforma usa números diferentes. Os números do Radar são padrões arbitrários da especificação. Dá para mudá-los em [Parâmetros dos setups](/setups/parametros) (grupo "Avançado"), mas ainda não há teste no laboratório que os calibre.
 - Ler candles depois do fato é fácil; o difícil é decidir com o futuro escondido. Um modo de replay (rever o gráfico candle a candle, sem ver o futuro) está previsto, mas ainda não existe. Por enquanto, o Modo Treino com preço ao vivo é o jeito de praticar sem dinheiro real.
 - O vídeo não mostra estatística de acerto para nenhum padrão de candle.

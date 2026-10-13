@@ -367,7 +367,8 @@ escala do setup do plano (sem plano: diário) e o mesmo detector do app:
 - **Setup puro**: a mesma ocorrência até encerrar (R do detector, sem custos); diferença de até 0,1R
   conta como igual. Ativo com atraso: abertura e saída descontam o atraso da fonte.
 - **Limitações conhecidas**: parâmetros dos setups e limite de risco são os de hoje, não os do dia da
-  entrada (não há editor de parâmetros ainda, então na prática não mudam); com várias saídas, o tipo de
+  entrada (se você mudar no editor de parâmetros depois, o feedback de trades antigos muda junto); com
+  várias saídas, o tipo de
   saída é o da última e o preço é o médio.
 
 ## ADR-0020 — Scanner multi-mercado (13/10/2026)
@@ -385,3 +386,20 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
   (reflexividade)" mostra à parte quem passa só na parte gráfica ("fundamentos não verificados").
 - **Escala semanal**: no diário, o semanal é montado a partir de 600 candles diários (~120 semanas); nas
   outras escalas é pedido à parte (~5 anos).
+
+## ADR-0021 — Editor de parâmetros dos setups (13/10/2026)
+
+- **Onde vale**: um único conjunto de parâmetros por usuário, salvo nas preferências do servidor. Vale
+  para o gráfico (ao abrir de novo), alertas, scanner, feedback do treino e laboratório.
+- **Campos**: rótulos em português escritos à mão (`apps/web/src/lib/setup-param-fields.ts`); um teste
+  garante que todo parâmetro do schema tem campo e que os limites batem com o schema.
+- **Regras entre campos** que o schema não cobre e que fariam o setup nunca aparecer: caixa mínima <
+  máxima (consolidação), inclinação plana < acentuada, volume alto ≤ estrondoso. Salvar fica bloqueado.
+- **"Ligado"** vale para gráfico, alertas e scanner. No laboratório quem escolhe são as caixinhas: o
+  servidor liga os setups marcados mesmo que estejam desligados nas preferências (decisão nossa, para
+  não aparecer "0 trades" sem explicação).
+- **Antiautoengano**: aviso fixo no topo da tela; cada variação de parâmetro testada no laboratório já
+  conta como tentativa (ADR-0016). O laboratório mostra "parâmetros: padrão" ou "personalizados (N)",
+  contando só os setups marcados e a leitura dos candles.
+- **Fora daqui**: custos (corretagem, spread, slippage) e parâmetros dos experimentos E1–E7 continuam
+  fixos nos padrões; os experimentos sempre usam os padrões para serem comparáveis.

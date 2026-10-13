@@ -50,7 +50,7 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 - [x] Teste "alterar candles futuros não muda sinais passados" (`lookahead.test.ts`, modo estrito)
 - [x] Painel de contexto (tendência, ADX, alinhamento, média respeitada, maturidade, vento a favor)
 - [x] Marcações no gráfico com o "porquê"; Biblioteca completa (33 páginas conferidas contra o código)
-- [ ] Editor de parâmetros dos setups na interface (hoje só os padrões)
+- [x] Editor de parâmetros dos setups (Mais → Parâmetros dos setups; ADR-0021)
 
 ## Fase 4 — Alertas
 

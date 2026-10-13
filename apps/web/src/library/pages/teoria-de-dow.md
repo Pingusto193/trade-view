@@ -21,7 +21,7 @@ São afirmações do vídeo, não fatos comprovados. Em palavras simples: **tend
 
 ### Topos e fundos
 
-Um **topo** é um candle cuja máxima é maior que a máxima dos 2 candles de cada lado. Um **fundo** é o espelho, com a mínima. Em caso de empate de preço, vale o primeiro candle (decisão nossa). O topo só passa a "existir" para o Radar **2 candles depois**, quando os candles da direita já fecharam — antes disso não dá para saber se ele seria superado. Isso evita usar informação do futuro. O número 2 é um padrão arbitrário da especificação; no código é um parâmetro, mas ainda não há tela para mudá-lo. Detalhes em [Primitivas de price action](/biblioteca/primitivas-price-action).
+Um **topo** é um candle cuja máxima é maior que a máxima dos 2 candles de cada lado. Um **fundo** é o espelho, com a mínima. Em caso de empate de preço, vale o primeiro candle (decisão nossa). O topo só passa a "existir" para o Radar **2 candles depois**, quando os candles da direita já fecharam — antes disso não dá para saber se ele seria superado. Isso evita usar informação do futuro. O número 2 é um padrão arbitrário da especificação; dá para mudá-lo em [Parâmetros dos setups](/setups/parametros) (grupo "Avançado"). Detalhes em [Primitivas de price action](/biblioteca/primitivas-price-action).
 
 ### Estrutura
 

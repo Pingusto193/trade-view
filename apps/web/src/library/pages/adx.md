@@ -48,7 +48,7 @@ No editor de presets dá para mudar o período do ADX do gráfico, mas isso muda
 ### Onde o ADX entra
 
 - **Tendência do painel de contexto**: só é "alta" ou "baixa" com ADX de 20 ou mais, junto com a estrutura de topos e fundos e a MMA50 subindo (ou caindo) sem estar plana. Com ADX abaixo de 20, o painel diz "lateral". Veja [Painel de contexto](/biblioteca/painel-contexto).
-- **Setup 9.1**: com o filtro "não operar em mercado lateral" ligado (o padrão), não arma se o ADX do candle-sinal estiver abaixo de 20 ou se a MMA50 estiver plana. Esse filtro é separado do filtro "MMA50 subindo". O 20 é um número arbitrário da especificação; no código ele é um parâmetro, mas ainda não há tela para mudá-lo.
+- **Setup 9.1**: com o filtro "não operar em mercado lateral" ligado (o padrão), não arma se o ADX do candle-sinal estiver abaixo de 20 ou se a MMA50 estiver plana. Esse filtro é separado do filtro "MMA50 subindo". O 20 é um número arbitrário da especificação; dá para mudá-lo em [Parâmetros dos setups](/setups/parametros) (menu Mais). Mude pelo motivo, não pelo lucro do backtest.
 - **Escala maior**: a tendência da escala maior, usada na [visão fractal](/biblioteca/visao-fractal), segue a mesma regra.
 - **Plano de trade do Modo Treino**: mostra o aviso "ADX abaixo de 20: mercado lateral" quando o painel de contexto está nessa faixa. O aviso não bloqueia a ordem.
 - **Alertas**: você pode pedir um aviso quando o ADX, no fechamento do candle, passar para cima (ou cair para baixo) de um nível escolhido por você. Atenção: o campo "Período" do formulário de alerta começa em 9; para usar o mesmo ADX do gráfico, troque para 14.

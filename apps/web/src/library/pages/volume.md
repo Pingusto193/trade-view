@@ -33,7 +33,7 @@ Esta tabela é a régua da especificação e existe no código, mas nesta versã
 | muito acima | volume de 1,5 vez a média ou mais |
 | estrondoso | volume de 2 vezes a média ou mais |
 
-Os números 1,5 e 2 são padrões arbitrários da especificação. No código, são parâmetros, mas ainda não há tela para mudá-los.
+Os números 1,5 e 2 são padrões arbitrários da especificação. Dá para mudá-los em [Parâmetros dos setups](/setups/parametros) (grupo "Avançado").
 
 Exemplo hipotético: a média dos 21 candles anteriores é 1.000.000. Um candle com 1.600.000 tem 1,6 vez a média: **muito acima** (passou de 1,5, não chegou a 2).
 

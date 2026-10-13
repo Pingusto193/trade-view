@@ -60,7 +60,9 @@ describe('páginas da Biblioteca', () => {
               true,
             );
           } else {
-            expect(href, `${slug}: rota interna`).toMatch(/^\/(grafico|fontes|sobre|listas)/);
+            expect(href, `${slug}: rota interna`).toMatch(
+              /^\/(grafico|fontes|sobre|listas|setups\/parametros)/,
+            );
           }
         }
       });

@@ -43,7 +43,7 @@ A 20/2 da consolidação é calculada por dentro mesmo quando a linha está desl
 
 - A largura atual da 20/2 precisa estar entre as 20% menores larguras dos últimos 120 candles (o "menor quintil"), com pelo menos 20 larguras disponíveis para comparar.
 - Alternativa aceita: ATR de 5 menor que ATR de 20 (volatilidade recente menor que a de prazo mais longo).
-- Os 120 candles e o quintil são padrões arbitrários da especificação. No código, são parâmetros, mas ainda não há tela para mudá-los. Regras completas em [Rompimento de consolidação](/biblioteca/rompimento-consolidacao).
+- Os 120 candles e o quintil são padrões arbitrários da especificação. Dá para mudá-los em [Parâmetros dos setups](/setups/parametros), no grupo da consolidação. Regras completas em [Rompimento de consolidação](/biblioteca/rompimento-consolidacao).
 
 ### Exemplo hipotético
 

@@ -60,7 +60,7 @@ Dividir pelo ATR permite comparar ativos de preços muito diferentes: andar R$ 1
 | subindo / caindo | inclinação de 0,15 até menos de 1,0, para cima ou para baixo |
 | subindo forte / caindo forte | inclinação de 1,0 ou mais, para cima ou para baixo |
 
-O passo de 5 candles e o limite de 0,15 vêm da especificação e são padrões arbitrários. O limite de 1,0 para "forte" é decisão nossa. No código, os três são parâmetros, mas ainda não há tela para mudá-los nem teste no laboratório que os calibre.
+O passo de 5 candles e o limite de 0,15 vêm da especificação e são padrões arbitrários. O limite de 1,0 para "forte" é decisão nossa. Os três podem ser mudados em [Parâmetros dos setups](/setups/parametros) (grupo "Avançado"), mas ainda não há teste no laboratório que os calibre.
 
 Exemplo hipotético: MME21 hoje em R$ 50,60, há 5 candles em R$ 50,00, ATR14 de R$ 2,00. Inclinação = 0,60 ÷ 2,00 = 0,30: "subindo".
 
