@@ -5,13 +5,13 @@ import {
   formatBRL,
   formatDateTime,
   formatNumber,
-  formatPercent,
   type Market,
   type PaperPosition,
 } from '@radar/shared';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HelpLink } from '../components/HelpLink';
+import { SmallSample, Stat, StatsGrid, TaxTable } from '../components/JournalStats';
 import { ReadinessPanel } from '../components/ReadinessPanel';
 import { TradeFeedbackPanel } from '../components/TradeFeedback';
 import { TrainingVsCdi } from './BrasilPage';
@@ -320,7 +320,6 @@ function Journal() {
   }, [loadJournal, all]);
   if (!journal) return null;
   const s = journal.stats;
-  const small = s.trades < 30;
   return (
     <section className={`${card} space-y-3`} aria-label="Diário do treino">
       <div className="flex items-center gap-2">
@@ -330,48 +329,8 @@ function Journal() {
           todas as fases (antes dos reinícios)
         </label>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-        <Stat label="Trades" value={String(s.trades)} />
-        <Stat label="Acerto" value={s.winRate === null ? '—' : formatPercent(s.winRate, 0)} />
-        <Stat label="Média em R" value={s.avgR === null ? '—' : `${formatNumber(s.avgR, 2)}R`} />
-        <Stat
-          label="Resultado"
-          value={formatBRL(s.totalBrl)}
-          tone={s.totalBrl >= 0 ? 'up' : 'down'}
-        />
-        <Stat label="Custos pagos" value={formatBRL(s.feesBrl)} />
-        <Stat
-          label="Pior queda"
-          value={`${formatBRL(s.maxDrawdownBrl)} (${formatNumber(s.maxDrawdownPct, 1)}%)`}
-        />
-        <Stat
-          label="Sem stop"
-          value={String(s.withoutStop)}
-          tone={s.withoutStop ? 'down' : undefined}
-        />
-        <Stat
-          label="Disciplina"
-          value={s.disciplinePct === null ? '—' : `${formatNumber(s.disciplinePct, 0)}%`}
-          tone={s.disciplinePct !== null && s.disciplinePct < 90 ? 'down' : undefined}
-        />
-        <Stat label="Com plano liberado" value={`${s.withPlan} de ${s.trades}`} />
-        <Stat
-          label="Stop para trás"
-          value={String(s.stopMovedBack)}
-          tone={s.stopMovedBack ? 'down' : undefined}
-        />
-      </div>
-      {small && (
-        <p className="rounded bg-warn/15 p-2 text-xs text-warn">
-          Amostra pequena ({s.trades} trades): com menos de 30 o resultado é inconclusivo e com
-          menos de 100 é evidência fraca. Sorte e azar ainda dominam.{' '}
-          <HelpLink
-            slug="expectativa"
-            label="Ajuda: expectativa e amostra"
-            className="align-middle"
-          />
-        </p>
-      )}
+      <StatsGrid s={s} />
+      <SmallSample n={s.trades} />
       <ul className="divide-y divide-line text-sm">
         {journal.trades.map((t) => (
           <JournalRow key={t.id} t={t} />
@@ -380,55 +339,13 @@ function Journal() {
           <li className="py-2 text-xs text-muted">Nenhum trade encerrado ainda.</li>
         )}
       </ul>
-      <div>
-        <h3 className="text-sm font-semibold">IR simulado (B3)</h3>
-        {journal.tax.length === 0 ? (
-          <p className="text-xs text-muted">Sem operações da B3 encerradas.</p>
-        ) : (
-          <table className="mt-1 w-full text-xs">
-            <thead>
-              <tr className="text-left text-muted">
-                <th>Mês</th>
-                <th>Swing</th>
-                <th>Day trade</th>
-                <th>DARF</th>
-              </tr>
-            </thead>
-            <tbody>
-              {journal.tax.map((m) => (
-                <tr key={m.month}>
-                  <td>{m.month.split('-').reverse().join('/')}</td>
-                  <td>
-                    {formatBRL(m.swing.result)}
-                    {m.exemptMonth ? ' (isento)' : ''}
-                  </td>
-                  <td>{formatBRL(m.day.result)}</td>
-                  <td>{m.darf ? formatBRL(m.darf) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <p className="mt-1 text-[11px] text-muted">
-          Simulação da regra de 2026 (15% swing, 20% day trade, isenção de vendas até R$ 20 mil no
-          swing de ações). Não substitui um contador. Cripto e ações dos EUA têm regras próprias que
-          ainda não são simuladas.
-        </p>
-      </div>
+      <TaxTable
+        tax={journal.tax}
+        empty="Sem operações da B3 encerradas."
+        note="Simulação da regra de 2026 (15% swing, 20% day trade, isenção de vendas até R$ 20 mil no swing de ações). Não substitui um contador. Cripto e ações dos EUA têm regras próprias que ainda não são simuladas."
+        title="IR simulado (B3)"
+      />
     </section>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: 'up' | 'down' }) {
-  return (
-    <div className="rounded bg-bg p-2">
-      <p className="text-[11px] text-muted">{label}</p>
-      <p
-        className={`font-semibold ${tone === 'up' ? 'text-up' : tone === 'down' ? 'text-down' : ''}`}
-      >
-        {value}
-      </p>
-    </div>
   );
 }
 

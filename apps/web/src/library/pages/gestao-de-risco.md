@@ -53,7 +53,7 @@ São regras do canal, não fatos comprovados. Em outro vídeo, o limite aparece 
 4. Se nem a quantidade mínima couber no orçamento, a quantidade vira zero e o aviso diz: "Aumente o capital, aproxime o stop ou não opere".
 5. Na B3, a quantidade é dividida em **lotes padrão de 100** mais o resto no mercado fracionário (onde se negociam quantidades menores que um lote).
 
-Stop abaixo da entrada quer dizer compra; stop acima, venda. A calculadora também calcula:
+Stop abaixo da entrada quer dizer compra; stop acima, venda. A calculadora fica em [Calculadora de posição](/calculadora) (menu Mais), com as regras de ações da B3, minicontratos, ações dos EUA, cripto e forex. No forex, 1 lote = 100.000 da moeda base e o resultado sai na moeda de cotação do par (🟡; o lote mínimo varia por corretora). A calculadora também calcula:
 
 - **valor alocado** = quantidade × entrada × valor do ponto (nos futuros, é o valor total dos contratos, não a margem);
 - **perda máxima** = quantidade × risco por unidade;

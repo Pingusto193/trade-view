@@ -471,3 +471,65 @@ export const scanResults = sqliteTable(
   },
   (t) => [index('scan_results_user_idx').on(t.userId)],
 );
+
+/**
+ * Diário de trades REAIS (SPEC §13): o usuário registra o que executou na corretora. O Radar não
+ * envia ordens. Resultado, R e IR saem das execuções (`realTrade` do core), nunca guardados à parte.
+ */
+export const realTrades = sqliteTable(
+  'real_trades',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    symbol: text('symbol').notNull(),
+    symbolId: text('symbol_id'),
+    market: text('market').notNull(),
+    side: text('side', { enum: ['long', 'short'] }).notNull(),
+    currency: text('currency').notNull(),
+    pointValue: real('point_value').notNull(),
+    initialStop: real('initial_stop'),
+    stop: real('stop'),
+    target: real('target'),
+    note: text('note').notNull().default(''),
+    /** Plano (JSON, sem o print) e o print em separado (data URL JPEG/PNG). */
+    plan: text('plan'),
+    screenshot: text('screenshot'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [index('real_trades_user_idx').on(t.userId, t.createdAt)],
+);
+
+export const realFills = sqliteTable(
+  'real_fills',
+  {
+    id: text('id').primaryKey(),
+    tradeId: text('trade_id')
+      .notNull()
+      .references(() => realTrades.id, { onDelete: 'cascade' }),
+    time: integer('time').notNull(),
+    kind: text('kind', { enum: ['entrada', 'saida'] }).notNull(),
+    qty: real('qty').notNull(),
+    price: real('price').notNull(),
+    feesBrl: real('fees_brl').notNull().default(0),
+    fx: real('fx').notNull().default(1),
+  },
+  (t) => [index('real_fills_trade_idx').on(t.tradeId, t.time)],
+);
+
+export const realEvents = sqliteTable(
+  'real_events',
+  {
+    id: text('id').primaryKey(),
+    tradeId: text('trade_id')
+      .notNull()
+      .references(() => realTrades.id, { onDelete: 'cascade' }),
+    time: integer('time').notNull(),
+    kind: text('kind').notNull(),
+    price: real('price'),
+    detail: text('detail').notNull().default(''),
+  },
+  (t) => [index('real_events_trade_idx').on(t.tradeId, t.time)],
+);
