@@ -350,3 +350,22 @@ Régua nossa para a SPEC §13 (editável em Treino → Painel de prontidão → 
 - Contagem, R e disciplina usam **todas as gerações** da conta (reiniciar não apaga a evidência); dinheiro,
   CDI e queda usam a geração atual. Trades de gerações antigas não têm o risco medido (o saldo inicial
   delas não fica guardado): não reprovam a disciplina, mas aparecem contados à parte.
+
+## ADR-0019 — Feedback depois do trade de treino (13/10/2026)
+
+Decisões nossas para a SPEC §13 (Treino → Diário → "Ver feedback"), calculadas com os candles reais da
+escala do setup do plano (sem plano: diário) e o mesmo detector do app:
+
+- **Gatilho**: só candles FECHADOS antes do candle que contém a abertura (sem look-ahead); ao menos 60
+  candles antes, senão "sem dados". O preço comparado é o de mercado **antes** do meio spread e da
+  derrapagem (senão uma compra abaixo do gatilho pareceria "no gatilho"). Folga de meio tick.
+- **Realizou cedo**: saída à mão com lucro **ou alvo aproximado e executado**; olha até 20 candles depois do
+  candle da saída com o mesmo modelo de execução do backtest (stop e alvo no mesmo candle = stop).
+- **Stop**: afastado se houve evento "stop movido para trás" **ou** se o stop na saída ficou abaixo do
+  inicial ou foi retirado (ex.: compra adicional com stop menor). Entrada abaixo do stop por gap: risco
+  planejado "não se aplica".
+- **Setup puro**: a mesma ocorrência até encerrar (R do detector, sem custos); diferença de até 0,1R
+  conta como igual. Ativo com atraso: abertura e saída descontam o atraso da fonte.
+- **Limitações conhecidas**: parâmetros dos setups e limite de risco são os de hoje, não os do dia da
+  entrada (não há editor de parâmetros ainda, então na prática não mudam); com várias saídas, o tipo de
+  saída é o da última e o preço é o médio.

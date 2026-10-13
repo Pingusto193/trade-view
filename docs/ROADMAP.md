@@ -44,11 +44,13 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 3 — Setups e contexto
 
-- [ ] Primitivas de price action (pivôs sem look-ahead, inside bar, candles de força, volume, rompimentos)
-- [ ] Detectores 9.1, 9.2, 9.3, recuo à média, consolidação, elástico, reflexividade
-- [ ] Teste "alterar candles futuros não muda sinais passados"
-- [ ] Painel de contexto (tendência, ADX, alinhamento, média respeitada, maturidade, vento a favor)
-- [ ] Marcações no gráfico com o "porquê"; Biblioteca inicial
+- [x] Primitivas de price action (pivôs sem look-ahead, inside bar, candles de força, volume, rompimentos)
+- [x] Detectores 9.1, 9.2, 9.3, recuo à média, consolidação, elástico, reflexividade (revisados e
+  corrigidos; decisões na ADR-0012)
+- [x] Teste "alterar candles futuros não muda sinais passados" (`lookahead.test.ts`, modo estrito)
+- [x] Painel de contexto (tendência, ADX, alinhamento, média respeitada, maturidade, vento a favor)
+- [x] Marcações no gráfico com o "porquê"; Biblioteca completa (33 páginas conferidas contra o código)
+- [ ] Editor de parâmetros dos setups na interface (hoje só os padrões)
 
 ## Fase 4 — Alertas
 
@@ -83,7 +85,8 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 - [~] Experimentos E1–E7 (`/laboratorio/experimentos`, ADR-0017): prontos e testados com dados simulados; os
   números reais dependem da rede liberada no servidor e, para 10 anos de B3, de importar o COTAHIST
 - [x] Painel de prontidão (Treino e diálogo de mudar para Real; ADR-0018)
-- [ ] Replay, exercícios de leitura, trilha, feedback por trade
+- [x] Feedback depois de cada trade de treino (Diário → "Ver feedback"; ADR-0019)
+- [ ] Replay, exercícios de leitura, trilha
 
 ## Fase 7 — B3 e forex em tempo real, scanner e fundamentos
 
