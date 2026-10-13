@@ -561,3 +561,37 @@ export const replaySessions = sqliteTable(
   },
   (t) => [index('replay_sessions_user_idx').on(t.userId, t.createdAt)],
 );
+
+/**
+ * Exercícios de leitura (SPEC §13). O gabarito e os candles de "depois" ficam aqui até a resposta: o
+ * navegador só recebe o trecho até o candle da pergunta.
+ */
+export const exercises = sqliteTable(
+  'exercises',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    level: integer('level').notNull(),
+    /** Foco da trilha (JSON: lista de setups) ou null. */
+    setups: text('setups'),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    meta: text('meta').notNull(),
+    /** Trecho mostrado + candles de depois (JSON). */
+    candles: text('candles').notNull(),
+    /** Quantos candles do trecho são mostrados antes da resposta. */
+    shown: integer('shown').notNull(),
+    questions: text('questions').notNull(),
+    answer: text('answer').notNull(),
+    outcome: text('outcome').notNull(),
+    given: text('given'),
+    graded: text('graded'),
+    score: integer('score'),
+    total: integer('total'),
+    createdAt: integer('created_at').notNull(),
+    answeredAt: integer('answered_at'),
+  },
+  (t) => [index('exercises_user_idx').on(t.userId, t.createdAt)],
+);

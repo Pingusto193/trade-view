@@ -64,6 +64,13 @@
       "when": 1791930984825,
       "tag": "0008_replay",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791931660725,
+      "tag": "0009_exercises",
+      "breakpoints": true
     }
   ]
 }
