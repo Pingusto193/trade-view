@@ -48,6 +48,8 @@ export interface MarketDataAdapter {
   isConfigured(): boolean;
   /** Fonte de dados simulados (só desenvolvimento)? */
   readonly simulated?: boolean;
+  /** Validade do meta no cache do servidor (ms); ausente = vale até reiniciar. */
+  readonly metaTtlMs?: number;
   searchSymbols(text: string): Promise<SymbolSearchResult[]>;
   getMeta(symbol: string): Promise<SymbolMeta>;
   getCandles(req: CandleRequest): Promise<Candle[]>;

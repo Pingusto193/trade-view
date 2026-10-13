@@ -2,6 +2,7 @@ import type { SymbolSearchResult } from '@radar/shared';
 import { AlpacaAdapter } from './adapters/alpaca';
 import { BinanceAdapter } from './adapters/binance';
 import { BrapiAdapter } from './adapters/brapi';
+import { Mt5Adapter } from './adapters/mt5';
 import { SimulatedAdapter } from './adapters/simulated';
 import { parseSymbolId, type MarketDataAdapter } from './types';
 
@@ -30,8 +31,15 @@ export class AdapterRegistry {
       }),
       new BrapiAdapter({ ...(cfg.brapiToken ? { token: cfg.brapiToken } : {}) }),
     ];
-    if (cfg.simulated) list.push(new SimulatedAdapter());
+    // MetaTrader 5 pelo agente do PC do usuário (ADR-0023); o simulador do agente só em desenvolvimento.
+    list.push(new Mt5Adapter());
+    if (cfg.simulated) list.push(new SimulatedAdapter(), new Mt5Adapter({ simulated: true }));
     return new AdapterRegistry(list);
+  }
+
+  /** Acrescenta uma fonte (ex.: o servidor garante o adaptador do MT5 mesmo em registros de teste). */
+  register(adapter: MarketDataAdapter): void {
+    this.byId.set(adapter.id, adapter);
   }
 
   get all(): MarketDataAdapter[] {
