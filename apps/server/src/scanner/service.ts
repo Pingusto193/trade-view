@@ -42,7 +42,7 @@ import type { Db } from '../db/client';
 import { scanResults, scans, watchlistItems, watchlists } from '../db/schema';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
-import { userSetupParams } from '../prefs';
+import { readPrefs, userSetupParams } from '../prefs';
 import type { SyncHub } from '../sync';
 
 /**
@@ -553,7 +553,7 @@ export class ScannerService {
     const done: ScanRow[] = [];
     let error: string | null = null;
     try {
-      const params = userSetupParams(this.db, job.userId);
+      const params = userSetupParams(readPrefs(this.db, job.userId));
       for (const id of job.symbols) {
         if (this.closed) break;
         snap.running.current = id;
