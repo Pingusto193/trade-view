@@ -58,7 +58,7 @@ A partir do candle seguinte ao sinal, em cada candle fechado, nesta ordem:
 2. Se não alcançou e a MME9 **caiu** (ficou menor que no candle anterior), o setup é **desarmado**.
 3. Se não alcançou e a MME9 não caiu (subiu ou ficou igual), o gatilho passa para a **máxima deste candle + 1 tick**. Como o candle não chegou ao gatilho antigo, o novo nunca fica acima dele. O stop pode descer para 1 tick abaixo da menor mínima desde o candle-sinal; ele nunca sobe nessa fase.
 
-Esse deslocamento do gatilho (`trailTrigger`, ligado por padrão) é uma decisão nossa, prevista na especificação. Ele se repete sem limite de candles, até a compra ou o desarme. Desligado, o gatilho fica parado na máxima do candle-sinal.
+Esse deslocamento do gatilho (`trailTrigger`, ligado por padrão) é uma decisão nossa, prevista na especificação. Ele se repete sem limite de candles, até a compra ou o desarme. Desligado, o gatilho e o stop ficam parados nos valores do candle-sinal; o desarme pela MME9 caindo continua valendo.
 
 ### 5. A entrada
 
@@ -90,7 +90,7 @@ O resultado em R é (preço de saída − entrada) ÷ (entrada − stop inicial)
 
 ### 7. Outras regras
 
-- **Uma ocorrência por vez**: enquanto houver um 9.1 armado ou em andamento no ativo, novas viradas da MME9 são ignoradas.
+- **Uma ocorrência por vez**: enquanto houver um 9.1 de compra armado ou em andamento no ativo, novas viradas da MME9 para cima são ignoradas. Se a operação terminar num candle, uma nova virada nesse mesmo candle já pode armar outra.
 - **Venda**: desligada por padrão (`allowSell`). Ligada, é o espelho da compra e aparece marcada "Venda espelhada — não descrita nos vídeos".
 - **Escala maior**: se a escala maior estiver em baixa, os eventos de compra "armado" e "acionado" ganham o **aviso vermelho** "contra a escala maior" (veja [Visão fractal](/biblioteca/visao-fractal)). O aviso não bloqueia o setup.
 
@@ -143,7 +143,9 @@ O vídeo deixa pontos em aberto. Onde não havia regra, o Radar escolheu uma, e 
 
 O botão acima abre o laboratório já com o 9.1. Lá você escolhe o ativo e o tempo gráfico, e o teste roda com os candles reais da fonte, os custos padrão do mercado, o imposto de renda simulado (só na B3), só compras e os valores padrão desta página. O resultado aparece ao lado do CDI e do comprar-e-segurar no mesmo período, separado em treino (70% iniciais) e teste (30% finais), com mapa de sensibilidade do alvo em R, walk-forward e Monte Carlo.
 
-Para a afirmação do vídeo sobre o filtro, existe o **Experimento E1** (Laboratório → Experimentos): ele roda o 9.1 com e sem o filtro "MMA50 subindo", no gráfico diário, em cerca de 10 anos de cada ativo de uma lista sugerida de 20 ações da B3 (editável; composição e liquidez não verificadas 🟡). O filtro de lateral fica ligado nas duas versões. O E1 compara a expectativa em R depois dos custos, sem IR e sem CDI.
+Para a afirmação do vídeo sobre o filtro, existe o **Experimento E1**, na tela "Verificar o youtuber" (botão no topo do Laboratório): ele roda o 9.1 com e sem o filtro "MMA50 subindo", no gráfico diário, pedindo cerca de 10 anos de cada ativo de uma lista sugerida de 20 ações da B3 (editável; composição e liquidez não verificadas 🟡). O filtro de lateral fica ligado nas duas versões. O E1 compara a expectativa em R depois dos custos, sem IR e sem CDI, e diz se a diferença passa do que o acaso explicaria.
+
+Os 10 anos da B3 só existem se o histórico COTAHIST da própria B3 tiver sido importado no servidor. Sem ele, o ativo com histórico curto aparece como erro na tabela do experimento; o Radar não completa os dados.
 
 Nada nesta página é resultado medido: os números dependem do ativo, do período e da fonte.
 

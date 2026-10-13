@@ -39,19 +39,23 @@ Exemplo hipotético: se o CDI acumulado em 12 meses fosse de 10% (número invent
 Onde o Radar mostra essa comparação:
 
 - **Página Brasil**: o quadro "Seu treino × CDI" compara o resultado da conta de treino (já com custos, sem IR) com o CDI do mesmo período.
-- **Laboratório**: todo resultado aparece ao lado do CDI e do comprar e segurar (buy & hold) no mesmo período. Se a estratégia perder para o CDI, o laboratório não dá "aprovado".
+- **Laboratório**: todo resultado aparece ao lado do CDI e do comprar e segurar (buy & hold) no mesmo período. Se a estratégia render menos que o CDI, depois de custos e IR, o laboratório não dá "aprovado". Se o Banco Central não responder, a tela avisa que a comparação ficou indisponível.
+- **Painel de prontidão** (página Treino): compara o resultado da conta de treino, já descontado o IR simulado, com o CDI desde o início (ou o último reinício) da conta.
 
 ## Meça antes, no laboratório
 
-Antes de treinar um setup, veja como ele teria se saído no passado. O **Laboratório** (botão "Testar no laboratório" nas páginas dos setups) roda o setup com os candles reais da fonte e mostra:
+Antes de treinar um setup, veja como ele teria se saído no passado. É o jeito de medir a expectativa real de um setup, com custos, IR e CDI, em vez de confiar na conta do vídeo. O **Laboratório** (botão "Testar no laboratório" nas páginas dos setups) roda o setup com os candles reais da fonte, só compras e os valores padrão do setup, e mostra:
 
 - a [expectativa](/biblioteca/expectativa) por trade **depois dos custos** padrão do mercado, e o resultado final depois do IR simulado (só na B3);
 - a comparação com o CDI e com o comprar e segurar no mesmo período;
 - o resultado separado em treino (70% iniciais do período) e teste (30% finais), para ver se o resultado se repete no trecho final;
-- a pior queda e o Monte Carlo, que embaralha os trades para mostrar quedas possíveis com o seu risco por trade (veja [Drawdown](/biblioteca/drawdown));
+- o walk-forward (escolhe o melhor valor do número principal do setup olhando só para o passado e mede no trecho seguinte; nos setups 9.x, esse número é o alvo em R) e o mapa de sensibilidade, que mostra se o resultado muda muito com um pequeno ajuste;
+- a pior queda e o Monte Carlo, que sorteia novas sequências com os mesmos trades para mostrar quedas possíveis com o seu risco por trade (veja [Drawdown](/biblioteca/drawdown));
 - quantas vezes você já testou o mesmo ativo com os mesmos setups.
 
-O veredito é cético de propósito: com menos de 30 trades, é "inconclusivo"; com menos de 100, nunca chega a "aprovado". Mesmo um "aprovado" fala só do passado. Na tela Experimentos, o laboratório também testa algumas afirmações do vídeo (veja [Contradições entre as fontes](/biblioteca/contradicoes-entre-as-fontes)).
+O veredito é cético de propósito: com menos de 30 trades, é "inconclusivo"; com menos de 100, nunca chega a "aprovado". Mesmo um "aprovado" fala só do passado. Na tela "Verificar o youtuber" (botão no topo do Laboratório), os experimentos E1 a E7 testam algumas afirmações do vídeo (veja [Contradições entre as fontes](/biblioteca/contradicoes-entre-as-fontes)).
+
+Na B3, o plano gratuito da brapi tem só cerca de 3 meses de histórico (🟡). Para testar anos de B3, o arquivo COTAHIST da própria B3 precisa estar importado no servidor; esse histórico não é ajustado por proventos e desdobramentos (🟡), e a tela avisa.
 
 ## Treine primeiro, com dinheiro fictício
 
@@ -67,18 +71,19 @@ Nesta versão, o treino é **ao vivo**, **só de compras** e **sem alavancagem**
 
 ### Uma régua para decidir (heurística, não garantia)
 
-A especificação define um **Painel de prontidão** com critérios ajustáveis. É uma régua nossa, não uma garantia:
+O **Painel de prontidão** fica na página Treino e aparece também quando você pede para mudar para o modo Real. É uma régua nossa, a partir da especificação, e não uma garantia. Os critérios padrão são:
 
-1. pelo menos **100 trades** de treino (replay e ao vivo), sendo pelo menos 30 ao vivo;
-2. **expectativa positiva** depois de custos e IR, comparada ao CDI do período (veja [Expectativa](/biblioteca/expectativa));
-3. **disciplina** de pelo menos 90%: plano completo, sem stop movido para trás e risco dentro do limite;
-4. **drawdown máximo** dentro do limite que você mesmo definiu (veja [Drawdown](/biblioteca/drawdown)).
+1. **amostra**: pelo menos **100 trades** de treino, sendo pelo menos 30 ao vivo. Como o replay ainda não existe, hoje só os trades ao vivo contam;
+2. **expectativa**: média em R acima de zero (já com custos) **e** resultado da conta positivo depois do IR simulado (veja [Expectativa](/biblioteca/expectativa));
+3. **CDI**: o treino, depois do IR, precisa render mais que o CDI desde o início (ou o último reinício) da conta. Sem dado do Banco Central, o item fica "sem dados", nunca aprovado;
+4. **disciplina** de pelo menos 90%: plano liberado, com stop, stop nunca afastado e risco na entrada dentro do seu limite (2% por padrão);
+5. **queda máxima** da conta de até 20% do pico (veja [Drawdown](/biblioteca/drawdown)).
 
-O Painel de prontidão **ainda não existe** no app. Enquanto isso, o diário da página Treino já mostra o número de trades, o acerto, a média em R, o resultado, os custos pagos, a pior queda e a disciplina. Pela especificação, quando existir, o painel **nunca vai bloquear** o modo Real: só vai mostrar o que falta e por quê.
+Você pode mudar esses números em "Ajustar a régua". Reiniciar a conta não apaga a contagem de trades, a média em R nem a disciplina; o dinheiro, o CDI e a queda contam desde o último reinício. O painel **nunca bloqueia** o modo Real: só mostra o que falta e por quê. Cumprir tudo também não garante nada.
 
 ## O que o Radar não faz
 
-- **Não envia ordens.** Nem no modo Real: lá, você opera na sua corretora e registra no Radar o que fez.
+- **Não envia ordens.** Nem no modo Real: lá, você opera na sua corretora. A especificação prevê registrar esses trades reais no Radar para comparar com o treino; isso ainda não existe no app.
 - **Não recomenda** comprar, vender ou manter nenhum ativo. Os setups são regras de observação, tratadas como hipóteses.
 - **Não promete lucro.** Nenhum resultado passado, do treino ou do laboratório, garante o futuro.
 - **Não substitui um contador.** O IR simulado segue regras registradas com selo 🟡 e pode ter erro.

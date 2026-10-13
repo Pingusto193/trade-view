@@ -38,7 +38,7 @@ A legenda no topo do gráfico mostra, para o candle sob o cursor: **A** (abertur
 
 ### Padrões que o Radar reconhece
 
-O Radar reconhece alguns candles com regras numéricas fixas, sempre **depois que o candle fecha**. A definição exata de cada um, com os números, está em [Primitivas de price action](/biblioteca/primitivas-price-action). Em resumo:
+O Radar reconhece alguns candles com regras numéricas fixas, sempre **depois que o candle fecha**. Eles não são marcados no gráfico: servem por dentro dos setups, e o nome do padrão aparece no motivo do evento (por exemplo, "Martelo na região da MME21"). A definição exata de cada um, com os números, está em [Primitivas de price action](/biblioteca/primitivas-price-action). Em resumo:
 
 - **Candle de força**: corpo bem maior que a média dos corpos recentes, fechando perto do extremo.
 - **Barra de ignição**: corpo ainda maior, quase sem sombra no lado do movimento.

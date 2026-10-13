@@ -12,15 +12,18 @@ const CATEGORY_LABEL: Record<string, string> = {
   aviso: 'Aviso importante',
 };
 
-/** Página da Biblioteca → setup do laboratório (para o botão "testar"). */
+/**
+ * Página da Biblioteca → setup (e escala) do laboratório, para o botão "testar". A Reflexividade só
+ * roda no semanal por padrão (weeklyOnly): abrir no diário daria zero sinais.
+ */
 const LAB_SETUP: Record<string, string> = {
-  'setup-9-1': 's91',
-  'setup-9-2': 's92',
-  'setup-9-3': 's93',
-  'recuo-a-media': 'pullback',
-  'rompimento-consolidacao': 'consolidation',
-  elastico: 'elastic',
-  reflexividade: 'reflexivity',
+  'setup-9-1': 'setup=s91',
+  'setup-9-2': 'setup=s92',
+  'setup-9-3': 'setup=s93',
+  'recuo-a-media': 'setup=pullback',
+  'rompimento-consolidacao': 'setup=consolidation',
+  elastico: 'setup=elastic',
+  reflexividade: 'setup=reflexivity&tf=1w',
 };
 
 /** Blocos automáticos que substituem os marcadores das páginas. */
@@ -41,7 +44,7 @@ function markersFor(slug: string) {
           backtest: não têm custos, impostos nem amostra suficiente.
         </p>
         <Link
-          to={setup ? `/laboratorio?setup=${setup}` : '/laboratorio'}
+          to={setup ? `/laboratorio?${setup}` : '/laboratorio'}
           className="mt-2 inline-block rounded border border-accent px-2 py-1 text-accent"
         >
           🧪 Testar no laboratório

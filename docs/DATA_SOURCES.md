@@ -176,3 +176,17 @@ treino. Spread de cripto e derrapagens são **decisão nossa**, não medidos.
 | vitest                       | 5.x            | MIT              |                                                                                                                                                                                      |
 | web-push                     | 3.6.7          | **MPL-2.0**      | Licença copyleft fraca por arquivo; uso como dependência é permitido. Última versão de 2024.                                                                                         |
 | nodemailer                   | 10.0.14        | MIT-0            | Envio por SMTP para os alertas por e-mail; traz os próprios tipos. Versões saem quase toda semana: fixada para evitar surpresa.                                                       |
+
+## 15. Fatos usados no app ainda SEM fonte registrada (a verificar)
+
+Levantados na revisão da Biblioteca (13/10/2026). Enquanto não forem conferidos, o app e as páginas os tratam
+como suposição, nunca como fato.
+
+| Fato                                                                                                   | Selo | Onde aparece                                              | Próximo passo                                                  |
+| ------------------------------------------------------------------------------------------------------ | ---- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| Volume da brapi (ações da B3) cobre o mercado inteiro ("volume completo")                              | ❌   | adaptador brapi (`volume: 'complete'`), página Volume     | Conferir na documentação da brapi; se não confirmar, rebaixar  |
+| Lote padrão de 100 ações e mercado fracionário (1 a 99) na B3                                          | ❌   | adaptador brapi (`lotSize: 100`), calculadora, Biblioteca | Conferir na B3 (regra de lote) e registrar com link            |
+| Brasília em UTC−3 o ano todo (sem horário de verão)                                                    | ❌   | página VWAP (texto evita afirmar)                         | Registrar com o decreto que encerrou o horário de verão        |
+| Barras intradiárias da Alpaca (IEX) incluem ou não pré e pós-mercado                                   | ❌   | VWAP intradiária das ações dos EUA                        | Conferir na documentação da Alpaca                             |
+| Candle ao vivo das ações dos EUA com volume só da IEX × histórico com volume consolidado               | 🟡   | filtro de volume da consolidação (ao vivo × laboratório)  | Medir a diferença com dados reais; avisar na tela se relevante |
+| Lista sugerida de 20 ações da B3 dos experimentos (composição e liquidez atuais)                       | 🟡   | `packages/shared/src/experiments.ts`, ADR-0017            | Conferir com a carteira teórica do Ibovespa da data            |

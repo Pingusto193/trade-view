@@ -37,7 +37,7 @@ Tudo sem custos, para simplificar. Com R$ 4,00 de custos no trade, por exemplo, 
 
 - **Backtest do laboratório** (o teste das regras em dados do passado): R = resultado do trade, já descontados os custos (sem IR), ÷ risco planejado. O risco planejado usa o preço de entrada **já executado** (com spread e derrapagem) e o stop: distância × quantidade × valor do ponto.
 - **Modo Treino**: R = resultado realizado em R$ (já com custos) ÷ risco inicial em R$. O risco inicial usa o preço médio de entrada, o **stop inicial**, a maior quantidade que a posição teve e, em ativos em dólar, a cotação do dólar na entrada. Mover o stop depois não muda o R.
-- **Trade sem stop não tem R**: o diário mostra "R —" e o trade conta como indisciplina.
+- **Trade sem stop não tem R**: o diário mostra "R —" e o trade conta como indisciplina no diário e no Painel de prontidão (na página Treino).
 - **Painel de Setups no gráfico**: mostra a média em R das ocorrências do período carregado, **sem custos e sem IR**. Isso não é backtest.
 - Os alvos dos setups são definidos em R (por exemplo, 2R ou 3R), e o plano de trade avisa quando a relação retorno/risco fica abaixo de 2.
 
@@ -46,4 +46,4 @@ Tudo sem custos, para simplificar. Com R$ 4,00 de custos no trade, por exemplo, 
 - **R depende de onde está o stop.** Um stop muito curto deixa o R pequeno e faz os ganhos parecerem enormes em R. Mas o preço atinge esse stop com mais facilidade, e os custos pesam mais (veja [Slippage e custos](/biblioteca/slippage-e-custos)).
 - **R não mostra o tempo.** +1R em uma semana e +1R em um ano são iguais em R, mas não diante do CDI.
 - **A média em R esconde a ordem dos resultados.** Duas sequências com a mesma média podem ter quedas muito diferentes. Veja [Drawdown](/biblioteca/drawdown).
-- **R não inclui IR.** No laboratório, o imposto entra no resultado final, que é comparado com o CDI.
+- **R não inclui IR.** No laboratório, o imposto (simulado só na B3) entra no resultado final, que é comparado com o CDI e com o comprar e segurar. Para saber quanto um setup rende em R depois dos custos, use o botão "Testar no laboratório" na página do setup.

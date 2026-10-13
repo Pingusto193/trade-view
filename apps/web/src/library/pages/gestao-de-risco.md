@@ -35,6 +35,7 @@ São regras do canal, não fatos comprovados. Em outro vídeo, o limite aparece 
 - No Modo Treino, a conta usa o patrimônio atual da conta de treino. Na ferramenta de posição do gráfico, usa o capital das preferências (padrão: R$ 10.000,00).
 - No laboratório, você escolhe o capital inicial e o risco por trade (padrões: 10.000 na moeda do ativo e 1%). Cada trade do teste é dimensionado pelo patrimônio daquele momento, sem alavancagem: se a compra não couber no patrimônio, a quantidade é reduzida.
 - Os avisos não bloqueiam nada. No treino, eles ficam gravados no plano de trade, como registro do que você sabia na hora de entrar.
+- No Painel de prontidão (página Treino), um trade com risco na entrada acima do seu limite conta contra a disciplina.
 
 ### Stop técnico
 
@@ -98,13 +99,13 @@ Exemplo hipotético: 10 stops seguidos, cada um custando exatamente o risco esco
 
 Qualquer estratégia que não acerta sempre pode ter sequências de perdas. Quanto maior o risco por trade, mais funda a queda e mais difícil a volta. Veja [Drawdown](/biblioteca/drawdown).
 
-Para ver isso com um setup de verdade, teste-o no laboratório: o Monte Carlo embaralha os trades do teste e mostra, com o risco por trade que você escolheu, a chance de, em algum momento, estar perdendo 10%, 20%, 30% ou 50% do capital. Rodar o mesmo teste com 1% e com 2% mostra quanto o risco por trade muda essas chances.
+Para ver isso com um setup de verdade, teste-o no laboratório (botão "Testar no laboratório" na página do setup). O Monte Carlo do laboratório sorteia 5.000 novas sequências com os mesmos resultados em R do backtest e mostra, com o risco por trade que você escolheu, a chance de, em algum momento, estar perdendo 10%, 20%, 30% ou 50% do capital inicial. Rodar o mesmo teste com 1% e com 2% mostra quanto o risco por trade muda essas chances.
 
 ## A contradição: 1 a 2% ou até 3%?
 
 - **Um vídeo** fala em 1 a 2% por trade, com 1% para iniciante.
 - **Outro vídeo** aceita até 3%.
-- **No setup de reflexividade**, o vídeo fala em "ir na jugular" (posição gigante), o que não cabe em nenhum dos dois limites.
+- **No setup de reflexividade**, segundo a especificação, o vídeo fala em "vai na jugular" (posição gigante), o que não cabe em nenhum dos dois limites.
 
 O que o Radar faz: usa 1% como padrão, avisa quando o risco passa do limite (padrão de 2%) e nunca esconde o aviso. Na [reflexividade](/biblioteca/reflexividade), a especificação pede entrada em etapas, sempre dentro do limite de risco; hoje o Radar marca só a primeira parte dessa entrada. Mais em [Contradições entre as fontes](/biblioteca/contradicoes-entre-as-fontes).
 

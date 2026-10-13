@@ -60,7 +60,7 @@ Não há limite de candles: o setup fica armado até a compra ou o desarme.
 ### 5. Outras regras
 
 - **Uma ocorrência por vez**: enquanto houver um 9.2 armado ou em andamento, ele não arma outro.
-- **A pernada continua durante a ocorrência**: se aparecer um fechamento maior, a referência sobe. Depois que a operação termina (stop ou alvo), a mesma pernada pode armar de novo, com a referência atual.
+- **A pernada continua durante a ocorrência**: se aparecer um fechamento maior, a referência sobe. Depois que a operação termina (stop ou alvo), a mesma pernada pode armar de novo, com a referência atual, inclusive no próprio candle em que a operação terminou.
 - **Sem filtros**: o 9.2 não confere ADX, MMA50 nem mercado lateral.
 - **Todas as escalas**: o Radar procura o 9.2 em qualquer tempo gráfico, não só no semanal e no mensal.
 - **Venda**: desligada por padrão (`allowSell`). Ligada, é o espelho e aparece marcada "Venda espelhada — não descrita nos vídeos".
@@ -113,7 +113,7 @@ A especificação atribui a Larry Williams apenas o 9.1 e não cita autor para o
 
 O botão acima abre o laboratório já com o 9.2. Lá você escolhe o ativo e o tempo gráfico, e o teste roda com os candles reais da fonte, os custos padrão do mercado, o imposto de renda simulado (só na B3), só compras e os valores padrão desta página. O resultado aparece ao lado do CDI e do comprar-e-segurar no mesmo período, separado em treino (70% iniciais) e teste (30% finais), com mapa de sensibilidade do alvo em R, walk-forward e Monte Carlo.
 
-Para a recomendação do vídeo sobre as escalas, existe o **Experimento E3** (Laboratório → Experimentos): ele roda o 9.2 e o 9.3 no mensal, no semanal, no diário e no 60 minutos, com os custos padrão e só compras, e compara a expectativa em R (depois dos custos, sem IR e sem CDI) do semanal e do mensal contra o diário, e do diário contra o 60 minutos. O próprio experimento avisa que, no semanal e no mensal, a amostra tende a ser pequena, e que o histórico de 60 minutos depende da fonte.
+Para a recomendação do vídeo sobre as escalas, existe o **Experimento E3**, na tela "Verificar o youtuber" (botão no topo do Laboratório): ele roda o 9.2 e o 9.3 no mensal, no semanal, no diário e no 60 minutos, com os custos padrão e só compras, e compara a expectativa em R (depois dos custos, sem IR e sem CDI) do semanal e do mensal contra o diário, e do diário contra o 60 minutos. O próprio experimento avisa que, no semanal e no mensal, a amostra tende a ser pequena, e que o histórico de 60 minutos depende da fonte. Na B3, anos de histórico diário, semanal e mensal só existem se o arquivo COTAHIST da própria B3 tiver sido importado no servidor; sem ele, o ativo aparece como erro na tabela, sem dados inventados.
 
 Nada nesta página é resultado medido: os números dependem do ativo, do período e da fonte.
 

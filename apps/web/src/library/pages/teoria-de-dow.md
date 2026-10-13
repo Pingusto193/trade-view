@@ -55,7 +55,7 @@ As regras objetivas de volume (acima da média, secando etc.) estão em [Volume]
 - **Tamanho da lente**: com 2 candles de cada lado, pequenos repiques já viram topos e fundos. Outro valor mudaria a estrutura.
 - **Rótulo que pisca**: basta a MMA50 recuar um candle para o painel trocar "alta" por "lateral". Olhe a sequência, não um candle só.
 - **Escalas diferentes, respostas diferentes**: o diário pode estar em alta e o semanal em baixa ao mesmo tempo. Isso é normal; a [visão fractal](/biblioteca/visao-fractal) trata desse conflito.
-- **Lateral longo**: num mercado de lado, topos e fundos se alternam e a estrutura fica indefinida. Segundo a lógica do canal, é onde setups de tendência mais sofrem.
+- **Lateral longo**: num mercado de lado, topos e fundos se alternam e a estrutura fica indefinida. O canal e a especificação partem da ideia de que é aí que setups de tendência mais sofrem — hipótese, não fato medido.
 
 ## Críticas
 

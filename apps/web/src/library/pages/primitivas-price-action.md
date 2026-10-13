@@ -147,7 +147,7 @@ Exemplo hipotético: resistência em R$ 50,00. Um fechamento em R$ 50,01 rompe; 
 | Topos e fundos | estrutura, média respeitada, stop "fundo anterior" do 9.1, topo e fundo do recuo, fundos da reflexividade |
 | Pivô de alta | confirmação da [reflexividade](/biblioteca/reflexividade) |
 | Tendência por estrutura | painel de contexto, escala maior, condição do [recuo à média](/biblioteca/recuo-a-media) |
-| Inclinação e virar | sinal e filtros do [9.1](/biblioteca/setup-9-1), saída dinâmica dos 9.x, painel de contexto |
+| Inclinação e virar | sinal e filtros do [9.1](/biblioteca/setup-9-1), saída dinâmica dos 9.x, condição do recuo à média (inclinação da MME21 acima de zero), painel de contexto |
 | Inside bar | pontua no recuo à média |
 | Candle de força | pontua no recuo (de baixa no recuo vira alerta); confirmação opcional do [elástico](/biblioteca/elastico) |
 | Martelo e estrela cadente | pontua no recuo; confirmação opcional do elástico |

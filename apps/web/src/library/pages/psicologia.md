@@ -61,7 +61,8 @@ O vídeo lista cinco erros. São observações do canal, não resultado de pesqu
 
 - O plano de trade só fica **Liberado** com: setup, três escalas, stop técnico, alvo (se a saída for por alvo fixo), tamanho da posição, motivo técnico, print do gráfico (tirado automaticamente) e os cinco itens do checklist.
 - No treino, o plano **não bloqueia** a compra, mas o botão avisa: "Comprar sem plano completo (conta como indisciplina)".
-- O diário mostra a **disciplina**: a porcentagem de trades com plano liberado, com stop e sem stop movido para trás. A régua da especificação para pensar em dinheiro real é de pelo menos 90%.
+- O diário mostra a **disciplina**: a porcentagem de trades com plano liberado, com stop e sem stop movido para trás.
+- O **Painel de prontidão**, na página Treino, pede pelo menos 90% de disciplina antes de pensar em dinheiro real. Ali a conta é um pouco mais exigente: o risco na entrada também precisa ficar dentro do seu limite (2% por padrão). O 90% vem da especificação; é uma régua, não uma garantia, e você pode ajustá-la em "Ajustar a régua". O painel nunca bloqueia nada.
 
 ## O checklist psicológico
 
@@ -79,7 +80,7 @@ Marcar tudo sem ler não ajuda. O valor está em parar alguns segundos e respond
 
 O Modo Treino usa preço real e custos, mas o dinheiro é fictício. Perder R$ 500,00 de mentira não pesa como perder R$ 500,00 de verdade. Por isso, a disciplina no treino pode ser melhor do que a que você vai ter no real.
 
-A especificação do Radar prevê comparar, lado a lado, as estatísticas do treino e as do real. Segundo ela, uma diferença grande entre os dois costuma indicar um problema emocional ou de execução, e não da regra.
+A especificação do Radar prevê comparar, lado a lado, as estatísticas do treino e as do real. Segundo ela, uma diferença grande entre os dois costuma indicar um problema emocional ou de execução, e não da regra. Essa comparação ainda não existe no app: hoje só o treino tem diário com estatísticas.
 
 ## Limites
 

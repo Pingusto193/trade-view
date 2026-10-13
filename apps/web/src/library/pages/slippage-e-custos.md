@@ -12,7 +12,7 @@ Todo trade tem custos que não aparecem no gráfico. Uma estratégia que ganha "
 ### Os custos, um por um
 
 - **Corretagem**: tarifa que a corretora cobra por ordem. Algumas corretoras cobram zero em ações no Brasil, outras não; nas ações dos EUA, depende da corretora internacional. Isso varia e não foi verificado (❌): confira a tabela da sua.
-- **Emolumentos e taxas da B3**: cobrados sobre o valor negociado. Para pessoa física em ações, cerca de 0,030% do volume no swing trade (operações que duram mais de um dia) e cerca de 0,023% no day trade (compra e venda no mesmo dia, até R$ 1 milhão por dia). As fontes divergem; há quem cite 0,039% (🟡).
+- **Emolumentos e taxas da B3**: cobrados sobre o valor negociado. Para pessoa física em ações, cerca de 0,030% do volume no swing trade (compra e venda em dias diferentes) e cerca de 0,023% no day trade (compra e venda no mesmo dia, até R$ 1 milhão por dia). As fontes divergem; há quem cite 0,039% (🟡).
 - **Taxa da exchange de cripto**: na Binance (global), a taxa base no mercado à vista é de cerca de 0,1% por execução, com desconto por volume e com BNB (🟡).
 - **Spread**: a diferença entre o melhor preço de quem vende e o melhor preço de quem compra. Quem compra a mercado paga o preço de cima; quem vende a mercado recebe o de baixo.
 - **Slippage (derrapagem)**: a diferença entre o preço que você queria e o que conseguiu. O Radar mede a derrapagem em ticks; um tick é o menor degrau de preço do ativo. Acontece em ordens a mercado e em ordens stop, e tende a ser maior quando o preço anda rápido ou quando há pouca gente negociando.
@@ -36,6 +36,7 @@ Todo trade tem custos que não aparecem no gráfico. Uma estratégia que ganha "
 - O spread da tabela é o total. Metade dele é paga em cada execução a mercado ou stop.
 - Na B3, o treino usa 0,03% tanto no swing quanto no day trade, sem separar.
 - A página Treino mostra, em "Custos usados no treino", a tabela que a sua conta usa. Custo zero faria o treino parecer melhor do que o real.
+- O laboratório e os experimentos usam sempre estes padrões; hoje não há tela para mudá-los lá.
 
 ### Modelo de execução conservador
 
@@ -73,9 +74,9 @@ Com os padrões do treino e supondo um tick de R$ 0,01: compra de 300 ações a 
 
 ## Onde os custos aparecem
 
-- **Modo Treino**: cada trade mostra os custos pagos, e o diário soma tudo em "Custos pagos". A página Brasil compara o resultado do treino (já com custos, sem IR) com o CDI do mesmo período.
-- **IR simulado**: só para a B3, no diário do treino e no laboratório. Cripto e ações dos EUA aparecem como "ainda não simulado".
-- **Laboratório**: os resultados vêm depois dos custos e, na B3, do IR, sempre ao lado do CDI e do comprar e segurar (buy & hold) no mesmo período.
+- **Modo Treino**: cada trade mostra os custos pagos, e o diário soma tudo em "Custos pagos". A página Brasil compara o resultado do treino (já com custos, sem IR) com o CDI do mesmo período. O Painel de prontidão, na página Treino, faz a mesma comparação com o resultado do treino já descontado o IR simulado (o CDI aparece antes do IR).
+- **IR simulado**: só para a B3, no diário do treino e no laboratório. Para cripto e ações dos EUA, o laboratório avisa "IR não simulado" e o diário do treino só apura a B3.
+- **Laboratório**: os resultados vêm depois dos custos e, na B3, do IR, sempre ao lado do CDI e do comprar e segurar (buy & hold) no mesmo período. É o jeito de ver quanto os custos tiram de um setup: use o botão "Testar no laboratório" na página dele.
 - **Painel de Setups**: a média em R das ocorrências é **sem custos e sem IR**. Por isso não é backtest.
 
 ## Limites

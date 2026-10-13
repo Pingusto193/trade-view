@@ -39,7 +39,7 @@ Suponha que cada trade custe, em média, **0,15R** em taxas e derrapagem. Depois
 
 A mesma regra, com o mesmo acerto, passou de lucro para prejuízo só por causa de custos que a conta original ignorava.
 
-E ainda falta o imposto. Na B3, o IR é de 15% sobre o lucro líquido mensal no swing trade (operações que duram mais de um dia) e de 20% no day trade, em que a compra e a venda acontecem no mesmo dia (🟡, fontes secundárias). Ele leva uma parte dos meses positivos e não devolve nada nos negativos: o prejuízo só abate lucros futuros da mesma modalidade. Simplificando, se todo o resultado fosse lucro de day trade no mesmo mês, +0,05R por trade viraria +0,04R depois do IR.
+E ainda falta o imposto. Na B3, o IR é de 15% sobre o lucro líquido mensal no swing trade (compra e venda em dias diferentes) e de 20% no day trade (compra e venda no mesmo dia) (🟡, fontes secundárias). Ele leva uma parte dos meses positivos e não devolve nada nos negativos: o prejuízo só abate lucros futuros da mesma modalidade. Simplificando, se todo o resultado fosse lucro de day trade no mesmo mês, +0,05R por trade viraria +0,04R depois do IR.
 
 ### De onde poderiam vir 0,15R
 
@@ -52,7 +52,7 @@ Exemplo hipotético com os custos padrão do Radar para a B3 (taxa de 0,03% por 
 
 Com o mesmo risco de R$ 100,00 e um stop de R$ 2,00 (dez vezes mais longe), seriam só 50 ações (R$ 1.250,00), e os custos cairiam para menos de 0,02R por trade. **Quanto mais curto o stop, maior a posição e mais os custos pesam em R.** Por isso operações rápidas, com stops curtos, sofrem mais com custos.
 
-No laboratório, o **Experimento E6** (tela Experimentos) refaz a conta "40% de acerto com 1:2 dá lucro" para cada ativo e tempo gráfico (5, 15 e 60 minutos contam como day trade; o diário, como swing). Ele usa como stop típico 1 ATR14 (decisão nossa), transforma o custo de ida e volta em R e calcula o acerto mínimo para empatar. O IR simulado só vale para a B3. O E6 supõe os 40% de acerto do vídeo em qualquer escala: é a premissa do vídeo, não um fato.
+No laboratório, o **Experimento E6** (tela "Verificar o youtuber", aberta por um botão no topo do Laboratório) refaz a conta "40% de acerto com 1:2 dá lucro" para cada ativo e tempo gráfico (5, 15 e 60 minutos contam como day trade; o diário, como swing). Ele usa como stop típico 1 ATR14 (decisão nossa), transforma o custo de ida e volta em R e calcula o acerto mínimo para empatar. O IR simulado só vale para a B3. O E6 supõe os 40% de acerto do vídeo em qualquer escala: é a premissa do vídeo, não um fato.
 
 ## Amostra pequena engana
 
@@ -75,12 +75,13 @@ Outras armadilhas que o laboratório trata:
 - **Fora da amostra**: o período é dividido em ordem cronológica, em treino (70% iniciais) e teste (30% finais). O laboratório também faz o **walk-forward**: escolhe o melhor valor do número principal do setup olhando só para o passado e mede no trecho seguinte.
 - **Pico isolado**: o mapa de sensibilidade repete o teste mudando o número principal do setup (nos setups 9.x, o alvo: 1,5R, 2R, 2,5R e 3R). Se um passo para o lado deixa a expectativa negativa, o bom resultado provavelmente foi sorte.
 
-O laboratório só dá **"aprovado"** quando tudo isto acontece junto: pelo menos 100 trades; expectativa positiva depois dos custos e resultado positivo depois de custos e IR; pelo menos 30 trades no teste, também positivos; vizinhos do valor usado também positivos; walk-forward sem expectativa negativa; e resultado acima do CDI do período (quando o Banco Central responde). Mesmo assim, a tela lembra que o passado não garante o futuro.
+O laboratório só dá **"aprovado"** quando tudo isto acontece junto: pelo menos 100 trades; expectativa positiva depois dos custos e resultado positivo depois de custos e IR; pelo menos 30 trades no teste, também positivos em R e em dinheiro depois do IR; os valores vizinhos no mapa de sensibilidade (um passo para cada lado) também com expectativa positiva; walk-forward com expectativa acima de zero fora da amostra (quando há trades para medir); e resultado igual ou acima do CDI do período (quando o Banco Central responde; sem esse dado, a tela avisa que a comparação ficou indisponível). Mesmo assim, a tela lembra que o passado não garante o futuro.
 
 ## Regras exatas no Radar
 
-- **Laboratório**: expectativa em R = média do R de todos os trades, já descontados os custos (sem IR). Também mostra a expectativa em dinheiro por trade e o resultado final depois do IR (na B3), ao lado do CDI e do comprar e segurar (buy & hold). Para medir a expectativa real de um setup, use o botão "Testar no laboratório" na página dele: o teste usa os candles reais da fonte, os custos padrão do mercado, só compras e os valores padrão do setup.
-- **Modo Treino**: o diário mostra a média em R dos trades com stop, o resultado em R$ já com custos e o aviso de amostra pequena quando há menos de 30 trades.
+- **Laboratório**: expectativa em R = média do R de todos os trades, já descontados os custos (sem IR). Também mostra a expectativa em dinheiro por trade e o resultado final depois do IR (simulado só na B3), ao lado do CDI e do comprar e segurar (buy & hold) no mesmo período.
+- **Como medir a expectativa real de um setup**: use o botão "Testar no laboratório" na página dele. O teste usa os candles reais da fonte, os custos padrão do mercado, o IR simulado (só na B3), só compras e os valores padrão do setup, e mostra o resultado ao lado do CDI. É a conta desta página feita com dados de verdade, e não com a premissa do vídeo.
+- **Modo Treino**: o diário mostra a média em R dos trades com stop, o resultado em R$ já com custos e o aviso de amostra pequena quando há menos de 30 trades. O Painel de prontidão (na página Treino) só marca a expectativa como cumprida quando a média em R fica acima de zero **e** o resultado da conta continua positivo depois do IR simulado.
 - **Painel de Setups no gráfico**: a média em R das ocorrências é sem custos e sem IR. Não é backtest.
 
 ## Limites

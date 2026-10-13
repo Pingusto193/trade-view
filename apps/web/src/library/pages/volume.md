@@ -18,10 +18,13 @@ Sozinho, o número diz pouco: 1 milhão de ações pode ser muito para uma empre
 - O painel de volume mostra a **MMA de 21** do volume (linha laranja). Ele fica ligado no preset "Padrão do canal" e também no preset "Limpo".
 - A linha no candle de hoje inclui o volume do próprio candle de hoje.
 - Se a fonte não informa volume, o painel fica vazio.
+- Mudar a "Média do volume" no editor de presets muda **só o desenho**: as regras abaixo continuam usando sempre a média de 21.
 
 ### Classificação de um candle
 
 Para classificar o volume de um candle fechado, o Radar compara com a **média dos 21 candles anteriores**, sem contar o próprio candle. Na prática, é o valor da linha laranja no candle de antes.
+
+Esta tabela é a régua da especificação e existe no código, mas nesta versão a classe do candle **não aparece em nenhuma tela**. Os setups usam só duas partes dela: "acima da média" e "1,5 vez a média ou mais". A faixa "estrondoso" ainda não é usada por nenhum setup.
 
 | Classe | Regra |
 |---|---|
@@ -43,7 +46,7 @@ Num trecho de candles (por exemplo, um recuo), o volume está **secando** quando
 
 ### Onde os setups usam volume
 
-- [Rompimento de consolidação](/biblioteca/rompimento-consolidacao): o volume médio da caixa precisa estar abaixo da média de antes da caixa, e o candle de rompimento precisa ter volume de pelo menos 1,5 vez a média. O Experimento E5 (Laboratório → Experimentos) compara o setup com e sem essa exigência. Sem dado de volume na fonte, o rompimento é cancelado com essa explicação.
+- [Rompimento de consolidação](/biblioteca/rompimento-consolidacao): o volume médio da caixa precisa estar abaixo da média de antes da caixa, e o candle de rompimento precisa ter volume de pelo menos 1,5 vez a média. O Experimento E5 (no Laboratório, em "Verificar o youtuber") compara o setup com e sem essa exigência. Sem dado de volume na fonte, o rompimento é cancelado com essa explicação.
 - [Recuo à média](/biblioteca/recuo-a-media): volume secando no recuo conta ponto a favor; candle de queda com volume de 1,5 vez a média ou mais conta como alerta. Quando o candle que arma o setup tem volume acima da média, o motivo aparece anotado como "volume crescente" — nesta versão, isso não soma pontos.
 - **Plano de trade do Modo Treino**: a especificação pede um aviso quando o volume não confirmar um rompimento. Esse aviso ainda não existe.
 - A tendência do [painel de contexto](/biblioteca/painel-contexto) **não** usa volume.
@@ -65,13 +68,13 @@ Por fonte:
 
 - **Cripto (Binance)**: o volume é só o da Binance, não o do mercado cripto inteiro ✅.
 - **Ações dos EUA (Alpaca, plano grátis)**: o histórico vem com volume consolidado ✅; ao vivo, só a bolsa IEX, que é uma fração do volume total, então o candle em formação tem volume **parcial**, subestimado ✅.
-- **Ações da B3 (brapi)**: o selo indica volume completo.
+- **Ações da B3 (brapi)**: o selo indica volume completo. Essa qualidade foi assumida pelo projeto e ainda não foi conferida na documentação da brapi.
 - **Forex** (ainda não disponível no Radar): o volume é o "tick volume" da corretora ✅. A especificação manda desligar ou rotular as regras de volume no forex; isso será feito quando o forex chegar.
 - **Dados simulados** (só em desenvolvimento, com a faixa "DADOS SIMULADOS"): o volume também é simulado.
 
 ## Quando engana
 
-- **Candle em formação**: até fechar, o volume do candle atual está incompleto e parece baixo. O Radar só classifica candles fechados.
+- **Candle em formação**: até fechar, o volume do candle atual está incompleto e parece baixo. As regras de volume do Radar só olham candles fechados.
 - **Volume parcial ao vivo**: em ações dos EUA pelo plano grátis, o candle ao vivo mostra só a parte da IEX ✅. Compare apenas candles fechados.
 - **Uma exchange não é o mercado**: na cripto, o volume da Binance mede só a Binance ✅. O que acontece em outras corretoras não aparece.
 - **Dias atípicos**: um único dia fora do comum infla a média de 21 pelos 21 candles seguintes, e os candles normais passam a parecer "abaixo".

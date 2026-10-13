@@ -29,7 +29,7 @@ Abaixo estão os nove problemas que a especificação do Radar aponta nesses ví
 
 - **O que dizem**: um vídeo chama o day trade de "massacre estatístico". Outro demonstra o elástico no mini-índice, em gráfico de 5 minutos.
 - **Por que importa**: no intradiário, o stop é curto, a posição fica grande e os custos pesam muito mais em R (veja a conta em [Expectativa](/biblioteca/expectativa)). O estudo da FGV sobre day traders no mercado futuro brasileiro (✅) aponta no mesmo sentido do "massacre"; veja [Antes de arriscar dinheiro](/biblioteca/antes-de-arriscar-dinheiro).
-- **O que o Radar faz**: não proíbe o elástico no intradiário, mas cobra custos e derrapagem em todo trade do treino e do backtest. O **Experimento E6** (Laboratório → Experimentos) refaz a conta "40% de acerto com 1:2" para cada ativo e tempo gráfico (5, 15 e 60 minutos contam como day trade; o diário, como swing): transforma o custo de ida e volta em R, usando como stop típico 1 ATR14 (decisão nossa), e aplica o IR simulado só na B3. Ele supõe os 40% de acerto do vídeo em qualquer escala; essa é a premissa do vídeo, não um fato.
+- **O que o Radar faz**: não proíbe o elástico no intradiário, mas cobra custos e derrapagem em todo trade do treino e do backtest. O **Experimento E6** (tela "Verificar o youtuber", aberta por um botão no topo do Laboratório) refaz a conta "40% de acerto com 1:2" para cada ativo e tempo gráfico (5, 15 e 60 minutos contam como day trade; o diário, como swing): transforma o custo de ida e volta em R, usando como stop típico 1 ATR14 (decisão nossa), e aplica o IR simulado só na B3. Ele supõe os 40% de acerto do vídeo em qualquer escala; essa é a premissa do vídeo, não um fato.
 
 ## 4. O 9.1 "puro" não deu dinheiro, e o filtro que "muda tudo" veio sem números
 
@@ -51,7 +51,7 @@ Abaixo estão os nove problemas que a especificação do Radar aponta nesses ví
 
 ## 7. "Vai na jugular", contra a regra de 1 a 2%
 
-- **O que dizem**: segundo a especificação, no vídeo de reflexividade a orientação é "ir na jugular" (posição gigante) quando a oportunidade aparece. Os outros vídeos limitam o risco a 1 a 2% por trade.
+- **O que dizem**: segundo a especificação, no vídeo de reflexividade a orientação é "vai na jugular" (posição gigante) quando a oportunidade aparece. Os outros vídeos limitam o risco a 1 a 2% por trade.
 - **Por que importa**: posição gigante é exatamente o que a regra de 1 a 2% existe para impedir. Um único erro com posição gigante pode custar o equivalente a muitos stops normais.
 - **O que o Radar faz**: a especificação pede, na [reflexividade](/biblioteca/reflexividade), entrada em etapas e sempre dentro do limite de risco por trade. Hoje o detector marca só a primeira parte da entrada. No treino e no laboratório, o tamanho da posição sai do risco por trade escolhido (padrão 1%), e a boleta do treino avisa quando o risco passa do seu limite (padrão 2%).
 
@@ -70,5 +70,5 @@ Abaixo estão os nove problemas que a especificação do Radar aponta nesses ví
 ## Limites
 
 - Esta lista vem da especificação do Radar, que resume os vídeos. Não é uma análise de todos os vídeos do canal.
-- Os experimentos citados aqui (E1, E2 e E6) já rodam no laboratório, mas têm limites que a própria tela mostra: a lista de ativos é escolhida hoje (viés de sobrevivência), o histórico longo da B3 não é ajustado por proventos e desdobramentos (🟡) e os custos são aproximados. Eles falam do passado daqueles ativos, não do futuro.
+- Os experimentos citados aqui (E1, E2 e E6) já rodam no laboratório, mas têm limites que a própria tela mostra: a lista de ativos é escolhida hoje (viés de sobrevivência), o histórico longo da B3 não é ajustado por proventos e desdobramentos (🟡) e os custos são aproximados. Os anos de histórico da B3 só existem se o arquivo COTAHIST da própria B3 tiver sido importado no servidor; sem ele, o ativo aparece como erro, sem dados inventados. Os resultados falam do passado daqueles ativos, não do futuro.
 - As regras do Radar também têm escolhas arbitrárias (os números padrão dos setups). Elas valem a mesma desconfiança e passam pelos mesmos testes.

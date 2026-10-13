@@ -54,7 +54,7 @@ No exemplo: 800,00 ÷ 600,00 = 1,33. Acima de 1, o período fechou positivo.
 
 ## Regras exatas no Radar
 
-- O laboratório calcula o payoff com os resultados **depois dos custos** (taxas, spread e derrapagem), sem IR.
+- O laboratório calcula o payoff em dinheiro (não em R), com os resultados **depois dos custos** (taxas, spread e derrapagem), sem IR.
 - Um trade que termina exatamente em zero conta como perdedor.
 - Sem nenhum vencedor ou sem nenhum perdedor, o payoff fica vazio: não há o que dividir.
 - Junto com o payoff, o laboratório mostra a taxa de acerto, o fator de lucro e a [expectativa](/biblioteca/expectativa) em [R](/biblioteca/r-multiplo), sempre com o número de trades.

@@ -147,7 +147,7 @@ A especificação deixa pontos em aberto. Onde não havia regra, o Radar escolhe
 ## Resultados no laboratório
 [[laboratorio]]
 
-- **Escolha o tempo gráfico Semanal.** O formulário do laboratório começa no Diário, e no diário a reflexividade não gera nenhum sinal.
+- **Tempo gráfico Semanal.** O botão acima já abre o laboratório no Semanal. Se você trocar para o Diário, a reflexividade não gera nenhum sinal (ela só roda no semanal).
 - O laboratório usa os candles reais da fonte, os custos padrão do mercado (taxas, spread e derrapagem) e o IR simulado (só para a B3), e compara o resultado com o CDI e com o comprar-e-segurar do mesmo período. Os primeiros 70% do período são o "treino" e os 30% finais são o teste fora da amostra. O mapa de sensibilidade repete o teste com quedas mínimas de 40%, 50% e 60%, e o walk-forward escolhe esse número olhando só para o passado e mede no trecho seguinte. Ele só escolhe um valor quando há pelo menos 10 operações encerradas no trecho de treino; com poucas operações, fica sem escolha. Há também a simulação de Monte Carlo, e cada tentativa fica registrada.
 - **Sem fundamentos**: o laboratório testa só a parte gráfica do setup.
 - **Ações dos EUA**: o resultado fica em dólar, sem IR simulado, e a comparação com o CDI ignora a variação do câmbio.

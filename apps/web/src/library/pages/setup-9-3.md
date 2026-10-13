@@ -41,7 +41,7 @@ Os números são os **valores padrão**. Cada um é um parâmetro do setup, guar
 - O setup **arma** quando a contagem chega a 2.
 - **Gatilho** (o preço que dispara a compra): máxima do candle que armou + 1 tick.
 - **Stop** (o preço de saída se der errado): 1 tick abaixo da menor mínima dos candles **depois** da referência até o que armou. A mínima do próprio candle de referência fica de fora, mesmo que seja a mais baixa.
-- Os fechamentos que armaram uma ocorrência não contam para a próxima. Fechamentos que acontecem enquanto há uma ocorrência armada ou em andamento também não contam.
+- Os fechamentos que armaram uma ocorrência não contam para a próxima. Fechamentos que acontecem enquanto há uma ocorrência armada ou em andamento também não contam. O candle em que a operação termina (stop ou alvo) já conta.
 
 ### 3. Enquanto espera, entrada e saída (igual ao 9.2)
 
@@ -116,7 +116,7 @@ A especificação atribui a Larry Williams apenas o 9.1 e não cita autor para o
 
 O botão acima abre o laboratório já com o 9.3. Lá você escolhe o ativo e o tempo gráfico, e o teste roda com os candles reais da fonte, os custos padrão do mercado, o imposto de renda simulado (só na B3), só compras e os valores padrão desta página. O resultado aparece ao lado do CDI e do comprar-e-segurar no mesmo período, separado em treino (70% iniciais) e teste (30% finais), com mapa de sensibilidade do alvo em R, walk-forward e Monte Carlo.
 
-Para a recomendação do vídeo sobre as escalas, existe o **Experimento E3** (Laboratório → Experimentos): ele roda o 9.2 e o 9.3 no mensal, no semanal, no diário e no 60 minutos, com os custos padrão e só compras, e compara a expectativa em R (depois dos custos, sem IR e sem CDI) do semanal e do mensal contra o diário, e do diário contra o 60 minutos. O próprio experimento avisa que, no semanal e no mensal, a amostra tende a ser pequena, e que o histórico de 60 minutos depende da fonte.
+Para a recomendação do vídeo sobre as escalas, existe o **Experimento E3**, na tela "Verificar o youtuber" (botão no topo do Laboratório): ele roda o 9.2 e o 9.3 no mensal, no semanal, no diário e no 60 minutos, com os custos padrão e só compras, e compara a expectativa em R (depois dos custos, sem IR e sem CDI) do semanal e do mensal contra o diário, e do diário contra o 60 minutos. O próprio experimento avisa que, no semanal e no mensal, a amostra tende a ser pequena, e que o histórico de 60 minutos depende da fonte. Na B3, anos de histórico diário, semanal e mensal só existem se o arquivo COTAHIST da própria B3 tiver sido importado no servidor; sem ele, o ativo aparece como erro na tabela, sem dados inventados.
 
 Nada nesta página é resultado medido: os números dependem do ativo, do período e da fonte. O laboratório e o E3 usam o modo consecutivo (o padrão).
 

@@ -40,7 +40,7 @@ Duas estratégias podem terminar o período com o mesmo resultado: uma caiu no m
 
 ### Tempo parado também custa
 
-Enquanto o patrimônio está abaixo do topo, a estratégia não está ganhando nada, e o CDI continua rendendo para quem ficou na renda fixa. Uma queda que dura um ano e meio é um ano e meio sem ganho, comparado com o que o CDI teria rendido. Veja [Antes de arriscar dinheiro](/biblioteca/antes-de-arriscar-dinheiro).
+Enquanto o patrimônio está abaixo do topo, a estratégia não está ganhando nada, e o CDI continua rendendo para quem ficou na renda fixa. O resultado do laboratório mostra quantos dias durou o maior período abaixo do topo e, na mesma tela, o CDI do período testado. Uma queda que dura um ano e meio é um ano e meio sem ganho, comparado com o que o CDI teria rendido. Veja [Antes de arriscar dinheiro](/biblioteca/antes-de-arriscar-dinheiro).
 
 ### O passado mostrou só uma ordem possível
 
@@ -55,7 +55,7 @@ Com a mesma sequência de perdas, um risco maior por trade cava uma queda mais f
 - **Laboratório (backtest, o teste das regras em dados do passado)**: o patrimônio é calculado no fechamento de cada candle, contando a posição aberta pelo preço daquele momento. O drawdown máximo é a maior queda em porcentagem do topo. A duração é contada em dias, do topo até um novo topo (ou até o fim dos dados). O laboratório também mostra a maior sequência de perdas.
 - **Monte Carlo**: o laboratório sorteia 5.000 novas ordens para os mesmos resultados em [R](/biblioteca/r-multiplo) (sorteio com reposição: um trade pode aparecer mais de uma vez), usando o seu risco por trade. A especificação pede 10 mil sorteios; o Radar faz 5.000 para o teste responder rápido (decisão nossa). Ele mostra a queda típica (percentil 50: metade das simulações cai menos que isso), uma queda ruim (percentil 95: só 1 em cada 20 simulações cai mais) e a chance de, em algum momento, perder 10%, 20%, 30% ou 50% do capital inicial.
 - **Modo Treino**: o diário mostra a "Pior queda" em R$ e em %. Ela é calculada só com os trades **encerrados**, em ordem, a partir do saldo inicial da conta. Uma posição aberta perdendo ainda não entra.
-- **Painel de prontidão**: a especificação prevê que o drawdown máximo do treino fique dentro de um limite definido por você antes de pensar em dinheiro real. Esse painel ainda não existe no app.
+- **Painel de prontidão** (na página Treino): um dos critérios é a maior queda da conta de treino ficar em até **20% do pico**. É uma régua nossa, que você pode mudar em "Ajustar a régua". Ele usa a mesma "Pior queda" do diário, contada desde o último reinício da conta. O painel nunca bloqueia nada: só mostra o que falta.
 
 ## Limites
 
