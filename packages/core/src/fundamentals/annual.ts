@@ -199,7 +199,8 @@ function epsOf(s: Series): MetricResult<number> {
       note: `LPA de ${year(y2)} negativo ou zero: o crescimento composto não se aplica`,
     };
   return {
-    value: Math.sqrt(ratio) - 1,
+    // 9 casas: 20% exatos não podem reprovar por erro de arredondamento binário (1,44 → 0,1999…)
+    value: Math.round((Math.sqrt(ratio) - 1) * 1e9) / 1e9,
     periodEnd: y,
     filedAt: filed,
     note: sameDoc ? null : MIXED,

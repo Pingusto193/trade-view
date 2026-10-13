@@ -62,7 +62,7 @@ const fu = (facts: FundamentalFact[], asOf = AS_OF, strict = false) =>
 describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', () => {
   it('positivo: LPA 1,00 → 1,30 → 1,69 = 30% a.a.; receita 100 → 110 → 120 sem queda', () => {
     const r = fu(tenK(2025, [1, 1.3, 1.69], [100, 110, 120]));
-    expect(r.epsGrowth2y).toBeCloseTo(0.3, 10);
+    expect(r.epsGrowth2y).toBeCloseTo(0.3, 8);
     expect(r.revenueNoDecline).toBe(true);
     expect(r.epsNegative).toBeUndefined();
     expect(r.periodEnd).toBe(D('2025-12-31'));
@@ -70,9 +70,14 @@ describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', ()
     expect(r.notes).toBeUndefined();
   });
 
+  it('20% exatos não viram 19,999…% por arredondamento (o filtro usa ≥ 20%)', () => {
+    const r = fu(tenK(2025, [1.1, 1.25, 1.584], [1, 1, 1]));
+    expect(r.epsGrowth2y).toBe(0.2);
+  });
+
   it('negativo: LPA cresce 10% a.a. (fraco, mas verificado) e receita cai no último ano', () => {
     const r = fu(tenK(2025, [1, 1.1, 1.21], [100, 120, 119]));
-    expect(r.epsGrowth2y).toBeCloseTo(0.1, 10);
+    expect(r.epsGrowth2y).toBeCloseTo(0.1, 8);
     expect(r.revenueNoDecline).toBe(false);
     expect(r.notes).toEqual(['Receita: receita caiu em 2025.']);
   });
@@ -103,7 +108,7 @@ describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', ()
 
   it('borda: prejuízo só no ano do meio não impede a conta (só as pontas importam)', () => {
     const r = fu(tenK(2025, [1, -0.3, 1.44], [100, 110, 120]));
-    expect(r.epsGrowth2y).toBeCloseTo(0.2, 10);
+    expect(r.epsGrowth2y).toBeCloseTo(0.2, 8);
   });
 
   it('borda: menos de 2 anos de dados → nulo; com 2 exercícios, queda de receita já é verificável', () => {
@@ -141,7 +146,7 @@ describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', ()
       fact('eps', '2022-12-31', 1, 'k24', '2025-02-20', { start: '2022-01-01' }),
       fact('eps', '2023-12-31', 1.2, 'k24', '2025-02-20', { start: '2023-01-01' }),
     ];
-    expect(fu(recast, MID_2025).epsGrowth2y).toBeCloseTo(Math.sqrt(1.5) - 1, 10);
+    expect(fu(recast, MID_2025).epsGrowth2y).toBeCloseTo(Math.sqrt(1.5) - 1, 8);
   });
 
   it('borda: anos de 52/53 semanas (fim em datas diferentes) contam como exercícios seguidos', () => {
@@ -150,7 +155,7 @@ describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', ()
       fact('eps', '2024-09-28', 1.1, 'k', '2025-11-01', { start: '2023-10-01' }),
       fact('eps', '2025-09-27', 1.21, 'k', '2025-11-01', { start: '2024-09-29' }),
     ];
-    expect(fu(facts).epsGrowth2y).toBeCloseTo(0.1, 10);
+    expect(fu(facts).epsGrowth2y).toBeCloseTo(0.1, 8);
   });
 
   it('borda: lucro trimestral e acumulados de 9 meses não entram (só exercícios anuais)', () => {
@@ -164,7 +169,7 @@ describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', ()
     expect(only.notes?.[0]).toBe('LPA: a fonte não tem LPA anual deste ativo.');
     // com os anuais, os trimestres mais recentes não mudam o "último exercício"
     const mix = fu([...tenK(2024, [1, 1.3, 1.69], [1, 2, 3]), ...quarters], MID_2025);
-    expect(mix.epsGrowth2y).toBeCloseTo(0.3, 10);
+    expect(mix.epsGrowth2y).toBeCloseTo(0.3, 8);
     expect(mix.periodEnd).toBe(D('2024-12-31'));
   });
 
@@ -179,7 +184,7 @@ describe('crescimento do LPA em 2 anos (anual composto) e receita sem queda', ()
     ];
     // ponta a ponta daria √(1,44 ÷ 2) − 1 < 0; encadeado: 2,4/2 × 1,44/1,2 = 1,44 → 20% a.a.
     const r = fu(facts, MID_2025);
-    expect(r.epsGrowth2y).toBeCloseTo(0.2, 10);
+    expect(r.epsGrowth2y).toBeCloseTo(0.2, 8);
     expect(r.notes).toEqual(['Receita: a fonte não tem receita anual deste ativo.']);
   });
 
@@ -220,10 +225,10 @@ describe('sem look-ahead: só balanços publicados antes do candle', () => {
   ];
 
   it('modo estrito: o documento publicado num dia só vale a partir do dia seguinte', () => {
-    expect(fu(facts, D('2025-02-15'), true).epsGrowth2y).toBeCloseTo(0.1, 10);
-    expect(fu(facts, D('2025-02-16'), true).epsGrowth2y).toBeCloseTo(Math.sqrt(1.75 / 1.1) - 1, 10);
+    expect(fu(facts, D('2025-02-15'), true).epsGrowth2y).toBeCloseTo(0.1, 8);
+    expect(fu(facts, D('2025-02-16'), true).epsGrowth2y).toBeCloseTo(Math.sqrt(1.75 / 1.1) - 1, 8);
     // fora do modo estrito (hoje), o publicado no próprio dia já conta
-    expect(fu(facts, D('2025-02-15')).epsGrowth2y).toBeCloseTo(Math.sqrt(1.75 / 1.1) - 1, 10);
+    expect(fu(facts, D('2025-02-15')).epsGrowth2y).toBeCloseTo(Math.sqrt(1.75 / 1.1) - 1, 8);
   });
 
   it('linha do tempo: antes do primeiro balanço não há fundamentos; datas desconhecidas ficam de fora', () => {
@@ -233,8 +238,8 @@ describe('sem look-ahead: só balanços publicados antes do candle', () => {
     expect(tl.firstFiled).toBe(D('2024-02-15'));
     expect(tl.at(D('2024-02-15')).epsGrowth2y).toBeNull();
     expect(tl.at(D('2024-02-15')).notes).toEqual(['Nenhum balanço publicado antes desta data.']);
-    expect(tl.at(D('2024-02-16')).epsGrowth2y).toBeCloseTo(0.1, 10);
-    expect(tl.at(D('2025-02-16')).epsGrowth2y).toBeCloseTo(Math.sqrt(1.75 / 1.1) - 1, 10);
+    expect(tl.at(D('2024-02-16')).epsGrowth2y).toBeCloseTo(0.1, 8);
+    expect(tl.at(D('2025-02-16')).epsGrowth2y).toBeCloseTo(Math.sqrt(1.75 / 1.1) - 1, 8);
     // o fato sem data (prejuízo) nunca entra no laboratório
     expect(tl.at(D('2026-10-01')).epsNegative).toBeUndefined();
     // e o mesmo dado envelhece com o tempo

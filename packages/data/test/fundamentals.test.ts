@@ -99,7 +99,7 @@ describe('SEC EDGAR: companyfacts → fundamentos', () => {
 
   it('hoje: LPA 1,10 → 1,584 em 2 anos = 20% a.a.; receita 900 → 1.000 → 1.100 mi sem queda', () => {
     const r = computeFundamentals(sec.facts, { source: SEC_SOURCE, asOf: TODAY });
-    expect(r.epsGrowth2y).toBeCloseTo(0.2, 10);
+    expect(r.epsGrowth2y).toBeCloseTo(0.2, 8);
     expect(r.revenueNoDecline).toBe(true);
     expect(r.periodEnd).toBe(D('2025-12-31'));
     expect(r.filedAt).toBe(D('2026-02-13'));
@@ -110,7 +110,7 @@ describe('SEC EDGAR: companyfacts → fundamentos', () => {
     const q4 = sec.facts.find((f) => f.end === D('2024-12-31') && f.value === 0.35);
     expect(q4).toBeDefined(); // está nos fatos, mas o core descarta pela duração (3 meses)
     const r = computeFundamentals(sec.facts, { source: SEC_SOURCE, asOf: D('2025-06-01') });
-    expect(r.epsGrowth2y).toBeCloseTo(Math.sqrt(1.25) - 1, 10);
+    expect(r.epsGrowth2y).toBeCloseTo(Math.sqrt(1.25) - 1, 8);
   });
 
   it('em 01/06/2025 só existia o 10-K de 2024 (entregue em 14/02/2025)', () => {
@@ -295,12 +295,12 @@ describe('CVM: DFP → fundamentos', () => {
 
   it('positivo: ON 1,00 → 1,44 e PN 1,10 → 1,584 = 20% a.a.; receita consolidada sem queda', () => {
     const on = fu('11111111000111', 'ON');
-    expect(on.epsGrowth2y).toBeCloseTo(0.2, 10);
+    expect(on.epsGrowth2y).toBeCloseTo(0.2, 8);
     expect(on.revenueNoDecline).toBe(true);
     expect(on.periodEnd).toBe(D('2025-12-31'));
     expect(on.filedAt).toBe(D('2026-03-20'));
     expect(on.extra).toEqual([]);
-    expect(fu('11111111000111', 'PN').epsGrowth2y).toBeCloseTo(0.2, 10);
+    expect(fu('11111111000111', 'PN').epsGrowth2y).toBeCloseTo(0.2, 8);
   });
 
   it('a consolidada vence a individual (a individual de 2025 sozinha não muda nada)', () => {
