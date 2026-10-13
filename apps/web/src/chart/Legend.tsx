@@ -1,18 +1,24 @@
+import type { SkippedIndicator } from '@radar/core';
 import type { SymbolMeta, Timeframe } from '@radar/shared';
 import { formatNumber, formatVolume } from '@radar/shared';
 import { useState } from 'react';
 import type { HoverInfo } from './controller';
 import { chartTimeLabel, toChartTime } from './time';
 
-/** Legenda no canto do gráfico: OHLC, variação, volume e valores dos indicadores no cursor. */
+/**
+ * Legenda no canto do gráfico: OHLC, variação, volume e valores dos indicadores no cursor.
+ * `skipped`: indicadores ligados que não valem nesta escala (ex.: VWAP no diário) — aviso curto.
+ */
 export function Legend({
   hover,
   meta,
   tf,
+  skipped = [],
 }: {
   hover: HoverInfo | null;
   meta: SymbolMeta | null;
   tf: Timeframe;
+  skipped?: readonly SkippedIndicator[];
 }) {
   // Em telas pequenas os valores dos indicadores começam recolhidos.
   const [showValues, setShowValues] = useState(() => window.innerWidth >= 640);
@@ -62,6 +68,11 @@ export function Legend({
             {v.pane === 'volume'
               ? formatVolume(v.value)
               : formatNumber(v.value, v.pane === 'price' || v.pane === 'atr' ? d : 1)}
+          </span>
+        ))}
+        {skipped.map((s) => (
+          <span key={s.id} className="text-muted" data-testid="legend-skipped">
+            {s.reason}
           </span>
         ))}
       </div>

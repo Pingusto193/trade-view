@@ -1,8 +1,8 @@
 import type { IndicatorPreset } from '@radar/core';
-import { marketState, MARKET_STATE_LABEL } from '@radar/core';
+import { marketState, MARKET_STATE_LABEL, skippedIndicators } from '@radar/core';
 import type { FeedStatus, SymbolMeta, Timeframe } from '@radar/shared';
 import { TIMEFRAME_LABEL } from '@radar/shared';
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
 import { analysisKey, useAnalysis, useSetupView } from '../lib/analysis-store';
 import { newDrawingId, useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { usePaper } from '../lib/paper-store';
@@ -220,6 +220,7 @@ export function ChartView(props: ChartViewProps) {
   }, [id, tf, preset, chartType, upColor, downColor, visibleBars]);
 
   const state = meta ? marketState(meta.session, Date.now()) : null;
+  const skipped = useMemo(() => skippedIndicators(preset, tf), [preset, tf]);
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col">
@@ -249,7 +250,7 @@ export function ChartView(props: ChartViewProps) {
           aqui dentro e nunca passam por cima de diálogos e painéis do app */}
       <div className="relative isolate min-h-0 flex-1">
         <div ref={box} className="absolute inset-0" data-testid="chart-canvas" />
-        <Legend hover={hover} meta={meta} tf={tf} />
+        <Legend hover={hover} meta={meta} tf={tf} skipped={skipped} />
         {error && (
           <div className="absolute inset-x-2 top-12 rounded border border-down/50 bg-panel/95 p-3 text-sm">
             <p className="font-semibold text-down">Não foi possível carregar os dados</p>
