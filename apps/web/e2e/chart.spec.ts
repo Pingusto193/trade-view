@@ -100,3 +100,15 @@ test('diálogos ficam acima das alças internas do gráfico (toque não é rouba
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await expect(page.getByRole('dialog', { name: 'Mudar para o modo Real' })).toBeHidden();
 });
+
+test('tablet (820 px): menu não transborda e a chave Treino/Real fica visível', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 820, height: 1000 });
+  await page.goto('/grafico?id=sim:SIMACAO&tf=1d');
+  await expect(page.getByRole('group', { name: 'Modo' })).toBeInViewport();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});

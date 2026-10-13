@@ -12,7 +12,7 @@ export function ModeSwitch() {
   return (
     <>
       <div
-        className="ml-auto flex rounded border border-line text-xs"
+        className="ml-auto flex shrink-0 rounded border border-line text-xs"
         role="group"
         aria-label="Modo"
       >

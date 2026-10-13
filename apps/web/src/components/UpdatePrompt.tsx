@@ -20,7 +20,7 @@ export function UpdatePrompt() {
 
   if (!update) return null;
   return (
-    <div className="fixed inset-x-2 bottom-16 z-50 mx-auto flex max-w-md items-center gap-3 rounded border border-accent bg-panel p-3 text-sm shadow-xl md:bottom-4">
+    <div className="fixed inset-x-2 bottom-16 z-50 mx-auto flex max-w-md items-center gap-3 rounded border border-accent bg-panel p-3 text-sm shadow-xl lg:bottom-4">
       <span className="flex-1">Há uma versão nova do Radar.</span>
       <button
         type="button"

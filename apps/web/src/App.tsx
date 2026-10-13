@@ -82,13 +82,13 @@ function Shell() {
         <span className="text-base font-bold tracking-wide">
           <span className="text-up">●</span> Radar
         </span>
-        <nav className="ml-4 hidden gap-1 md:flex">
+        <nav className="ml-4 hidden min-w-0 gap-1 overflow-x-auto lg:flex">
           {NAV.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
               className={({ isActive }) =>
-                `rounded px-2 py-1 text-sm ${isActive ? 'bg-panel-2 text-text' : 'text-muted hover:text-text'}`
+                `rounded px-2 py-1 text-sm whitespace-nowrap ${isActive ? 'bg-panel-2 text-text' : 'text-muted hover:text-text'}`
               }
             >
               {n.label}
@@ -124,7 +124,7 @@ function Shell() {
           <Route path="*" element={<Navigate to="/grafico" replace />} />
         </Routes>
       </main>
-      <nav className="safe-bottom flex border-t border-line bg-panel md:hidden">
+      <nav className="safe-bottom flex border-t border-line bg-panel lg:hidden">
         {MOBILE_NAV.map((n) => (
           <NavLink
             key={n.to}
