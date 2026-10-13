@@ -1,3 +1,4 @@
+import type { SlopeDir } from '@radar/shared';
 import type { PaParams } from './params';
 import type { SeriesBuffer } from './series';
 
@@ -131,6 +132,23 @@ export function classifySlope(
   if (k > 0) return 'suave-alta';
   if (k <= -p.steepSlope) return 'acentuada-baixa';
   return 'suave-baixa';
+}
+
+/**
+ * Direção da média (scanner): a mesma inclinação de `slope` com o limite de "plana" `p.flatSlope`.
+ * |inclinação| abaixo do limite = plana; senão subindo ou descendo pelo sinal. Sem "virando": é uma
+ * leitura de direção, não de virada. null = ainda não há dados (média ou ATR inexistentes).
+ */
+export function slopeDir(
+  s: SeriesBuffer,
+  ma: readonly number[],
+  t: number,
+  p: PaParams,
+): SlopeDir | null {
+  const k = slope(s, ma, t, p);
+  if (!Number.isFinite(k)) return null;
+  if (k === 0 || Math.abs(k) < p.flatSlope) return 'plana';
+  return k > 0 ? 'subindo' : 'descendo';
 }
 
 // ---------------------------------------------------------------- volume

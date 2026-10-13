@@ -8,6 +8,7 @@ import { Pullback } from './detectors/pullback';
 import { Reflexivity } from './detectors/reflexivity';
 import { Setup91 } from './detectors/s91';
 import { Setup92, Setup93 } from './detectors/s92s93';
+import type { Side } from './fills';
 import { HigherTrendTracker } from './higher';
 import { DEFAULT_SETUP_PARAMS, type SetupParams } from './params';
 import { PivotTracker } from './pivots';
@@ -134,10 +135,14 @@ export class SetupEngine {
 }
 
 /** Aviso vermelho (SPEC §9): compra com a escala maior em baixa; venda com ela em alta. */
+export function isAgainstHigher(side: Side, h: HigherContext | null): boolean {
+  if (!h) return false;
+  return side === 'buy' ? h.trend === 'baixa' : h.trend === 'alta';
+}
+
 function markAgainstHigher(e: SetupEvent, h: HigherContext): void {
   if (e.state === 'encerrado') return;
-  const contra = e.side === 'buy' ? h.trend === 'baixa' : h.trend === 'alta';
-  if (!contra) return;
+  if (!isAgainstHigher(e.side, h)) return;
   e.againstHigher = true;
   e.notes = [...(e.notes ?? []), againstHigherNote(h)];
 }

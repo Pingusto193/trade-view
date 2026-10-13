@@ -9,3 +9,4 @@ export * from './paper';
 export * from './lab';
 export * from './experiments';
 export * from './readiness';
+export * from './scanner';

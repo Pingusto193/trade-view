@@ -30,3 +30,6 @@ export * from './experiments/tails';
 export * from './experiments/costs';
 export * from './experiments/compare';
 export * from './experiments/drawdown-buys';
+export * from './candles/closed';
+export * from './scanner/scan';
+export * from './scanner/filters';
