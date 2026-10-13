@@ -49,7 +49,18 @@ export function Legend({
           {ch >= 0 ? '+' : ''}
           {formatNumber(ch, 2)}%
         </span>
-        {meta.volume !== 'none' && <span className="text-muted">Vol {formatVolume(c.volume)}</span>}
+        {meta.volume !== 'none' && (
+          <span
+            className="text-muted"
+            title={
+              meta.volume === 'tick'
+                ? 'Tick volume: mudanças de preço, não volume negociado'
+                : undefined
+            }
+          >
+            {meta.volume === 'tick' ? 'Tick vol' : 'Vol'} {formatVolume(c.volume)}
+          </span>
+        )}
         <button
           type="button"
           className="pointer-events-auto text-muted underline"

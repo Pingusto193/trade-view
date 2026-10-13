@@ -1,5 +1,6 @@
 import { MARKET_LABEL, type Market } from '@radar/shared';
 import { useEffect, useState } from 'react';
+import { Mt5AgentsPanel } from '../components/Mt5AgentsPanel';
 import { getSources, type SourceInfo } from '../lib/api';
 
 /** Estado das fontes de dados e limitações conhecidas (transparência, SPEC §3.2). */
@@ -49,14 +50,17 @@ export function SourcesPage() {
           <li>
             <b>B3 (brapi grátis):</b> cerca de 30 min de atraso e só 3 meses de histórico. Para
             histórico longo, importe o COTAHIST da B3, que <b>não é ajustado por proventos</b>.
-            Tempo real só com o MetaTrader 5 (Fase 7).
+            Tempo real pelo MetaTrader 5 da sua corretora (agente abaixo).
           </li>
           <li>
-            <b>Forex:</b> ainda não disponível (Fase 7). O volume no forex é só "tick volume" da
-            corretora.
+            <b>MetaTrader 5 (B3 e forex):</b> só atualiza com o PC ligado, o MT5 aberto e o agente
+            rodando; sem ele, o gráfico mostra o último dado guardado com o erro e a data. No forex
+            o volume é <b>tick volume</b> (quantas vezes o preço mudou na corretora), <b>não</b> é
+            volume negociado; o preço é o da sua corretora, não de uma bolsa.
           </li>
         </ul>
       </section>
+      <Mt5AgentsPanel />
     </div>
   );
 }

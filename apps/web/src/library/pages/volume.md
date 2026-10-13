@@ -61,7 +61,7 @@ Todo gráfico tem um selo com a fonte dos dados. No computador, o selo já mostr
 | Volume completo | a fonte informa o volume do mercado |
 | Volume parcial | só uma parte do mercado; o candle ao vivo parece menor do que é |
 | Volume só desta exchange | volume de uma única corretora de cripto, não do mercado inteiro |
-| Tick volume (corretora) | volume da própria corretora de forex, não do mercado |
+| Tick volume (não é volume negociado) | quantas vezes o preço mudou na corretora (forex pelo MetaTrader 5); não mede quanto dinheiro negociou |
 | Sem volume | a fonte não informa volume |
 
 Por fonte:
@@ -69,7 +69,8 @@ Por fonte:
 - **Cripto (Binance)**: o volume é só o da Binance, não o do mercado cripto inteiro ✅.
 - **Ações dos EUA (Alpaca, plano grátis)**: o histórico vem com volume consolidado ✅; ao vivo, só a bolsa IEX, que é uma fração do volume total, então o candle em formação tem volume **parcial**, subestimado ✅.
 - **Ações da B3 (brapi)**: o selo indica volume completo. Essa qualidade foi assumida pelo projeto e ainda não foi conferida na documentação da brapi.
-- **Forex** (ainda não disponível no Radar): o volume é o "tick volume" da corretora ✅. A especificação manda desligar ou rotular as regras de volume no forex; isso será feito quando o forex chegar.
+- **Forex** (pelo MetaTrader 5 da sua corretora): o volume é o "tick volume", o número de mudanças de preço na corretora, e não a quantidade negociada 🟡. O selo e a legenda do gráfico mostram "Tick vol". As regras de volume dos setups ainda usam esse número como se fosse volume: no forex, desconfie delas (desligar essas regras no forex é um próximo passo).
+- **B3 pelo MetaTrader 5**: o volume real que a corretora repassa (não conferido com a B3); se a corretora não mandar volume real, o selo mostra "tick volume".
 - **Dados simulados** (só em desenvolvimento, com a faixa "DADOS SIMULADOS"): o volume também é simulado.
 
 ## Quando engana
