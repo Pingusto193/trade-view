@@ -234,6 +234,14 @@ describe('Modo Treino (preço real da fonte, dinheiro fictício)', () => {
     const s = await state();
     expect(s.positions[0]!.plan).toMatchObject({ released: false });
     expect((s as unknown as { stops: { today: number } }).stops.today).toBe(1);
+    // setup não escolhido: a ordem vale (antes era recusada com "parâmetros inválidos")
+    const noSetup = await req(
+      'POST',
+      '/api/paper/orders',
+      order(acc.id, { stopLoss: 90, plan: { ...plan, setup: '' } }),
+    );
+    expect(noSetup.status).toBe(200);
+    expect((await state()).positions.at(-1)!.plan).toMatchObject({ released: false });
     // print servido como imagem
     const img = await t.app.inject({ url: `/api/paper/positions/${j.trades[0].id}/screenshot` });
     expect(img.headers['content-type']).toBe('image/jpeg');

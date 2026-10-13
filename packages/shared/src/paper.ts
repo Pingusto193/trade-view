@@ -203,7 +203,8 @@ export const EXIT_CRITERIA = {
 } as const;
 
 export const tradePlanSchema = z.object({
-  setup: z.string().min(1).max(40),
+  // vazio = setup não escolhido: o plano fica incompleto (planMissing), mas a ordem vale
+  setup: z.string().max(40),
   tfContext: z.string().max(4),
   tfSetup: z.string().max(4),
   tfTrigger: z.string().max(4),
