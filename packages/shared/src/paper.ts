@@ -101,6 +101,13 @@ export interface PaperPosition {
   generation: number;
   /** Plano de entrada (sem o print), se houve. */
   plan: (Omit<TradePlan, 'screenshot'> & { released: boolean; hasScreenshot: boolean }) | null;
+  /**
+   * Só no diário: risco planejado em % do patrimônio (trades fechados) na entrada — null quando não
+   * dá para medir (sem stop, ou de antes de um reinício da conta).
+   */
+  riskPct?: number | null;
+  /** Só no diário: o stop foi afastado em algum momento. */
+  stopMovedBack?: boolean;
 }
 
 export interface PaperOrder {

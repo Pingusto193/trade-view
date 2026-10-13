@@ -82,7 +82,8 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
   composição de índice no laboratório (os experimentos já avisam)
 - [~] Experimentos E1–E7 (`/laboratorio/experimentos`, ADR-0017): prontos e testados com dados simulados; os
   números reais dependem da rede liberada no servidor e, para 10 anos de B3, de importar o COTAHIST
-- [ ] Replay, exercícios de leitura, trilha, feedback por trade, painel de prontidão
+- [x] Painel de prontidão (Treino e diálogo de mudar para Real; ADR-0018)
+- [ ] Replay, exercícios de leitura, trilha, feedback por trade
 
 ## Fase 7 — B3 e forex em tempo real, scanner e fundamentos
 

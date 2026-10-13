@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_READINESS, readinessParamsSchema } from './readiness';
 import { timeframeSchema } from './timeframes';
 
 /** Preferências do usuário guardadas no servidor (SPEC §17: nada importante só no navegador). */
@@ -20,6 +21,8 @@ export const prefsSchema = z.object({
   /** Anti-revanche (SPEC §11): pausa recomendada após X stops no dia (*2) ou Y na semana (*4). */
   antiRevengeDay: z.number().int().min(1).max(20).default(2),
   antiRevengeWeek: z.number().int().min(1).max(50).default(4),
+  /** Régua do Painel de prontidão (SPEC §13): critérios nossos, editáveis. */
+  readiness: readinessParamsSchema.default(DEFAULT_READINESS),
   /** Conta de treino ativa. */
   paperAccountId: z.string().max(64).optional(),
   /** Parâmetros dos setups (validados no navegador e no servidor pelo schema do core). */

@@ -23,6 +23,7 @@ interface PrefsState extends Prefs {
   setSetupParams(p: Record<string, unknown>): void;
   setMode(mode: Prefs['mode']): void;
   setPaperAccount(id: string): void;
+  setReadiness(p: Prefs['readiness']): void;
   pushRecent(id: string, tf: Timeframe): void;
   loadFromServer(): Promise<void>;
   savePreset(p: IndicatorPreset): Promise<void>;
@@ -71,6 +72,10 @@ export const usePrefs = create<PrefsState>()(
       setPaperAccount: (paperAccountId) => {
         set({ paperAccountId });
         pushToServer({ paperAccountId });
+      },
+      setReadiness: (readiness) => {
+        set({ readiness });
+        pushToServer({ readiness });
       },
       setSetupParams: (setupParams) => {
         set({ setupParams });

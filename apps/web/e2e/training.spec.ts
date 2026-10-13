@@ -66,6 +66,12 @@ test('modo treino: conta com dinheiro fictício escolhido, compra pelo gráfico,
   await expect(diario.getByText(/custos R\$ \d+,\d{2}/).first()).toBeVisible();
   await expect(diario.getByText('custos R$ 0,00')).toHaveCount(0);
   await expect(diario.getByText('plano ✓').first()).toBeVisible();
+
+  // painel de prontidão: mostra o que falta, com números, e diz que é régua nossa
+  const pront = page.getByTestId('readiness');
+  await expect(pront).toContainText('Painel de prontidão');
+  await expect(pront).toContainText(/\d+ de 100 \(todos ao vivo/);
+  await expect(pront).toContainText('não é garantia');
 });
 
 test('chave Treino/Real: mudar para Real pede confirmação e tira a faixa', async ({ page }) => {
@@ -74,6 +80,9 @@ test('chave Treino/Real: mudar para Real pede confirmação e tira a faixa', asy
   await page.getByRole('button', { name: 'Real', exact: true }).click();
   const dlg = page.getByRole('dialog', { name: 'Mudar para o modo Real' });
   await expect(dlg.getByText(/continua sem enviar ordens/)).toBeVisible();
+  await expect(dlg.getByTestId('readiness')).toContainText(
+    /Faltam \d+ de 5 critérios|passam na régua/,
+  );
   await dlg.getByRole('button', { name: 'Mudar para Real' }).click();
   await expect(page.getByTestId('train-banner')).toBeHidden();
   await expect(page.getByRole('button', { name: '🎯 Treino' })).toBeHidden();

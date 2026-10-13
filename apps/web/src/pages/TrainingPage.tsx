@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HelpLink } from '../components/HelpLink';
+import { ReadinessPanel } from '../components/ReadinessPanel';
 import { TrainingVsCdi } from './BrasilPage';
 import { usePaper } from '../lib/paper-store';
 import { usePrefs } from '../lib/prefs';
@@ -473,6 +474,7 @@ export function TrainingPage() {
         </section>
       )}
       <TrainingVsCdi />
+      <ReadinessPanel />
       <AccountSettings />
       <section className={card} aria-label="Posições abertas">
         <h2 className="font-semibold">Posições abertas</h2>

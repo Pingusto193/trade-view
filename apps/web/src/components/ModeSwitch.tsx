@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePrefs } from '../lib/prefs';
 import { HelpLink } from './HelpLink';
+import { ReadinessPanel } from './ReadinessPanel';
 
 /** Chave global Treino/Real (SPEC §13). Treino é o padrão no primeiro uso. */
 export function ModeSwitch() {
@@ -36,17 +37,13 @@ export function ModeSwitch() {
           role="dialog"
           aria-label="Mudar para o modo Real"
         >
-          <div className="max-w-md space-y-2 rounded-xl border border-line bg-panel p-4 text-sm">
+          <div className="max-h-[90vh] max-w-md space-y-2 overflow-auto rounded-xl border border-line bg-panel p-4 text-sm">
             <b>Mudar para o modo Real?</b>
             <p>
               No modo Real o Radar <b>continua sem enviar ordens</b>: você opera na sua corretora e
               registra aqui o que fez. A faixa de treino some para você não confundir os dois.
             </p>
-            <p className="text-muted">
-              Antes de arriscar dinheiro, veja seus números do treino (amostra, resultado depois de
-              custos e IR, disciplina) e compare com o CDI. O painel de prontidão completo chega com
-              o laboratório.
-            </p>
+            <ReadinessPanel editable={false} />
             <p className="text-xs">
               <HelpLink slug="antes-de-arriscar-dinheiro" label="Antes de arriscar dinheiro" />{' '}
               <Link

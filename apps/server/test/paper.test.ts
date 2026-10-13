@@ -100,6 +100,9 @@ describe('Modo Treino (preço real da fonte, dinheiro fictício)', () => {
     expect(tr.r).toBeLessThan(-1); // custos pioram o R (o treino não pode parecer melhor)
     expect(tr.r).toBeGreaterThan(-1.1);
     expect(j.stats).toMatchObject({ trades: 1, wins: 0, withoutStop: 0 });
+    // risco na entrada: (100,01 − 95) × 10 × US$ 5 ÷ R$ 50 mil = 0,5% (painel de prontidão)
+    expect(tr.riskPct).toBeCloseTo(0.5, 2);
+    expect(tr.stopMovedBack).toBe(false);
     s = await state();
     expect(s.equity).toBe(s.account.cash);
   });

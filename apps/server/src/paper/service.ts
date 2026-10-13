@@ -415,7 +415,6 @@ export class PaperService {
       .orderBy(asc(paperPositions.closedAt))
       .all()
       .filter((p) => all || p.generation === acc.generation);
-    const trades = closed.map((p) => this.toPosition(p, null, null));
     const movedBack = new Set(
       this.db
         .select({ positionId: paperEvents.positionId })
@@ -426,6 +425,22 @@ export class PaperService {
         .all()
         .map((e) => e.positionId),
     );
+    // risco na entrada em % do patrimônio de trades fechados naquele momento (só na geração atual:
+    // o saldo inicial de gerações antigas não fica guardado)
+    const current = closed.filter((p) => p.generation === acc.generation);
+    const trades = closed.map((p) => {
+      const pos = this.toPosition(p, null, null);
+      let riskPct: number | null = null;
+      if (p.generation === acc.generation && p.initialStop !== null) {
+        const before = current
+          .filter((q) => q.closedAt !== null && q.closedAt <= p.openedAt)
+          .reduce((s, q) => s + q.realizedBrl, 0);
+        const equity = acc.initialBalance + before;
+        const risk = (p.avgPrice - p.initialStop) * p.maxQty * p.pointValue * p.entryFx;
+        riskPct = equity > 0 ? round((risk / equity) * 100, 2) : null;
+      }
+      return { ...pos, riskPct, stopMovedBack: movedBack.has(p.id) };
+    });
     const n = trades.length;
     const wins = trades.filter((t) => t.realizedBrl > 0).length;
     const withR = trades.filter((t) => t.r !== null);

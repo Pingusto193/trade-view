@@ -333,3 +333,20 @@ Decisões nossas para a SPEC §12.4 (tela `/laboratorio/experimentos`):
 - **E7**: compra ingênua no 1º fechamento a −50% do topo de 52 semanas, segurando 52 semanas sem stop e sem
   custos (otimista de propósito); cada queda conta uma vez. Reflexividade sem fundamentos (não verificados).
 - Execução em segundo plano, um ativo por vez, uma por usuário; servidor reiniciado marca a execução como erro.
+
+## ADR-0018 — Painel de prontidão (13/10/2026)
+
+Régua nossa para a SPEC §13 (editável em Treino → Painel de prontidão → "Ajustar a régua"; nunca bloqueia):
+
+- **Amostra**: 100 trades no total, 30 ao vivo. Enquanto o replay não existe, só os ao vivo contam.
+- **Expectativa**: média de R (já com custos) > 0 **e** resultado da conta depois do IR simulado (DARFs +
+  saldo abaixo do mínimo) > 0 — o IR pode transformar um pequeno lucro em prejuízo.
+- **CDI**: retorno da conta depois do IR maior que o CDI acumulado desde o início (ou o reinício) da conta;
+  sem dado do Banco Central = "sem dados", nunca aprovado.
+- **Disciplina** ≥ 90%: plano liberado, com stop, stop nunca afastado e risco na entrada até o limite das
+  preferências (`maxRiskPct`, 2%). Risco = |entrada − stop inicial| × quantidade, em % do patrimônio de
+  trades fechados naquele momento (posições abertas não entram: aproximação).
+- **Queda máxima** da conta (trades fechados) até 20% do pico.
+- Contagem, R e disciplina usam **todas as gerações** da conta (reiniciar não apaga a evidência); dinheiro,
+  CDI e queda usam a geração atual. Trades de gerações antigas não têm o risco medido (o saldo inicial
+  delas não fica guardado): não reprovam a disciplina, mas aparecem contados à parte.
