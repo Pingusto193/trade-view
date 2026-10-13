@@ -1,11 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import {
-  AlertRuntime,
-  setupParamsSchema,
-  type AlertHit,
-  type DrawingGeometry,
-  type RuntimeAlert,
-} from '@radar/core';
+import { AlertRuntime, type AlertHit, type DrawingGeometry, type RuntimeAlert } from '@radar/core';
 import {
   TIMEFRAME_LABEL,
   alertInputSchema,
@@ -13,7 +7,6 @@ import {
   formatDateTime,
   formatSessionDate,
   isIntraday,
-  prefsSchema,
   type Alert,
   type AlertFire,
   type AlertInput,
@@ -25,10 +18,11 @@ import {
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
-import { alertFires, alerts, drawings, preferences } from '../db/schema';
+import { alertFires, alerts, drawings } from '../db/schema';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
 import type { Notifier } from '../notify/notifier';
+import { readPrefs, userSetupParams } from '../prefs';
 import type { SyncHub } from '../sync';
 
 /** Tempo com a fonte em erro até disparar o alerta de sistema "fonte caiu". */
@@ -226,11 +220,7 @@ export class AlertService {
   }
 
   private setupParams(userId: number) {
-    const row = this.db.select().from(preferences).where(eq(preferences.userId, userId)).get();
-    const prefs = row ? prefsSchema.safeParse(JSON.parse(row.json)) : null;
-    const raw = prefs?.success ? (prefs.data.setupParams ?? {}) : {};
-    const parsed = setupParamsSchema.safeParse(raw);
-    return parsed.success ? parsed.data : setupParamsSchema.parse({});
+    return userSetupParams(readPrefs(this.db, userId));
   }
 
   private drawingGeometry(userId: number, id: string): DrawingGeometry | string {

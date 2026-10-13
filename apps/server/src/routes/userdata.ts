@@ -1,11 +1,12 @@
 import { indicatorPresetSchema } from '@radar/core';
-import { DEFAULT_PREFS, drawingSchema, prefsSchema, type Drawing } from '@radar/shared';
+import { drawingSchema, prefsSchema, type Drawing } from '@radar/shared';
 import { and, asc, eq, isNull, max } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { AuthError, type PublicUser } from '../auth/service';
 import type { Db } from '../db/client';
 import { drawings, indicatorPresets, preferences, watchlistItems, watchlists } from '../db/schema';
+import { readPrefs } from '../prefs';
 import type { SyncHub } from '../sync';
 
 const DEFAULT_WATCHLIST = [
@@ -270,17 +271,11 @@ export function userDataRoutes(
 
   // ------------------------------------------------------------------ preferências
 
-  const readPrefs = (userId: number) => {
-    const row = db.select().from(preferences).where(eq(preferences.userId, userId)).get();
-    const parsed = prefsSchema.safeParse(row ? JSON.parse(row.json) : {});
-    return parsed.success ? parsed.data : DEFAULT_PREFS;
-  };
-
-  app.get('/api/prefs', async (req) => readPrefs(userOf(req).id));
+  app.get('/api/prefs', async (req) => readPrefs(db, userOf(req).id));
 
   app.put('/api/prefs', async (req) => {
     const u = userOf(req);
-    const merged = prefsSchema.parse({ ...readPrefs(u.id), ...(req.body as object) });
+    const merged = prefsSchema.parse({ ...readPrefs(db, u.id), ...(req.body as object) });
     const row = { userId: u.id, json: JSON.stringify(merged), updatedAt: now() };
     db.insert(preferences)
       .values(row)
