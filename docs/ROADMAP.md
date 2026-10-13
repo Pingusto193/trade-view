@@ -90,7 +90,7 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 - [x] Feedback depois de cada trade de treino (Diário → "Ver feedback"; ADR-0019)
 - [x] Replay (`/replay`, ADR-0025): ativo e data sorteados, futuro escondido no servidor, feedback por
   trade e estatísticas comparadas com o treino ao vivo e o real
-- [ ] Exercícios de leitura, trilha
+- [x] Exercícios de leitura (`/exercicios`) e trilha de aprendizado (`/trilha`), ADR-0026
 
 ## Fase 7 — B3 e forex em tempo real, scanner e fundamentos
 

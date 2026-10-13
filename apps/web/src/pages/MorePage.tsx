@@ -9,6 +9,18 @@ const ITEMS = [
   },
   { to: '/treino', icon: '🎯', label: 'Treino', desc: 'Conta fictícia com preços reais' },
   {
+    to: '/trilha',
+    icon: '🧭',
+    label: 'Trilha de aprendizado',
+    desc: 'Ler, exercitar e praticar no replay, módulo a módulo, com progresso salvo',
+  },
+  {
+    to: '/exercicios',
+    icon: '🧩',
+    label: 'Exercícios de leitura',
+    desc: 'Situações reais do passado: tem setup? onde fica o gatilho? e o que veio depois',
+  },
+  {
     to: '/replay',
     icon: '⏪',
     label: 'Replay',

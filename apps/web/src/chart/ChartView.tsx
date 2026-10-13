@@ -55,6 +55,8 @@ export interface ChartViewProps {
   hideTime?: boolean;
   /** Faixa extra no cabeçalho (ex.: "REPLAY"). */
   banner?: ReactNode;
+  /** Não desenha marcações de setups (exercícios: seriam a resposta). */
+  hideSetups?: boolean;
 }
 
 let seq = 0;
@@ -76,6 +78,7 @@ export function ChartView(props: ChartViewProps) {
     paperLines: externalLines,
     hideTime = false,
     banner,
+    hideSetups = false,
   } = props;
   const externalRef = useRef(externalLines);
   externalRef.current = externalLines;
@@ -153,7 +156,7 @@ export function ChartView(props: ChartViewProps) {
     const applyView = () => {
       const a = useAnalysis.getState().byKey[aKey];
       const v = useSetupView.getState();
-      if (!a) return;
+      if (!a || hideSetups) return;
       controller.setSetupMarkers(a.events, v.hidden, v.showRadar);
       controller.setOpenSetups(a.open, v.hidden);
     };
@@ -255,7 +258,19 @@ export function ChartView(props: ChartViewProps) {
       controller.dispose();
       ctl.current = null;
     };
-  }, [id, tf, preset, chartType, upColor, downColor, visibleBars, source, drawingKey, hideTime]);
+  }, [
+    id,
+    tf,
+    preset,
+    chartType,
+    upColor,
+    downColor,
+    visibleBars,
+    source,
+    drawingKey,
+    hideTime,
+    hideSetups,
+  ]);
 
   // linhas do replay mudam sem recriar o gráfico
   useEffect(() => {

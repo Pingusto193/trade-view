@@ -108,6 +108,14 @@ export const exerciseCreateSchema = z.object({
 });
 export type ExerciseCreate = z.infer<typeof exerciseCreateSchema>;
 
+const answerValue = z.string().max(40).optional();
+// objeto com campos opcionais (no zod 4, record com chaves enum exige TODAS as chaves)
 export const exerciseAnswerSchema = z.object({
-  answers: z.record(z.enum(['tem', 'qual', 'gatilho', 'stop', 'escala']), z.string().max(40)),
+  answers: z.object({
+    tem: answerValue,
+    qual: answerValue,
+    gatilho: answerValue,
+    stop: answerValue,
+    escala: answerValue,
+  }),
 });

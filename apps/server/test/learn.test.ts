@@ -74,9 +74,20 @@ describe('exercícios e trilha', () => {
     expect(res.score).toBe(res.total);
     expect(res.future).toHaveLength(30);
     expect(res.meta.symbol).toBe('AAA'); // revelado depois de responder
+    // pela rota HTTP, com resposta parcial (só a primeira pergunta)
+    const v2 = await learn.create(userId, { level: 1 });
+    const http2 = await t.app.inject({
+      method: 'POST',
+      url: `/api/exercises/${v2.id}/answer`,
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ answers: { tem: 'nao' } }),
+    });
+    expect(http2.statusCode).toBe(200);
+    expect(http2.json().graded[0].key).toBe('tem');
     // segunda resposta (errada) não muda a nota
     expect(learn.answer(userId, v.id, { tem: ans.armed ? 'nao' : 'sim' }).score).toBe(res.score);
     expect(learn.stats(userId)[1]).toMatchObject({ level: 2, answered: 1, perfect: 1 });
+    expect(learn.stats(userId)[0]?.answered).toBe(1);
 
     // trilha: leitura marcada nas preferências + exercício perfeito
     await t.app.inject({

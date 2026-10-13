@@ -452,3 +452,22 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
 - **Gráfico**: o mesmo `ChartView` com fonte trocável; desenhos do replay ficam na chave
   `replay:<sessão>`, separados dos do ativo.
 
+## ADR-0026 — Exercícios de leitura e trilha (13/10/2026)
+
+- **Gabarito = detector**: o exercício corta uma série real (diário, ativo sorteado e oculto) num
+  candle fechado e pergunta o que o detector vê ali. Nada é escrito à mão; com parâmetros
+  personalizados, o gabarito segue os parâmetros do usuário.
+- **Sem pistas**: positivos e negativos têm as MESMAS perguntas (contar perguntas não entrega a
+  resposta); no negativo, as opções de preço giram em torno da máxima/mínima do último candle. O gráfico
+  do exercício não mostra datas nem marcações de setups (seriam a resposta). O gabarito e os 30 candles
+  de "depois" ficam no servidor até a resposta, e cada exercício é corrigido uma vez só.
+- **Níveis** (nossos): 1 = tem setup armado? qual?; 2 = + gatilho e stop; 3 = + escala maior contra?
+  "Qual?" aceita qualquer setup de compra armado no candle. Sem setup, responder "não" dispensa as
+  outras perguntas; "sim" erra todas.
+- **Desfecho**: o que o setup puro fez depois (acionou? R sem custos) e a variação do preço; o texto
+  lembra que um caso não prova nada.
+- **Trilha**: 10 módulos na ordem da SPEC; cada um com leitura (marcada pelo usuário), exercícios
+  perfeitos no nível pedido (com foco nos setups do módulo) e missão de replay (trades com plano
+  liberado do setup). Metas arbitrárias, para ritmo — não provam habilidade (isso é o Painel de
+  prontidão).
+
