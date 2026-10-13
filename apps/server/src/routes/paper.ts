@@ -87,6 +87,11 @@ export function paperRoutes(app: FastifyInstance, paper: PaperService) {
       .send(Buffer.from(m[2]!, 'base64'));
   });
 
+  /** Feedback depois do trade (SPEC §13): só do dono e só de trade encerrado. */
+  app.get('/api/paper/positions/:id/feedback', async (req, reply) =>
+    guard(reply, () => paper.feedback(userOf(req).id, idParam.parse(req.params).id)),
+  );
+
   app.put('/api/paper/positions/:id', async (req, reply) =>
     guard(reply, () =>
       paper.updatePosition(

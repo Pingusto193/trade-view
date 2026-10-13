@@ -5,10 +5,13 @@ import {
   apurarB3,
   costModelSchema,
   exitHit,
+  feedbackCandleLimit,
   marketFill,
   marketState,
   orderFill,
+  tradeFeedback,
   type CostModel,
+  type FeedbackExitKind,
   type Fill,
   type Interval,
   type OrderSide,
@@ -17,10 +20,14 @@ import {
   type TaxTrade,
 } from '@radar/core';
 import {
+  TIMEFRAME_LABEL,
   formatBRL,
+  formatDateTime,
   formatNumber,
   isIntraday,
   planMissing,
+  timeframeSchema,
+  type Candle,
   type Market,
   type PaperAccount,
   type PaperAccountInput,
@@ -42,6 +49,7 @@ import type { Db } from '../db/client';
 import { paperAccounts, paperEvents, paperOrders, paperPositions, tradePlans } from '../db/schema';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
+import { readPrefs, userSetupParams } from '../prefs';
 import type { SyncHub } from '../sync';
 
 export class PaperError extends Error {
@@ -71,6 +79,21 @@ interface Watcher {
 export const FX_SYMBOL = 'binance:USDTBRL';
 
 const round = (x: number, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
+
+/** Começo do texto do evento de saída: diz como o trade terminou (anti-revanche e feedback). */
+const EXIT_DETAIL = {
+  stop: 'Stop executado',
+  alvo: 'Alvo executado',
+  manual: 'Venda',
+  reinicio: 'Encerrada pelo último preço no reinício da conta',
+} as const;
+
+function exitKindOf(detail: string): FeedbackExitKind {
+  if (detail.startsWith(EXIT_DETAIL.stop)) return 'stop';
+  if (detail.startsWith(EXIT_DETAIL.alvo)) return 'alvo';
+  if (detail.startsWith(EXIT_DETAIL.reinicio)) return 'reinicio';
+  return 'manual';
+}
 
 function saoPauloDate(t: number): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(t));
@@ -215,7 +238,7 @@ export class PaperService {
         qty: p.qty,
         pnlBrl: pnl,
         fx,
-        detail: 'Encerrada pelo último preço no reinício da conta (sem custos).',
+        detail: `${EXIT_DETAIL.reinicio} (sem custos).`,
       });
     }
     this.db
@@ -319,7 +342,7 @@ export class PaperService {
       .from(paperEvents)
       .where(and(eq(paperEvents.accountId, accountId), eq(paperEvents.kind, 'saida')))
       .all()
-      .filter((e) => e.time >= weekAgo && e.detail.startsWith('Stop executado'));
+      .filter((e) => e.time >= weekAgo && exitKindOf(e.detail) === 'stop');
     return {
       today: stops.filter((e) => saoPauloDate(e.time) === today).length,
       week: stops.length,
@@ -415,32 +438,12 @@ export class PaperService {
       .orderBy(asc(paperPositions.closedAt))
       .all()
       .filter((p) => all || p.generation === acc.generation);
-    const movedBack = new Set(
-      this.db
-        .select({ positionId: paperEvents.positionId })
-        .from(paperEvents)
-        .where(
-          and(eq(paperEvents.accountId, accountId), eq(paperEvents.kind, 'stop-movido-para-tras')),
-        )
-        .all()
-        .map((e) => e.positionId),
-    );
-    // risco na entrada em % do patrimônio de trades fechados naquele momento (só na geração atual:
-    // o saldo inicial de gerações antigas não fica guardado)
-    const current = closed.filter((p) => p.generation === acc.generation);
-    const trades = closed.map((p) => {
-      const pos = this.toPosition(p, null, null);
-      let riskPct: number | null = null;
-      if (p.generation === acc.generation && p.initialStop !== null) {
-        const before = current
-          .filter((q) => q.closedAt !== null && q.closedAt <= p.openedAt)
-          .reduce((s, q) => s + q.realizedBrl, 0);
-        const equity = acc.initialBalance + before;
-        const risk = (p.avgPrice - p.initialStop) * p.maxQty * p.pointValue * p.entryFx;
-        riskPct = equity > 0 ? round((risk / equity) * 100, 2) : null;
-      }
-      return { ...pos, riskPct, stopMovedBack: movedBack.has(p.id) };
-    });
+    const movedBack = this.movedBackIds(accountId);
+    const trades = closed.map((p) => ({
+      ...this.toPosition(p, null, null),
+      riskPct: this.riskPctAtEntry(acc, p, closed),
+      stopMovedBack: movedBack.has(p.id),
+    }));
     const n = trades.length;
     const wins = trades.filter((t) => t.realizedBrl > 0).length;
     const withR = trades.filter((t) => t.r !== null);
@@ -510,6 +513,157 @@ export class PaperService {
     });
     const tax: TaxMonth[] = apurarB3(taxTrades);
     return { account: this.toAccount(acc), trades: trades.reverse(), stats, tax };
+  }
+
+  /** Posições com "stop movido para trás" registrado no diário. */
+  private movedBackIds(accountId: string, positionId?: string): Set<string | null> {
+    return new Set(
+      this.db
+        .select({ positionId: paperEvents.positionId })
+        .from(paperEvents)
+        .where(
+          and(
+            eq(paperEvents.accountId, accountId),
+            eq(paperEvents.kind, 'stop-movido-para-tras'),
+            ...(positionId ? [eq(paperEvents.positionId, positionId)] : []),
+          ),
+        )
+        .all()
+        .map((e) => e.positionId),
+    );
+  }
+
+  /**
+   * Risco na entrada em % do patrimônio de trades fechados naquele momento (ADR-0018). Só na geração
+   * atual da conta: o saldo inicial de gerações antigas não fica guardado (null = não dá para medir).
+   */
+  private riskPctAtEntry(
+    acc: AccountRow,
+    p: PositionRow,
+    closed: readonly PositionRow[],
+  ): number | null {
+    if (p.generation !== acc.generation || p.initialStop === null) return null;
+    const before = closed
+      .filter(
+        (q) => q.generation === acc.generation && q.closedAt !== null && q.closedAt <= p.openedAt,
+      )
+      .reduce((s, q) => s + q.realizedBrl, 0);
+    const equity = acc.initialBalance + before;
+    const risk = (p.avgPrice - p.initialStop) * p.maxQty * p.pointValue * p.entryFx;
+    return equity > 0 ? round((risk / equity) * 100, 2) : null;
+  }
+
+  // ---------------------------------------------------------------- feedback
+
+  /**
+   * Feedback depois do trade (SPEC §13): a lógica é a do core (`tradeFeedback`); aqui só juntamos o
+   * trade, o plano, as preferências e os candles REAIS da escala do setup. Fonte falhou → os itens que
+   * dependem de candles ficam "sem dados" com o motivo.
+   */
+  async feedback(userId: number, positionId: string) {
+    const p = this.db
+      .select()
+      .from(paperPositions)
+      .where(and(eq(paperPositions.id, positionId), eq(paperPositions.userId, userId)))
+      .get();
+    if (!p) throw new PaperError('trade não encontrado', 404);
+    if (p.status !== 'closed' || p.closedAt === null)
+      throw new PaperError('o feedback sai quando o trade é encerrado');
+    const acc = this.accountRow(userId, p.accountId);
+    const plan = this.planOf(p.id);
+    const prefs = readPrefs(this.db, userId);
+    const events = this.db
+      .select()
+      .from(paperEvents)
+      .where(and(eq(paperEvents.accountId, p.accountId), eq(paperEvents.positionId, p.id)))
+      .orderBy(asc(paperEvents.time))
+      .all();
+    // alvo planejado = o da ordem que abriu a posição (se não havia, o alvo em vigor)
+    const entry = events.find((e) => e.kind === 'entrada');
+    const entryOrder = entry?.orderId
+      ? this.db.select().from(paperOrders).where(eq(paperOrders.id, entry.orderId)).get()
+      : undefined;
+    const exits = events.filter((e) => e.kind === 'saida');
+    const soldQty = exits.reduce((s, e) => s + (e.qty ?? 0), 0);
+    const exitPrice =
+      soldQty > 0
+        ? exits.reduce((s, e) => s + (e.price ?? 0) * (e.qty ?? 0), 0) / soldQty
+        : (exits.at(-1)?.price ?? p.avgPrice);
+    const closedRows = this.db
+      .select()
+      .from(paperPositions)
+      .where(and(eq(paperPositions.accountId, p.accountId), eq(paperPositions.status, 'closed')))
+      .all();
+
+    // escala do setup do plano; sem plano (ou escala inválida), o diário
+    const tfParsed = timeframeSchema.safeParse(plan?.tfSetup);
+    const tf: Timeframe = tfParsed.success ? tfParsed.data : '1d';
+    let meta: SymbolMeta | null = null;
+    let candles: Candle[] | null = null;
+    let lastOpen = false;
+    let candlesError: string | null = null;
+    try {
+      meta = await this.market.getMeta(p.symbolId);
+    } catch (err) {
+      candlesError = `fonte indisponível: ${(err as Error).message}`;
+    }
+    // ativo com atraso: a execução usou o preço de alguns minutos antes (sem look-ahead)
+    const delayMs = meta?.delay.kind === 'delayed' ? meta.delay.minutes * 60_000 : 0;
+    const openedAt = p.openedAt - delayMs;
+    const closedAt = p.closedAt - delayMs;
+    if (meta && !meta.timeframes.includes(tf)) {
+      candlesError = `a fonte deste ativo não oferece a escala ${TIMEFRAME_LABEL[tf]}`;
+    } else if (meta) {
+      try {
+        const r = await this.market.getCandles(
+          p.symbolId,
+          tf,
+          feedbackCandleLimit(tf, openedAt, this.now()),
+        );
+        if (r.status.state === 'ok') {
+          candles = r.candles;
+          lastOpen = r.lastCandleOpen;
+        } else {
+          const last = r.status.lastValidAt
+            ? `; último dado válido em ${formatDateTime(r.status.lastValidAt)}`
+            : '';
+          candlesError = `fonte indisponível: ${r.status.message ?? r.status.state}${last}`;
+        }
+      } catch (err) {
+        candlesError = `fonte indisponível: ${(err as Error).message}`;
+      }
+    }
+    const fb = tradeFeedback({
+      candles,
+      candlesError,
+      lastOpen,
+      tf,
+      tz: meta?.session.timezone ?? 'UTC',
+      tick: meta?.tickSize ?? p.tick,
+      ...(meta ? { decimals: meta.priceDecimals } : {}),
+      params: userSetupParams(prefs),
+      maxRiskPct: prefs.maxRiskPct,
+      plan,
+      trade: {
+        openedAt,
+        closedAt,
+        entryPrice: p.avgPrice,
+        initialStop: p.initialStop,
+        stopAtExit: p.stop,
+        target: entryOrder?.takeProfit ?? p.target,
+        exitPrice,
+        exitKind: exitKindOf(exits.at(-1)?.detail ?? ''),
+        r: this.toPosition(p, null, null).r,
+        riskPct: this.riskPctAtEntry(acc, p, closedRows),
+        stopMovedBack: this.movedBackIds(p.accountId, p.id).has(p.id),
+      },
+    });
+    return {
+      ...fb,
+      positionId: p.id,
+      symbolId: p.symbolId,
+      source: meta?.sourceLabel ?? null,
+    };
   }
 
   // ---------------------------------------------------------------- ordens
@@ -887,8 +1041,7 @@ export class PaperService {
           .run();
       }
     });
-    const why =
-      exitKind === 'stop' ? 'Stop executado' : exitKind === 'alvo' ? 'Alvo executado' : 'Venda';
+    const why = EXIT_DETAIL[exitKind ?? 'manual'];
     this.event(acc.id, 'saida', {
       symbolId: o.symbolId,
       orderId: o.id,
