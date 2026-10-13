@@ -1,6 +1,7 @@
 import { formatNumber } from '@radar/shared';
 import type { z } from 'zod';
 import { Detector, highestHigh, lowestLow, type Instance } from '../base';
+import { roundTick } from '../fills';
 import { brokeAbove, brokeBelow, closedInsideBelow, falseBreakoutUp, relVolume } from '../pa';
 import type { consolidationSchema } from '../params';
 import type { SeriesBuffer } from '../series';
@@ -258,8 +259,11 @@ export class Consolidation extends Detector {
         inst.entryIndex = t;
         inst.initialStop = inst.stop;
         const risk = Math.abs(c.open - (inst.stop as number));
+        // alvo arredondado ao tick, como no reteste e nos outros setups (ADR-0012)
         inst.target =
-          this.p.exit.mode === 'fixed' && risk > 0 ? c.open + this.p.exit.targetR * risk : null;
+          this.p.exit.mode === 'fixed' && risk > 0
+            ? roundTick(c.open + this.p.exit.targetR * risk, s.tick)
+            : null;
         out.push(
           this.ev(
             inst,

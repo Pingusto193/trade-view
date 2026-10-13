@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SetupEvent } from '../../src';
+import { DEFAULT_SETUP_PARAMS, type SetupEvent } from '../../src';
 import { Bars, params, run, states } from './helpers';
 
 /**
@@ -279,5 +279,74 @@ describe('R3-04: rompimento e falso rompimento pelas primitivas (pa.breakoutByCl
     const evs = occurrence(run(b, ['consolidation'], retest()));
     expect(states(evs).at(-1)).toBe('86:encerrado/invalidado');
     expect(evs.at(-1)?.reason).toMatch(/Falso rompimento/);
+  });
+});
+
+describe('R4-01: entrada no rompimento — alvo arredondado ao tick (ADR-0012)', () => {
+  /** Rompe no 84 e compra na abertura do 85 (173,70); stop na base − 1 tick. */
+  function brokeOut(): Bars {
+    const b = boxAfterTrend();
+    b.add(b.last.close, 173.8, b.last.close - 0.1, 173.6, 2500); // 84: rompe por fechamento
+    b.add(173.7, 174.4, 173.2, 174.0, 900); // 85: entrada na abertura
+    return b;
+  }
+  const targetR = (r: number) =>
+    params((p) => {
+      p.consolidation.exit = { mode: 'fixed', targetR: r };
+    });
+
+  it('alvo fora da grade vai para o tick mais próximo, e é ele que encerra a operação', () => {
+    // risco = 173,70 − 164,24 = 9,46; 1,2R = 11,352 → alvo exato 185,052 → 185,05 no tick de 0,01
+    const b = brokeOut();
+    b.add(174.0, 185.05, 173.9, 184.0, 900); // 86: máxima exatamente no alvo arredondado
+    const evs = occurrence(run(b, ['consolidation'], targetR(1.2)));
+    expect(states(evs)).toEqual(['73:radar', '84:armado', '85:acionado', '86:encerrado/alvo']);
+    expect(evs[2]?.entry).toBe(173.7);
+    expect(evs[2]?.stop).toBe(164.24);
+    expect(evs[2]?.target).toBe(185.05);
+    expect(evs[3]?.price).toBe(185.05);
+    // o R parte do preço real de execução: um pouco abaixo de 1,2 por causa do arredondamento
+    expect(evs[3]?.resultR).toBeCloseTo(11.35 / 9.46, 9);
+  });
+
+  it('padrão (2R): o alvo é um preço da grade, sem resíduo de ponto flutuante', () => {
+    const evs = occurrence(run(brokeOut(), ['consolidation']));
+    expect(evs.at(-1)?.state).toBe('acionado');
+    expect(evs.at(-1)?.target).toBe(192.62); // e não 192,61999999999995
+  });
+
+  it('borda: tick grande (0,5) e entrada fora da grade — alvo arredondado ao tick', () => {
+    // stop = 164,25 − 0,5 = 163,75 → 164 (tick mais próximo); 173,70 + 2 × 9,70 = 193,10 → 193
+    const evs = occurrence(run(brokeOut(), ['consolidation'], DEFAULT_SETUP_PARAMS, 0.5));
+    expect(evs.at(-1)?.stop).toBe(164);
+    expect(evs.at(-1)?.target).toBe(193);
+  });
+
+  it('mesma regra do reteste: com o mesmo alvo em R, os dois modos ficam na grade', () => {
+    const b = boxAfterTrend();
+    b.add(b.last.close, 173.8, b.last.close - 0.1, 173.6, 2500); // 84
+    b.add(173.6, 173.6, 170.7, 171.5, 900); // 85: reteste → gatilho 173,61, stop 170,69
+    b.add(171.5, 174.1, 171.4, 173.9, 900); // 86: aciona no gatilho
+    const evs = occurrence(
+      run(
+        b,
+        ['consolidation'],
+        retest((p) => {
+          p.consolidation.exit = { mode: 'fixed', targetR: 1.2 };
+        }),
+      ),
+    );
+    const acted = evs.find((e) => e.state === 'acionado');
+    // 173,61 + 1,2 × 2,92 = 177,114 → 177,11
+    expect(acted?.target).toBe(177.11);
+  });
+
+  it('saída dinâmica (condução): continua sem alvo', () => {
+    const p = params((q) => {
+      q.consolidation.exit = { mode: 'dynamic', targetR: 1.2 };
+    });
+    const evs = occurrence(run(brokeOut(), ['consolidation'], p));
+    expect(evs.at(-1)?.state).toBe('acionado');
+    expect(evs.at(-1)?.target).toBeNull();
   });
 });
