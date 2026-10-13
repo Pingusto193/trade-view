@@ -627,6 +627,7 @@ export class ScannerService {
       symbol: symbolId.split(':')[1] ?? symbolId,
       name: symbolId,
       market: null,
+      decimals: 2,
       source: null,
       analysis: null,
       error: null,
@@ -640,7 +641,13 @@ export class ScannerService {
     } catch (err) {
       return { ...base, error: `ativo indisponível: ${(err as Error).message}` };
     }
-    const head: ScanRow = { ...base, symbol: meta.symbol, name: meta.name, market: meta.market };
+    const head: ScanRow = {
+      ...base,
+      symbol: meta.symbol,
+      name: meta.name,
+      market: meta.market,
+      decimals: meta.priceDecimals,
+    };
     if (!meta.timeframes.includes(tf))
       return {
         ...head,

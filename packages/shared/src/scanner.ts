@@ -272,6 +272,8 @@ export interface ScanRow {
   symbol: string;
   name: string;
   market: Market | null;
+  /** Casas decimais do preço (meta da fonte). */
+  decimals: number;
   source: ScanSourceInfo | null;
   analysis: ScanAnalysis | null;
   /** Linha de erro: a fonte falhou ou faltam dados (nunca inventa). */
