@@ -27,6 +27,8 @@ export const prefsSchema = z.object({
   paperAccountId: z.string().max(64).optional(),
   /** Parâmetros dos setups (validados no navegador e no servidor pelo schema do core). */
   setupParams: z.record(z.string(), z.unknown()).optional(),
+  /** Trilha (SPEC §13): páginas da Biblioteca marcadas como lidas. */
+  trailRead: z.array(z.string().min(1).max(60)).max(200).default([]),
 });
 export type Prefs = z.infer<typeof prefsSchema>;
 export const DEFAULT_PREFS: Prefs = prefsSchema.parse({});

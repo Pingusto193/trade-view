@@ -1,8 +1,16 @@
 import type { IndicatorPreset } from '@radar/core';
 import { marketState, MARKET_STATE_LABEL, skippedIndicators } from '@radar/core';
-import type { FeedStatus, SymbolMeta, Timeframe } from '@radar/shared';
+import type { Candle, FeedStatus, SymbolMeta, Timeframe } from '@radar/shared';
 import { TIMEFRAME_LABEL } from '@radar/shared';
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
+import {
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { analysisKey, useAnalysis, useSetupView } from '../lib/analysis-store';
 import { newDrawingId, useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { usePaper } from '../lib/paper-store';
@@ -10,12 +18,19 @@ import { usePrefs, type ChartType } from '../lib/prefs';
 import { ChartController, type HoverInfo, type PaperLine } from './controller';
 import { Legend } from './Legend';
 import { registerChart } from './registry';
-import { LiveSeries } from './live-series';
+import { LiveSeries, type LiveSeriesEvents } from './live-series';
 import { SourceBadge } from './SourceBadge';
 import { indicatorWorker } from './worker-client';
 
 export interface ChartHandle {
   syncCrosshair(timeMs: number | null, sourceTf: Timeframe): void;
+}
+
+/** Fonte de candles do gráfico: a ao vivo (padrão) ou outra, como o replay. */
+export interface SeriesSource {
+  readonly candles: Candle[];
+  start(): Promise<void>;
+  dispose(): void;
 }
 
 export interface ChartViewProps {
@@ -30,6 +45,18 @@ export interface ChartViewProps {
   visibleBars?: number;
   onCrosshairTime?(timeMs: number | null, tf: Timeframe): void;
   ref?: Ref<ChartHandle>;
+  /** Outra fonte de candles (replay). Precisa ser estável (useCallback): trocar recria o gráfico. */
+  source?: (ev: LiveSeriesEvents) => SeriesSource;
+  /** Chave dos desenhos (padrão: o ativo). O replay usa a sua, para não misturar com o gráfico real. */
+  drawingKey?: string;
+  /** Linhas de posição/ordens vindas de fora (replay); sem isto, usa as do Modo Treino. */
+  paperLines?: PaperLine[];
+  /** Esconde datas e horários (replay sorteado). */
+  hideTime?: boolean;
+  /** Faixa extra no cabeçalho (ex.: "REPLAY"). */
+  banner?: ReactNode;
+  /** Não desenha marcações de setups (exercícios: seriam a resposta). */
+  hideSetups?: boolean;
 }
 
 let seq = 0;
@@ -46,7 +73,15 @@ export function ChartView(props: ChartViewProps) {
     visibleBars = 150,
     onCrosshairTime,
     ref,
+    source,
+    drawingKey = id,
+    paperLines: externalLines,
+    hideTime = false,
+    banner,
+    hideSetups = false,
   } = props;
+  const externalRef = useRef(externalLines);
+  externalRef.current = externalLines;
   const box = useRef<HTMLDivElement>(null);
   const ctl = useRef<ChartController | null>(null);
   const crossCb = useRef(onCrosshairTime);
@@ -77,13 +112,14 @@ export function ChartView(props: ChartViewProps) {
       chartType,
       upColor,
       downColor,
+      hideTime,
       onHover: (h) => {
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => setHover(h));
       },
       onCrosshairTime: (t, src) => crossCb.current?.(t, src),
       drawing: {
-        symbolId: id,
+        symbolId: drawingKey,
         callbacks: {
           commit: (d) => useDrawings.getState().save(d),
           select: (sel) => useDrawingTool.getState().select(sel),
@@ -102,11 +138,11 @@ export function ChartView(props: ChartViewProps) {
 
     // desenhos do ativo: carrega do servidor e acompanha mudanças (inclusive de outros aparelhos)
     const dm = controller.drawings;
-    void useDrawings.getState().load(id);
-    const applyDrawings = () => dm?.setDrawings(useDrawings.getState().bySymbol[id] ?? []);
+    void useDrawings.getState().load(drawingKey);
+    const applyDrawings = () => dm?.setDrawings(useDrawings.getState().bySymbol[drawingKey] ?? []);
     applyDrawings();
     const unsubDrawings = useDrawings.subscribe((st, prev) => {
-      if (st.bySymbol[id] !== prev.bySymbol[id]) applyDrawings();
+      if (st.bySymbol[drawingKey] !== prev.bySymbol[drawingKey]) applyDrawings();
     });
     const applyTool = () => {
       const t = useDrawingTool.getState();
@@ -120,7 +156,7 @@ export function ChartView(props: ChartViewProps) {
     const applyView = () => {
       const a = useAnalysis.getState().byKey[aKey];
       const v = useSetupView.getState();
-      if (!a) return;
+      if (!a || hideSetups) return;
       controller.setSetupMarkers(a.events, v.hidden, v.showRadar);
       controller.setOpenSetups(a.open, v.hidden);
     };
@@ -128,6 +164,10 @@ export function ChartView(props: ChartViewProps) {
 
     // Modo Treino: posição e ordens deste ativo no gráfico
     const applyPaper = () => {
+      if (externalRef.current) {
+        controller.setPaperLines(externalRef.current);
+        return;
+      }
       const st = usePaper.getState().state;
       const lines: PaperLine[] = [];
       if (st && usePrefs.getState().mode === 'treino') {
@@ -176,7 +216,7 @@ export function ChartView(props: ChartViewProps) {
       );
     });
 
-    const series = new LiveSeries(id, tf, {
+    const events: LiveSeriesEvents = {
       onReset: (candles, m, lastOpen) => {
         setMeta(m);
         setEmpty(candles.length === 0);
@@ -201,7 +241,8 @@ export function ChartView(props: ChartViewProps) {
       },
       onStatus: setStatus,
       onError: setError,
-    });
+    };
+    const series = source ? source(events) : new LiveSeries(id, tf, events);
     void series.start();
 
     return () => {
@@ -217,9 +258,26 @@ export function ChartView(props: ChartViewProps) {
       controller.dispose();
       ctl.current = null;
     };
-  }, [id, tf, preset, chartType, upColor, downColor, visibleBars]);
+  }, [
+    id,
+    tf,
+    preset,
+    chartType,
+    upColor,
+    downColor,
+    visibleBars,
+    source,
+    drawingKey,
+    hideTime,
+    hideSetups,
+  ]);
 
-  const state = meta ? marketState(meta.session, Date.now()) : null;
+  // linhas do replay mudam sem recriar o gráfico
+  useEffect(() => {
+    if (externalLines) ctl.current?.setPaperLines(externalLines);
+  }, [externalLines]);
+
+  const state = meta && !source ? marketState(meta.session, Date.now()) : null;
   const skipped = useMemo(() => skippedIndicators(preset, tf), [preset, tf]);
 
   return (
@@ -240,6 +298,7 @@ export function ChartView(props: ChartViewProps) {
           </span>
         )}
         <SourceBadge meta={meta} status={status} />
+        {banner}
       </div>
       {meta?.delay.kind === 'simulated' && (
         <div className="bg-warn px-2 py-0.5 text-center text-xs font-bold tracking-widest text-black">
@@ -250,7 +309,7 @@ export function ChartView(props: ChartViewProps) {
           aqui dentro e nunca passam por cima de diálogos e painéis do app */}
       <div className="relative isolate min-h-0 flex-1">
         <div ref={box} className="absolute inset-0" data-testid="chart-canvas" />
-        <Legend hover={hover} meta={meta} tf={tf} skipped={skipped} />
+        <Legend hover={hover} meta={meta} tf={tf} skipped={skipped} hideTime={hideTime} />
         {error && (
           <div className="absolute inset-x-2 top-12 rounded border border-down/50 bg-panel/95 p-3 text-sm">
             <p className="font-semibold text-down">Não foi possível carregar os dados</p>

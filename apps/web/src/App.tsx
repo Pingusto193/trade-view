@@ -22,11 +22,15 @@ import { ScannerPage } from './pages/ScannerPage';
 import { SetupParamsPage } from './pages/SetupParamsPage';
 import { RealJournalPage } from './pages/RealJournalPage';
 import { CalculatorPage } from './pages/CalculatorPage';
+import { ReplayPage } from './pages/ReplayPage';
+import { ExercisesPage } from './pages/ExercisesPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { TrainingPage } from './pages/TrainingPage';
 
 // Biblioteca em pedaço separado: o texto das páginas só é baixado quando ela é aberta.
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
+// a trilha lê os títulos das páginas da Biblioteca: vai no mesmo pedaço carregado sob demanda
+const TrailPage = lazy(() => import('./pages/TrailPage'));
 
 /** Navegação do computador (topo). */
 const NAV = [
@@ -131,6 +135,16 @@ function Shell() {
           <Route path="/setups/parametros" element={<SetupParamsPage />} />
           <Route path="/diario" element={<RealJournalPage />} />
           <Route path="/calculadora" element={<CalculatorPage />} />
+          <Route path="/replay" element={<ReplayPage />} />
+          <Route path="/exercicios" element={<ExercisesPage />} />
+          <Route
+            path="/trilha"
+            element={
+              <Suspense fallback={<p className="p-3 text-sm text-muted">Carregando…</p>}>
+                <TrailPage />
+              </Suspense>
+            }
+          />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route

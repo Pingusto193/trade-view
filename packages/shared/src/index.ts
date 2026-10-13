@@ -11,4 +11,6 @@ export * from './experiments';
 export * from './readiness';
 export * from './scanner';
 export * from './real';
+export * from './replay';
+export * from './trail';
 export * from './mt5';

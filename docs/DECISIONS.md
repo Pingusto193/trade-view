@@ -429,3 +429,45 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
   inválidos"); a falta conta como plano incompleto.
 - **Menu**: no modo Real, a barra de baixo do celular mostra "Diário" no lugar de "Treino".
 
+## ADR-0025 — Replay candle a candle (13/10/2026)
+
+(ADR-0023 e ADR-0024 ficam para o agente MT5/forex e para os fundamentos, feitos em paralelo.)
+
+- **O futuro fica no servidor**: a sessão guarda o trecho inteiro, mas a API só entrega os candles já
+  revelados (`cursor`). Revelar é sempre para a frente; nada volta.
+- **Aquecimento**: 250 candles antes do início (indicadores e detectores começam "quentes"); mínimo de
+  60 candles depois. Sem histórico suficiente na fonte, a sessão é recusada com o motivo (brapi grátis
+  tem ~3 meses: B3 diária só funciona com o COTAHIST importado).
+- **Sorteio**: ativo dos conjuntos sugeridos (simulados em dev) e início sorteados; ativo, datas e fonte
+  ficam ocultos até encerrar (eixo de tempo e data da legenda escondidos). O nível de preço ainda pode
+  dar pista — limitação aceita.
+- **Execução**: o mesmo motor do treino ao vivo (`orderFill`/`exitHit`), um candle = um intervalo.
+  Ordem a mercado executa na ABERTURA do candle seguinte (decide-se com o candle fechado). Stop antes do
+  alvo no mesmo candle; no candle da entrada só o stop. Uma posição por vez, só compra (como o treino).
+- **Dinheiro**: capital fictício em R$; ativos em dólar usam o câmbio de HOJE, fixo na sessão
+  (simplificação: o resultado em R não muda; o em R$ é aproximado).
+- **Feedback**: `tradeFeedback` do core, só com os candles revelados (nunca mostra o futuro).
+- **Estatísticas**: os trades de todas as sessões formam o "diário do replay" (`journalStats`), comparado
+  com o treino ao vivo e o real no Diário real.
+- **Gráfico**: o mesmo `ChartView` com fonte trocável; desenhos do replay ficam na chave
+  `replay:<sessão>`, separados dos do ativo.
+
+## ADR-0026 — Exercícios de leitura e trilha (13/10/2026)
+
+- **Gabarito = detector**: o exercício corta uma série real (diário, ativo sorteado e oculto) num
+  candle fechado e pergunta o que o detector vê ali. Nada é escrito à mão; com parâmetros
+  personalizados, o gabarito segue os parâmetros do usuário.
+- **Sem pistas**: positivos e negativos têm as MESMAS perguntas (contar perguntas não entrega a
+  resposta); no negativo, as opções de preço giram em torno da máxima/mínima do último candle. O gráfico
+  do exercício não mostra datas nem marcações de setups (seriam a resposta). O gabarito e os 30 candles
+  de "depois" ficam no servidor até a resposta, e cada exercício é corrigido uma vez só.
+- **Níveis** (nossos): 1 = tem setup armado? qual?; 2 = + gatilho e stop; 3 = + escala maior contra?
+  "Qual?" aceita qualquer setup de compra armado no candle. Sem setup, responder "não" dispensa as
+  outras perguntas; "sim" erra todas.
+- **Desfecho**: o que o setup puro fez depois (acionou? R sem custos) e a variação do preço; o texto
+  lembra que um caso não prova nada.
+- **Trilha**: 10 módulos na ordem da SPEC; cada um com leitura (marcada pelo usuário), exercícios
+  perfeitos no nível pedido (com foco nos setups do módulo) e missão de replay (trades com plano
+  liberado do setup). Metas arbitrárias, para ritmo — não provam habilidade (isso é o Painel de
+  prontidão).
+

@@ -24,6 +24,7 @@ interface PrefsState extends Prefs {
   setMode(mode: Prefs['mode']): void;
   setPaperAccount(id: string): void;
   setReadiness(p: Prefs['readiness']): void;
+  setTrailRead(slugs: string[]): void;
   pushRecent(id: string, tf: Timeframe): void;
   loadFromServer(): Promise<void>;
   savePreset(p: IndicatorPreset): Promise<void>;
@@ -76,6 +77,10 @@ export const usePrefs = create<PrefsState>()(
       setReadiness: (readiness) => {
         set({ readiness });
         pushToServer({ readiness });
+      },
+      setTrailRead: (trailRead) => {
+        set({ trailRead });
+        pushToServer({ trailRead });
       },
       setSetupParams: (setupParams) => {
         set({ setupParams });

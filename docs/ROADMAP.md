@@ -88,7 +88,9 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
   números reais dependem da rede liberada no servidor e, para 10 anos de B3, de importar o COTAHIST
 - [x] Painel de prontidão (Treino e diálogo de mudar para Real; ADR-0018)
 - [x] Feedback depois de cada trade de treino (Diário → "Ver feedback"; ADR-0019)
-- [ ] Replay, exercícios de leitura, trilha
+- [x] Replay (`/replay`, ADR-0025): ativo e data sorteados, futuro escondido no servidor, feedback por
+  trade e estatísticas comparadas com o treino ao vivo e o real
+- [x] Exercícios de leitura (`/exercicios`) e trilha de aprendizado (`/trilha`), ADR-0026
 
 ## Fase 7 — B3 e forex em tempo real, scanner e fundamentos
 

@@ -14,11 +14,14 @@ export function Legend({
   meta,
   tf,
   skipped = [],
+  hideTime = false,
 }: {
   hover: HoverInfo | null;
   meta: SymbolMeta | null;
   tf: Timeframe;
   skipped?: readonly SkippedIndicator[];
+  /** Replay sorteado: a data entregaria o que aconteceu depois. */
+  hideTime?: boolean;
 }) {
   // Em telas pequenas os valores dos indicadores começam recolhidos.
   const [showValues, setShowValues] = useState(() => window.innerWidth >= 640);
@@ -30,9 +33,11 @@ export function Legend({
   return (
     <div className="pointer-events-none absolute left-2 right-20 top-1 z-10 text-[11px] leading-tight">
       <div className="flex flex-wrap gap-x-2 rounded bg-bg/70 px-1">
-        <span className="text-muted" data-testid="legend-time">
-          {chartTimeLabel(toChartTime(c.time, tf), tf)}
-        </span>
+        {!hideTime && (
+          <span className="text-muted" data-testid="legend-time">
+            {chartTimeLabel(toChartTime(c.time, tf), tf)}
+          </span>
+        )}
         <span>
           A <b>{formatNumber(c.open, d)}</b>
         </span>
