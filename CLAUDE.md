@@ -28,7 +28,8 @@ brasileiro, iniciante, não programador.
 ```
 apps/web          PWA React 19 + Vite 8 + Tailwind 4 + Lightweight Charts 5 (src/chart, src/pages)
 apps/server       Fastify 5 + @fastify/websocket + SQLite (better-sqlite3 + Drizzle; migrações em drizzle/)
-packages/core     lógica pura: indicators/ (streams incrementais), candles/ (agregação, sessão, HA)
+packages/core     lógica pura: indicators/, candles/, setups/ (detectores), alerts/, paper/, tax/, backtest/
+                  (motor, métricas, Monte Carlo, walk-forward), experiments/ (E2, E6, E7, comparação)
 packages/data     adaptadores de fontes (Binance, Alpaca, brapi, BCB, COTAHIST, simulador) + fixtures
 packages/shared   tipos, schemas zod, protocolo WS, formatação PT-BR
 agents/mt5-bridge agente Python do MetaTrader 5 (Fase 7)
@@ -53,6 +54,9 @@ pnpm --filter @radar/web build  # build do PWA
 pnpm --filter @radar/server db:generate   # nova migração após mudar src/db/schema.ts
 python3 tools/reference/generate_candles.py && python3 tools/reference/indicators_reference.py
 ```
+
+Os E2E sobem o servidor com `RATE_LIMIT_MAX=100000` (o padrão de produção, 600/min por IP, estoura com vários
+testes por segundo). Não edite páginas `.md` da Biblioteca enquanto roda E2E: o Vite recarrega a página no meio.
 
 No ambiente do Claude Code na nuvem, o Chromium está em `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`:
 `PW_CHROMIUM_PATH=<caminho> pnpm test:e2e`. **Não use `pkill -f` com padrões que aparecem no próprio
