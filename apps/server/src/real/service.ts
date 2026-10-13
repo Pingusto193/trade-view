@@ -12,7 +12,7 @@ import {
 } from '@radar/core';
 import {
   REAL_MARKETS,
-  formatNumber,
+  formatTrim,
   planMissing,
   type PaperEventKind,
   type PaperStats,
@@ -47,7 +47,7 @@ const BREAKEVEN_TOL = 0.00005;
 /** Execução no futuro é erro de digitação (com folga para relógios desalinhados). */
 const FUTURE_SLACK_MS = 10 * 60_000;
 /** Número em PT-BR sem zeros sobrando ("1.234,5"). */
-const num = (x: number) => formatNumber(x, 8).replace(/,?0+$/, '');
+const num = (x: number) => formatTrim(x);
 
 export interface RealJournal {
   trades: RealTrade[];
