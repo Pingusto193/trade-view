@@ -30,7 +30,9 @@ import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
+import { scannerRoutes } from './routes/scanner';
 import { userDataRoutes } from './routes/userdata';
+import { ScannerService } from './scanner/service';
 import { SyncHub } from './sync';
 
 export interface AppDeps {
@@ -58,6 +60,7 @@ export interface RadarApp {
   macro: MacroService;
   lab: LabService;
   experiments: ExperimentService;
+  scanner: ScannerService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -198,6 +201,8 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   labRoutes(app, lab);
   const experiments = new ExperimentService(db, market, deps.now);
   experimentRoutes(app, experiments);
+  const scanner = new ScannerService(db, market, hub, sync, app.log, env.RADAR_SIMULATED, deps.now);
+  scannerRoutes(app, scanner);
 
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
@@ -214,7 +219,22 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   app.addHook('onClose', async () => {
     alerts.close();
     paper.close();
+    scanner.close();
     hub.closeAll();
   });
-  return { app, market, hub, store, auth, sync, alerts, notifier, paper, macro, lab, experiments };
+  return {
+    app,
+    market,
+    hub,
+    store,
+    auth,
+    sync,
+    alerts,
+    notifier,
+    paper,
+    macro,
+    lab,
+    experiments,
+    scanner,
+  };
 }

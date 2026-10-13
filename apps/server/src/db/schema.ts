@@ -432,3 +432,42 @@ export const experimentRuns = sqliteTable(
   },
   (t) => [index('experiment_runs_user_idx').on(t.userId, t.experimentId, t.createdAt)],
 );
+
+/** Varreduras salvas do scanner (SPEC §14): universo + escala + filtros, com agenda opcional. */
+export const scans = sqliteTable(
+  'scans',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /** Universo, escala e filtros (JSON validado por zod). */
+    config: text('config').notNull(),
+    schedule: text('schedule', { enum: ['off', 'daily', 'intraday'] }).notNull(),
+    /** Por ativo: último pregão (ou dia UTC) já varrido pela agenda diária. */
+    autoState: text('auto_state').notNull().default('{}'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [index('scans_user_idx').on(t.userId)],
+);
+
+/**
+ * Último resultado de cada varredura (salva ou avulsa do usuário), com data, fonte e atraso de cada
+ * ativo. Chave: "salva:<id>" ou "avulsa:<usuário>".
+ */
+export const scanResults = sqliteTable(
+  'scan_results',
+  {
+    key: text('key').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    scanId: text('scan_id').references(() => scans.id, { onDelete: 'cascade' }),
+    running: integer('running', { mode: 'boolean' }).notNull().default(false),
+    updatedAt: integer('updated_at').notNull(),
+    snapshot: text('snapshot').notNull(),
+  },
+  (t) => [index('scan_results_user_idx').on(t.userId)],
+);

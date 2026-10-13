@@ -43,6 +43,13 @@
       "when": 1791847691249,
       "tag": "0005_experiment_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791894232237,
+      "tag": "0006_scanner",
+      "breakpoints": true
     }
   ]
 }
