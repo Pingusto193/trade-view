@@ -1,4 +1,4 @@
-import { formatNumber, formatPercent } from '@radar/shared';
+import { formatNumber, formatPercent, formatSessionDate } from '@radar/shared';
 import type { z } from 'zod';
 import { Detector, highestHigh } from '../base';
 import type { reflexivitySchema } from '../params';
@@ -37,29 +37,37 @@ export class Reflexivity extends Detector {
 
   /**
    * Fundamentos: null = fracos (não é distorção). Senão, as notas e o quanto foi verificado.
-   * Campo nulo = não verificado (nunca conta como forte).
+   * Campo nulo = não verificado (nunca conta como forte); LPA ≤ 0 no último exercício = fraco.
    */
   private fundamentals(
     fu: Fundamentals | null | undefined,
   ): { notes: string[]; verified: 'todos' | 'parte' | 'nenhum' } | null {
     const eps = fu?.epsGrowth2y ?? null;
     const rev = fu?.revenueNoDecline ?? null;
-    if ((eps !== null && eps < this.p.minEpsGrowth) || rev === false) return null;
+    if ((eps !== null && eps < this.p.minEpsGrowth) || fu?.epsNegative || rev === false)
+      return null;
+    const extra = fu?.notes ?? [];
     if (!fu || (eps === null && rev === null))
       return {
         notes: [
           fu
             ? `Fundamentos NÃO verificados (${fu.source} sem dados de LPA e receita).`
-            : 'Fundamentos NÃO verificados (fonte de fundamentos ainda não configurada).',
+            : 'Fundamentos NÃO verificados (sem dados de balanço disponíveis aqui).',
+          ...extra,
         ],
         verified: 'nenhum',
       };
+    // fonte e exercício usados (ex.: "SEC EDGAR, exercício até 31/12/2025")
+    const src = fu.periodEnd
+      ? `${fu.source}, exercício até ${formatSessionDate(fu.periodEnd)}`
+      : fu.source;
     return {
       notes: [
         eps !== null
-          ? `LPA cresceu ${formatPercent(eps, 0)} a.a. em 2 anos (${fu.source}).`
+          ? `LPA cresceu ${formatPercent(eps, 0)} a.a. em 2 anos (${src}).`
           : 'Crescimento do LPA NÃO verificado.',
-        rev === true ? `Receita sem queda (${fu.source}).` : 'Receita NÃO verificada.',
+        rev === true ? `Receita sem queda (${src}).` : 'Receita NÃO verificada.',
+        ...extra,
       ],
       verified: eps !== null && rev !== null ? 'todos' : 'parte',
     };

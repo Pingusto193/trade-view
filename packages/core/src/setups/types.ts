@@ -81,11 +81,24 @@ export interface HigherContext {
   tfLabel: string;
 }
 
-/** Fundamentos (Fase 7). Nulo = não verificado. */
+/**
+ * Fundamentos (SPEC §8.8, ADR-0024), calculados em `fundamentals/annual.ts` só com exercícios ANUAIS.
+ * Campo nulo = não verificado (nunca conta como forte).
+ */
 export interface Fundamentals {
+  /** Crescimento anual composto do LPA em 2 exercícios (0,2 = 20% a.a.); null = não verificado. */
   epsGrowth2y: number | null;
+  /** Receita anual sem queda nos 2 últimos exercícios; null = não verificado. */
   revenueNoDecline: boolean | null;
+  /** true = LPA do último exercício ≤ 0 (prejuízo): o critério do LPA FALHA (não é "não verificado"). */
+  epsNegative?: boolean;
   source: string;
+  /** Fim do último exercício anual usado (meia-noite UTC). */
+  periodEnd?: number;
+  /** Publicação do documento mais recente usado (meia-noite UTC). */
+  filedAt?: number;
+  /** Explicações curtas: por que um campo ficou nulo, erro da fonte e data do último dado válido. */
+  notes?: string[];
 }
 
 export interface StepContext {

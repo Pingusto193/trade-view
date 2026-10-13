@@ -167,14 +167,21 @@ export function applyFilters(a: ScanAnalysis | null, f: ScanFilters): FilterOutc
 
   if (f.fundamentals) {
     const fu = a.fundamentals;
-    const missing = (what: string) =>
+    // o porquê do campo nulo (histórico curto, fonte fora do ar...) vem nas notas da fonte
+    const why = (prefix: string) => {
+      const n = fu?.notes?.find((x) => x.startsWith(prefix));
+      return n ? ` (${n.slice(prefix.length).trim().replace(/\.$/, '')})` : '';
+    };
+    const missing = (what: string, prefix: string) =>
       fu
-        ? `${NOT_VERIFIED}: ${fu.source} sem dado de ${what}`
-        : `${NOT_VERIFIED} (fonte de fundamentos ainda não ligada)`;
+        ? `${NOT_VERIFIED}: ${fu.source} sem dado de ${what}${why(prefix)}`
+        : `${NOT_VERIFIED} (sem fonte de fundamentos para este ativo)`;
     if (f.fundamentals.minEpsGrowth !== undefined) {
       const min = f.fundamentals.minEpsGrowth;
       const eps = fu?.epsGrowth2y ?? null;
-      if (eps === null) add('eps', 'LPA', 'unverified', missing('LPA'));
+      if (fu?.epsNegative)
+        add('eps', 'LPA', 'fail', 'LPA negativo ou zero no último exercício (prejuízo)');
+      else if (eps === null) add('eps', 'LPA', 'unverified', missing('LPA', 'LPA:'));
       else if (eps >= min)
         add('eps', 'LPA', 'ok', `LPA cresceu ${pct(eps)} a.a. em 2 anos (mínimo ${pct(min)})`);
       else
@@ -182,7 +189,7 @@ export function applyFilters(a: ScanAnalysis | null, f: ScanFilters): FilterOutc
     }
     if (f.fundamentals.revenueNoDecline) {
       const rev = fu?.revenueNoDecline ?? null;
-      if (rev === null) add('revenue', 'Receita', 'unverified', missing('receita'));
+      if (rev === null) add('revenue', 'Receita', 'unverified', missing('receita', 'Receita:'));
       else if (rev) add('revenue', 'Receita', 'ok', 'receita sem queda');
       else add('revenue', 'Receita', 'fail', 'receita em queda');
     }

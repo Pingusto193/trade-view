@@ -38,7 +38,13 @@ export interface EngineOptions {
    * (seria look-ahead): por padrão o motor a calcula em cada candle, com a mesma regra do painel.
    */
   respectedMa?: StepContext['respectedMa'];
+  /** Fundamentos fixos (scanner, alertas: o que se sabe hoje); null = não verificado. */
   fundamentals?: Fundamentals | null;
+  /**
+   * Fundamentos que mudam com o tempo (laboratório): chamado com o `time` de cada candle e deve
+   * devolver só o que foi publicado ANTES dele (sem look-ahead). Tem prioridade sobre `fundamentals`.
+   */
+  fundamentalsAt?: (time: number) => Fundamentals | null;
 }
 
 /** Texto do aviso vermelho (SPEC §9) anotado nos eventos contra a escala maior. */
@@ -104,7 +110,9 @@ export class SetupEngine {
       higher,
       respectedMa:
         this.opts.respectedMa !== undefined ? this.opts.respectedMa : this.respectedAt(t),
-      fundamentals: this.opts.fundamentals ?? null,
+      fundamentals: this.opts.fundamentalsAt
+        ? this.opts.fundamentalsAt(c.time)
+        : (this.opts.fundamentals ?? null),
     };
     const out: SetupEvent[] = [];
     for (const d of this.detectors) out.push(...d.step(this.series, t, ctx));

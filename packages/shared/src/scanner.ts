@@ -188,7 +188,15 @@ export interface ScanFundamentals {
   epsGrowth2y: number | null;
   /** Receita sem queda; null = não verificado. */
   revenueNoDecline: boolean | null;
+  /** true = LPA do último exercício ≤ 0 (prejuízo): o critério do LPA falha. */
+  epsNegative?: boolean;
   source: string;
+  /** Fim do último exercício anual usado (meia-noite UTC). */
+  periodEnd?: number;
+  /** Publicação do documento mais recente usado (meia-noite UTC). */
+  filedAt?: number;
+  /** Explicações (campo nulo, erro da fonte, último dado válido). */
+  notes?: string[];
 }
 
 /** Ocorrência ATIVA de um setup no último candle fechado (mesmo motor do gráfico). */

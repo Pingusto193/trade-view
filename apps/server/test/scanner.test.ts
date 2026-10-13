@@ -179,7 +179,7 @@ describe('scanner no servidor (SPEC §14)', () => {
     expect(bad.source?.status.state).toBe('error');
   });
 
-  it('filtro "Distorção (reflexividade)": sem fonte de fundamentos, passa só na parte gráfica', async () => {
+  it('filtro "Distorção (reflexividade)": ativo sem fonte de fundamentos (cripto) passa só na parte gráfica', async () => {
     const { t, req, list, done } = await setup();
     t.fake.candles = longDrop();
     await req('POST', '/api/scanner/run', {
@@ -192,7 +192,7 @@ describe('scanner no servidor (SPEC §14)', () => {
     expect(a.analysis!.drawdown.w52!).toBeGreaterThan(0.5);
     expect(a.filter).toMatchObject({ pass: false, chartOnly: true });
     expect(a.filter!.reasons).toEqual([
-      'fundamentos não verificados (fonte de fundamentos ainda não ligada)',
+      'fundamentos não verificados (sem fonte de fundamentos para este ativo)',
     ]);
   });
 

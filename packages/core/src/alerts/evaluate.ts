@@ -5,7 +5,13 @@ import { EmaStream, SmaStream } from '../indicators/averages';
 import { BollingerStream, DmiStream } from '../indicators/volatility';
 import { DEFAULT_SETUP_PARAMS, type SetupParams } from '../setups/params';
 import { SetupEngine } from '../setups/engine';
-import { EXIT_LABEL, SETUP_LABEL, STATE_LABEL, type SetupEvent } from '../setups/types';
+import {
+  EXIT_LABEL,
+  SETUP_LABEL,
+  STATE_LABEL,
+  type Fundamentals,
+  type SetupEvent,
+} from '../setups/types';
 
 /**
  * Avaliação de alertas (SPEC §10). Lógica pura e incremental: o servidor alimenta candles da fonte e
@@ -284,6 +290,8 @@ export interface AlertRuntimeOptions {
   decimals?: number;
   /** Máximo de candles fechados mantidos em memória. */
   maxCandles?: number;
+  /** Fundamentos conhecidos hoje (reflexividade); null = não verificado. */
+  fundamentals?: Fundamentals | null;
 }
 
 /**
@@ -298,8 +306,10 @@ export class AlertRuntime {
   private setupEngine: SetupEngine | null = null;
   private idx: TimeIndex | null = null;
   private readonly view: View;
+  private fundamentals: Fundamentals | null;
 
   constructor(private readonly opts: AlertRuntimeOptions) {
+    this.fundamentals = opts.fundamentals ?? null;
     const decimals = opts.decimals ?? 2;
     this.view = {
       timeIndex: () => {
@@ -316,6 +326,11 @@ export class AlertRuntime {
 
   get size(): number {
     return this.alerts.size;
+  }
+
+  /** Troca os fundamentos (o servidor atualiza de tempos em tempos); vale a partir do próximo candle. */
+  setFundamentals(f: Fundamentals | null): void {
+    this.fundamentals = f;
   }
 
   get lastClosedTime(): number | null {
@@ -364,6 +379,7 @@ export class AlertRuntime {
       tick: this.opts.tick,
       tf: this.opts.tf,
       tz: this.opts.tz,
+      fundamentalsAt: () => this.fundamentals,
     });
     for (const c of this.closed) engine.push(c);
     engine.events.length = 0;
