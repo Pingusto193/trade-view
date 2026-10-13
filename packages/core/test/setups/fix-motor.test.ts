@@ -356,8 +356,20 @@ describe('R3-03: aviso vermelho contra a escala maior', () => {
     expect(r.trend.value).toBe('lateral');
     expect(r.wind.value).toBe('contra');
     expect(r.wind.label).toMatch(/compras/);
+    expect(r.wind.against).toBe('compras');
     const down = computeContext(waves(-1, 10).list, { higherTrend: 'baixa' })!;
     expect(down.wind.value).toBe('contra');
+    expect(down.wind.against).toBe('compras');
+  });
+
+  it('painel: maior em alta e esta em baixa = contra para VENDAS (compra não leva aviso vermelho)', () => {
+    const r = computeContext(waves(-1, 10).list, { higherTrend: 'alta' })!;
+    expect(r.trend.value).toBe('baixa');
+    expect(r.wind.value).toBe('contra');
+    expect(r.wind.against).toBe('vendas');
+    expect(r.wind.label).toMatch(/vendas/);
+    const aligned = computeContext(waves(1, 10).list, { higherTrend: 'alta' })!;
+    expect(aligned.wind.against).toBeNull();
   });
 });
 

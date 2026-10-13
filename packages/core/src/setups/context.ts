@@ -38,7 +38,10 @@ export interface ContextReport {
   /** Heurística EXPERIMENTAL. */
   maturity: ContextItem<'jovem' | 'madura' | 'cansada' | 'indefinida'>;
   /** Comparação com a escala maior: a escala maior manda. */
-  wind: ContextItem<'a-favor' | 'contra' | 'neutro' | 'sem-dados'>;
+  wind: ContextItem<'a-favor' | 'contra' | 'neutro' | 'sem-dados'> & {
+    /** Lado que vai contra a escala maior quando o vento é "contra" (aviso vermelho só para esse lado). */
+    against: 'compras' | 'vendas' | null;
+  };
 }
 
 const f = (n: number, d = 2) => formatNumber(n, d);
@@ -358,7 +361,7 @@ export function computeContext(
   // ---- vento (escala maior manda). Compra com a escala maior em baixa = aviso vermelho, qualquer que
   // seja a tendência desta escala (SPEC §9). Com a maior em alta, é "contra" quando esta está em baixa.
   let wind: 'a-favor' | 'contra' | 'neutro' | 'sem-dados' = 'sem-dados';
-  let windFor = 'compras';
+  let windFor: 'compras' | 'vendas' = 'compras';
   const windWhy: string[] = [];
   const higher = opts.higherTrend && opts.higherTrend !== 'indefinida' ? opts.higherTrend : null;
   if (higher) {
@@ -437,6 +440,7 @@ export function computeContext(
               ? 'Neutro'
               : 'Escala maior sem dados',
       why: windWhy,
+      against: wind === 'contra' ? windFor : null,
     },
   };
 }

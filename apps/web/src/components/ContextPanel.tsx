@@ -61,7 +61,7 @@ export function ContextPanel({ id, tf }: { id: string; tf: Timeframe }) {
   if (!r)
     return (
       <p className="p-3 text-sm text-muted">
-        Poucos candles para avaliar o contexto (mínimo de 30).
+        Poucos candles para avaliar o contexto (mínimo de 31 fechados).
       </p>
     );
   const trendTone = r.trend.value === 'alta' ? 'good' : r.trend.value === 'baixa' ? 'bad' : 'warn';
