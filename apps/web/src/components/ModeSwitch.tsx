@@ -58,7 +58,7 @@ export function ModeSwitch() {
                 Meus números do treino
               </Link>
             </p>
-            <div className="flex gap-2 pt-1">
+            <div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2 border-t border-line bg-panel px-4 py-3">
               <button
                 className="rounded border border-line px-3 py-1"
                 onClick={() => setAsking(false)}

@@ -77,6 +77,8 @@ test('diálogos ficam acima das alças internas do gráfico (toque não é rouba
   const btn = page
     .getByRole('dialog', { name: 'Mudar para o modo Real' })
     .getByRole('button', { name: 'Continuar no treino' });
+  await btn.scrollIntoViewIfNeeded();
+  await expect(btn).toBeInViewport();
   const b = (await btn.boundingBox())!;
   // põe a alça entre painéis do gráfico (z-index 50 da biblioteca) exatamente sob o botão
   const moved = await page.evaluate(
