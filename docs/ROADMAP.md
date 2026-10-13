@@ -63,8 +63,10 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 5 — Risco, plano, diário e Modo Treino ao vivo
 
-- [ ] Calculadora de posição por mercado; plano de trade com checklist e avisos
-- [ ] Diário com eventos (stop movido para trás etc.) e estatísticas
+- [x] Calculadora de posição por mercado (`/calculadora`); plano de trade com checklist e avisos (boleta
+  do treino e diário real; ADR-0022)
+- [x] Diário com eventos (stop movido para trás, parciais, breakeven) e estatísticas — treino e **diário
+  real** (`/diario`) com IR estimado e comparação treino × real (ADR-0022)
 - [~] Painel Brasil (CDI, Selic, IR da B3 com apuração mensal): página Brasil com Selic e CDI do Banco
   Central (cache, erro honesto com último dado válido), treino comparado ao CDI do mesmo período e IR
   simulado no diário. **Não testado contra o BCB real** (rede bloqueada aqui; testado com respostas no

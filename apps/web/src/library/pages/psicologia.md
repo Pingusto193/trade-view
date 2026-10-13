@@ -80,7 +80,7 @@ Marcar tudo sem ler não ajuda. O valor está em parar alguns segundos e respond
 
 O Modo Treino usa preço real e custos, mas o dinheiro é fictício. Perder R$ 500,00 de mentira não pesa como perder R$ 500,00 de verdade. Por isso, a disciplina no treino pode ser melhor do que a que você vai ter no real.
 
-A especificação do Radar prevê comparar, lado a lado, as estatísticas do treino e as do real. Segundo ela, uma diferença grande entre os dois costuma indicar um problema emocional ou de execução, e não da regra. Essa comparação ainda não existe no app: hoje só o treino tem diário com estatísticas.
+A especificação do Radar prevê comparar, lado a lado, as estatísticas do treino e as do real. Segundo ela, uma diferença grande entre os dois costuma indicar um problema emocional ou de execução, e não da regra. No Radar, isso fica no [Diário real](/diario): você registra os trades feitos na corretora e o quadro "Treino × real" compara acerto, R médio, disciplina e stops movidos para trás. A conclusão só aparece com pelo menos 20 trades encerrados em cada lado, e os limites do que conta como "diferença grande" (0,3R; 15 pontos percentuais) são escolhas nossas, arbitrárias.
 
 ## Limites
 
