@@ -369,3 +369,19 @@ escala do setup do plano (sem plano: diário) e o mesmo detector do app:
 - **Limitações conhecidas**: parâmetros dos setups e limite de risco são os de hoje, não os do dia da
   entrada (não há editor de parâmetros ainda, então na prática não mudam); com várias saídas, o tipo de
   saída é o da última e o preço é o médio.
+
+## ADR-0020 — Scanner multi-mercado (13/10/2026)
+
+Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/src/scanner`):
+
+- **Mesma lógica do gráfico**: cada ativo passa pelo mesmo motor de setups e pelo painel de contexto, só
+  com candles FECHADOS (o candle em formação nunca entra). Mínimo de 31 candles fechados por ativo.
+- **Limites**: até 60 ativos por varredura (20 no intradiário), um ativo por vez, usando o cache e o tempo
+  mínimo entre buscas de cada fonte (ADR-0010); ativos além do limite são contados e avisados.
+- **Agenda**: diária (confere a cada minuto se há pregão novo fechado pela sessão da fonte, com folga de
+  5 min + atraso da fonte) e, só para listas, a cada candle intradiário fechado. Servidor reiniciado no
+  meio = execução marcada como erro explicado.
+- **Fundamentos**: sem fonte ligada, o filtro de fundamentos nunca "passa"; o filtro pronto "Distorção
+  (reflexividade)" mostra à parte quem passa só na parte gráfica ("fundamentos não verificados").
+- **Escala semanal**: no diário, o semanal é montado a partir de 600 candles diários (~120 semanas); nas
+  outras escalas é pedido à parte (~5 anos).

@@ -92,7 +92,8 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 - [ ] Agente MT5 (Python) com simulador e guia
 - [ ] Forex
-- [ ] Scanner multi-mercado e filtro de reflexividade
+- [~] Scanner multi-mercado e filtro de reflexividade (`/scanner`, ADR-0020): pronto e testado com dados
+  simulados; resultados reais dependem do servidor publicado; fundamentos ainda sem fonte ligada
 - [ ] Fundamentos (SEC EDGAR, CVM)
 
 ## Fase 8 — Produção
