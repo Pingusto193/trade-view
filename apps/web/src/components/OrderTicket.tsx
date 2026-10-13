@@ -1,5 +1,6 @@
 import { SETUP_LABEL, positionSize, riskPctWarnings, type SetupId } from '@radar/core';
 import {
+  AGAINST_HIGHER_WARNING,
   EXIT_CRITERIA,
   FRACTAL_MAPPINGS,
   PSYCH_CHECKS,
@@ -139,9 +140,7 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
     ...(sizing?.warnings ?? []),
     ...riskPctWarnings(prefs.riskPct, prefs.maxRiskPct),
     // a boleta do treino só compra: o aviso vermelho vale quando a escala maior está em baixa
-    ...(ctx?.wind.against === 'compras'
-      ? ['⚠ Compra contra a escala maior (aviso vermelho).']
-      : []),
+    ...(ctx?.wind.against === 'compras' ? [AGAINST_HIGHER_WARNING] : []),
     ...(ctx?.adx.value === 'lateral' ? ['ADX abaixo de 20: mercado lateral.'] : []),
   ];
 

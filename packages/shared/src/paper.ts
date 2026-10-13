@@ -99,8 +99,14 @@ export interface PaperPosition {
   entryFx: number;
   delayNote: string | null;
   generation: number;
-  /** Plano de entrada (sem o print), se houve. */
-  plan: (Omit<TradePlan, 'screenshot'> & { released: boolean; hasScreenshot: boolean }) | null;
+  /** Plano de entrada (sem o print), se houve. `missing` = o que faltava para liberar, na entrada. */
+  plan:
+    | (Omit<TradePlan, 'screenshot'> & {
+        released: boolean;
+        hasScreenshot: boolean;
+        missing?: string[];
+      })
+    | null;
   /**
    * Só no diário: risco planejado em % do patrimônio (trades fechados) na entrada — null quando não
    * dá para medir (sem stop, ou de antes de um reinício da conta).
@@ -222,6 +228,17 @@ export const tradePlanSchema = z.object({
     .nullable(),
 });
 export type TradePlan = z.infer<typeof tradePlanSchema>;
+
+/**
+ * Aviso automático da boleta gravado no plano quando a compra vai contra a escala maior (aviso
+ * vermelho, SPEC §9/§11). O feedback do trade lê este registro.
+ */
+export const AGAINST_HIGHER_WARNING = '⚠ Compra contra a escala maior (aviso vermelho).';
+
+/** O plano registrou, na entrada, que a compra ia contra a escala maior? */
+export function planAgainstHigher(warnings: readonly string[]): boolean {
+  return warnings.some((w) => /contra a escala maior/i.test(w));
+}
 
 /** O que falta para o plano ficar "Liberado" (lista vazia = liberado). */
 export function planMissing(
