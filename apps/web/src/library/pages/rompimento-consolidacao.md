@@ -163,7 +163,7 @@ A especificação deixa pontos em aberto. Onde não havia regra, o Radar escolhe
 - **"Corpo grande"** = 1,2 vez o corpo médio dos 20 candles anteriores (número nosso), em candle de qualquer cor.
 - **Sem segunda chance**: rompimento sem volume ou sem corpo cancela o setup, em vez de esperar outro rompimento.
 - **Sem dado de volume**: o volume da caixa não é conferido (com aviso); o do rompimento cancela o setup, a menos que a exigência de volume esteja desligada.
-- **Entrada na abertura seguinte**, a qualquer preço, no modo rompimento. Nesse modo, o alvo não é arredondado ao tick; no reteste, é.
+- **Entrada na abertura seguinte**, a qualquer preço, no modo rompimento. O alvo é arredondado ao tick mais próximo nos dois modos (rompimento e reteste), como nos outros setups.
 - **Reteste**: tolerância de 0,25 ATR acima do topo, validade de 10 candles, gatilho que acompanha a máxima de cada candle e stop limitado ao topo da caixa. Os dois números (0,25 e 10) e as duas regras são nossos.
 - **Falso rompimento depois da compra** só gera alerta, uma vez, nos 2 candles a partir da entrada. A saída fica por conta do stop.
 - **Condução**: o vídeo fala em "MME9 vira para baixo e a mínima é perdida". O Radar usa "fechou abaixo da MME9 com a MME9 caindo" para subir o stop até a mínima desse candle; "perder a mínima" é tocar 1 tick abaixo dela, sem esperar o fechamento.
