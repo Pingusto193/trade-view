@@ -52,6 +52,22 @@ jobs:
       - name: TypeScript precisa bater com a referência regerada (tolerância 1e-9)
         run: pnpm vitest run packages/core/test/indicators.reference.test.ts
 
+  mt5-agent:
+    name: Agente MT5 (Python, só biblioteca padrão)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Simulador, protocolo e "só leitura" (o pacote MetaTrader5 só existe no Windows)
+        working-directory: agents/mt5-bridge
+        run: python -m unittest discover -s tests -t . -v
+
   e2e:
     name: E2E (Playwright, dados simulados)
     runs-on: ubuntu-latest
