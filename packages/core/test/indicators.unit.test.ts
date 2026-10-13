@@ -1,4 +1,4 @@
-import type { Candle } from '@radar/shared';
+import type { Candle, Timeframe } from '@radar/shared';
 import { describe, expect, it } from 'vitest';
 import {
   CHANNEL_PRESET,
@@ -7,8 +7,11 @@ import {
   IndicatorEngine,
   computeIndicators,
   ema,
+  indicatorSkipReason,
+  skippedIndicators,
   sma,
   stopAtrMultiplier,
+  type IndicatorPreset,
 } from '../src';
 
 function candle(time: number, close: number, extra: Partial<Candle> = {}): Candle {
@@ -80,6 +83,47 @@ describe('preset "Padrão do canal"', () => {
 
   it('preset "Limpo" só mostra volume', () => {
     expect(CLEAN_PRESET.indicators.filter((i) => i.enabled).map((i) => i.kind)).toEqual(['volume']);
+  });
+});
+
+describe('VWAP só no intradiário', () => {
+  const withVwap: IndicatorPreset = {
+    ...CHANNEL_PRESET,
+    indicators: CHANNEL_PRESET.indicators.map((i) =>
+      i.kind === 'vwap' ? { ...i, enabled: true } : i,
+    ),
+  };
+  const vwapCfg = withVwap.indicators.find((i) => i.kind === 'vwap');
+  if (!vwapCfg) throw new Error('vwap ausente');
+  // Dois candles de 5 min no mesmo dia: preço típico 10 (vol. 1.000) e 12 (vol. 3.000).
+  const twoCandles = [candle(0, 10, { volume: 1000 }), candle(300_000, 12, { volume: 3000 })];
+  const aviso = 'VWAP só faz sentido no intradiário';
+
+  it.each<Timeframe>(['1d', '1w', '1M'])('%s: não calcula nem desenha a VWAP; avisa', (tf) => {
+    const out = computeIndicators(twoCandles, withVwap, tf);
+    expect(out.find((o) => o.id === 'vwap')).toBeUndefined();
+    expect(out.find((o) => o.id === 'mme9')).toBeDefined(); // os outros continuam
+    expect(indicatorSkipReason(vwapCfg, tf)).toBe(aviso);
+    expect(skippedIndicators(withVwap, tf)).toEqual([{ id: 'vwap', label: 'VWAP', reason: aviso }]);
+  });
+
+  it.each<Timeframe>(['1m', '5m', '15m', '30m', '60m'])('%s: desenha a VWAP, sem aviso', (tf) => {
+    const out = computeIndicators(twoCandles, withVwap, tf);
+    // (10 × 1.000 + 12 × 3.000) ÷ 4.000 = 11,5
+    expect(out.find((o) => o.id === 'vwap')?.lines[0]?.values).toEqual([10, 11.5]);
+    expect(indicatorSkipReason(vwapCfg, tf)).toBeNull();
+    expect(skippedIndicators(withVwap, tf)).toEqual([]);
+  });
+
+  it('VWAP desligada não gera aviso em nenhuma escala', () => {
+    expect(skippedIndicators(CHANNEL_PRESET, '1d')).toEqual([]);
+  });
+
+  it('motor incremental também fica sem a VWAP no diário', () => {
+    const eng = new IndicatorEngine(withVwap, '1d');
+    eng.reset(twoCandles.slice(0, 1));
+    eng.update(twoCandles[1] as Candle, false);
+    expect(eng.outputs.find((o) => o.id === 'vwap')).toBeUndefined();
   });
 });
 

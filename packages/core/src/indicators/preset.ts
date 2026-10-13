@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Candle, Timeframe } from '@radar/shared';
+import { isIntraday } from '@radar/shared';
 import { EmaStream, SmaStream } from './averages';
 import { MacdStream, RsiStream, StochasticStream, VwapStream } from './oscillators';
 import type { Stream } from './stream';
@@ -244,6 +245,36 @@ export function indicatorLabel(cfg: IndicatorConfig): string {
     case 'vwap':
       return 'VWAP';
   }
+}
+
+/** Aviso mostrado quando a VWAP está ligada numa escala diária ou maior. */
+export const VWAP_INTRADAY_ONLY = 'VWAP só faz sentido no intradiário';
+
+/**
+ * Por que um indicador não é calculado nem desenhado nesta escala (`null` = é desenhado).
+ * VWAP: recomeça a cada data local da bolsa; no diário, semanal e mensal cada candle tem data
+ * própria e a "VWAP" seria só o preço típico do candle — enganosa. Decisão nossa: não desenhar.
+ */
+export function indicatorSkipReason(cfg: IndicatorConfig, tf: Timeframe): string | null {
+  if (cfg.kind === 'vwap' && !isIntraday(tf)) return VWAP_INTRADAY_ONLY;
+  return null;
+}
+
+export interface SkippedIndicator {
+  id: string;
+  label: string;
+  reason: string;
+}
+
+/** Indicadores LIGADOS no preset que ficam de fora nesta escala, com o aviso para a legenda. */
+export function skippedIndicators(preset: IndicatorPreset, tf: Timeframe): SkippedIndicator[] {
+  const out: SkippedIndicator[] = [];
+  for (const cfg of preset.indicators) {
+    if (!cfg.enabled) continue;
+    const reason = indicatorSkipReason(cfg, tf);
+    if (reason) out.push({ id: cfg.id, label: indicatorLabel(cfg), reason });
+  }
+  return out;
 }
 
 export function stopAtrMultiplier(
@@ -494,7 +525,7 @@ export class IndicatorEngine {
 
   reset(candles: readonly Candle[], lastOpen = false): IndicatorOutput[] {
     this.comps = this.preset.indicators
-      .filter((i) => i.enabled)
+      .filter((i) => i.enabled && indicatorSkipReason(i, this.tf) === null)
       .map((cfg) => makeComputer(cfg, this.tf, this.sessionKey));
     this.candles = [];
     this.formingTime = null;
