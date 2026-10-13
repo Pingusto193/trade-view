@@ -22,6 +22,7 @@ import { ApiError, api } from '../lib/api';
 import { usePaper } from '../lib/paper-store';
 import { usePrefs } from '../lib/prefs';
 import { useReal } from '../lib/real-store';
+import { replayJournal } from '../lib/replay-store';
 
 const card = 'rounded border border-line bg-panel p-3';
 const field = 'w-full rounded border border-line bg-bg px-2 py-1 text-sm';
@@ -575,66 +576,81 @@ function ClosedTrade({ t }: { t: RealTrade }) {
   );
 }
 
-const cmpRow = (label: string, a: string, b: string) => (
-  <tr key={label}>
-    <td className="text-muted">{label}</td>
-    <td>{a}</td>
-    <td>{b}</td>
-  </tr>
-);
-
 function Compare({ real }: { real: PaperStats }) {
   const id = usePaper((s) => s.activeId());
   const loaded = usePaper((s) => s.loaded);
   const load = usePaper((s) => s.load);
   const [paper, setPaper] = useState<PaperStats | null>(null);
+  const [replay, setReplay] = useState<PaperStats | null>(null);
   useEffect(() => {
     if (!loaded) void load();
   }, [loaded, load]);
   useEffect(() => {
-    if (!id) return;
     let alive = true;
-    api<{ stats: PaperStats }>(`/api/paper/accounts/${id}/journal?all=1`)
-      .then((j) => alive && setPaper(j.stats))
-      .catch(() => alive && setPaper(null));
+    replayJournal()
+      .then((j) => alive && setReplay(j.stats))
+      .catch(() => alive && setReplay(null));
+    if (id)
+      api<{ stats: PaperStats }>(`/api/paper/accounts/${id}/journal?all=1`)
+        .then((j) => alive && setPaper(j.stats))
+        .catch(() => alive && setPaper(null));
     return () => {
       alive = false;
     };
   }, [id]);
-  if (!paper) return null;
-  const c = compareJournals({ label: 'treino', stats: paper }, { label: 'real', stats: real });
+  const cols = [
+    ...(paper ? [{ label: 'treino ao vivo', head: 'Treino', stats: paper }] : []),
+    ...(replay ? [{ label: 'replay', head: 'Replay', stats: replay }] : []),
+    { label: 'real', head: 'Real', stats: real },
+  ];
+  if (cols.length < 2) return null;
   const f = (x: number | null, d = 2, suf = '') =>
     x === null ? '—' : `${formatNumber(x, d)}${suf}`;
+  const rows: [string, (s: PaperStats) => string][] = [
+    ['Trades', (s) => String(s.trades)],
+    ['Acerto', (s) => f(s.winRate === null ? null : s.winRate * 100, 0, '%')],
+    ['Média em R', (s) => f(s.avgR, 2, 'R')],
+    ['Disciplina', (s) => f(s.disciplinePct, 0, '%')],
+    ['Stop para trás', (s) => String(s.stopMovedBack)],
+  ];
+  const results = cols
+    .filter((c) => c.label !== 'real')
+    .map((c) => ({
+      c,
+      r: compareJournals({ label: c.label, stats: c.stats }, { label: 'real', stats: real }),
+    }));
+  const findings = results.flatMap((x) => x.r.findings);
+  const enough = results.some((x) => x.r.enough);
   return (
     <section className={`${card} space-y-2`} aria-label="Treino × real">
-      <h2 className="font-semibold">Treino × real</h2>
+      <h2 className="font-semibold">Treino × replay × real</h2>
       <table className="w-full text-xs">
         <thead>
           <tr className="text-left text-muted">
             <th />
-            <th>Treino</th>
-            <th>Real</th>
+            {cols.map((c) => (
+              <th key={c.label}>{c.head}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {cmpRow('Trades', String(paper.trades), String(real.trades))}
-          {cmpRow(
-            'Acerto',
-            f(paper.winRate && paper.winRate * 100, 0, '%'),
-            f(real.winRate && real.winRate * 100, 0, '%'),
-          )}
-          {cmpRow('Média em R', f(paper.avgR, 2, 'R'), f(real.avgR, 2, 'R'))}
-          {cmpRow('Disciplina', f(paper.disciplinePct, 0, '%'), f(real.disciplinePct, 0, '%'))}
-          {cmpRow('Stop para trás', String(paper.stopMovedBack), String(real.stopMovedBack))}
+          {rows.map(([label, fn]) => (
+            <tr key={label}>
+              <td className="text-muted">{label}</td>
+              {cols.map((c) => (
+                <td key={c.label}>{fn(c.stats)}</td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
-      {!c.enough ? (
+      {!enough ? (
         <p className="text-xs text-muted">
           Para comparar com algum valor são precisos pelo menos 20 trades encerrados em cada lado.
         </p>
-      ) : c.findings.length ? (
+      ) : findings.length ? (
         <ul className="space-y-1 text-xs text-warn" role="alert">
-          {c.findings.map((x) => (
+          {findings.map((x) => (
             <li key={x}>⚠ {x}</li>
           ))}
         </ul>
