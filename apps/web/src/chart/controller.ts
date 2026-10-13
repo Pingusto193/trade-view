@@ -65,6 +65,8 @@ export interface ControllerOptions {
   downColor: string;
   onHover(info: HoverInfo | null): void;
   onCrosshairTime?(timeMs: number | null, tf: Timeframe): void;
+  /** Esconde datas e horários (eixo e cursor) — replay sorteado. */
+  hideTime?: boolean;
   /** Liga a camada de desenhos (ativo + callbacks de persistência). */
   drawing?: { symbolId: string; callbacks: DrawingCallbacks };
 }
@@ -106,9 +108,13 @@ export class ChartController {
         panes: { separatorColor: '#1f2937', separatorHoverColor: '#334155', enableResize: true },
       },
       grid: { vertLines: { color: '#111827' }, horzLines: { color: '#111827' } },
-      crosshair: { mode: CrosshairMode.Normal },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        ...(opts.hideTime ? { vertLine: { labelVisible: false } } : {}),
+      },
       rightPriceScale: { borderColor: '#1f2937' },
       timeScale: {
+        visible: !opts.hideTime,
         borderColor: '#1f2937',
         rightOffset: 6,
         timeVisible: timeframeRank(tf) < timeframeRank('1d'),

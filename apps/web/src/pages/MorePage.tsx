@@ -9,6 +9,12 @@ const ITEMS = [
   },
   { to: '/treino', icon: '🎯', label: 'Treino', desc: 'Conta fictícia com preços reais' },
   {
+    to: '/replay',
+    icon: '⏪',
+    label: 'Replay',
+    desc: 'Treine no passado, candle a candle, com ativo e data sorteados',
+  },
+  {
     to: '/calculadora',
     icon: '🧮',
     label: 'Calculadora de posição',

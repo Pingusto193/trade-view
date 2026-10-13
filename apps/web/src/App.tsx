@@ -22,6 +22,7 @@ import { ScannerPage } from './pages/ScannerPage';
 import { SetupParamsPage } from './pages/SetupParamsPage';
 import { RealJournalPage } from './pages/RealJournalPage';
 import { CalculatorPage } from './pages/CalculatorPage';
+import { ReplayPage } from './pages/ReplayPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { TrainingPage } from './pages/TrainingPage';
 
@@ -131,6 +132,7 @@ function Shell() {
           <Route path="/setups/parametros" element={<SetupParamsPage />} />
           <Route path="/diario" element={<RealJournalPage />} />
           <Route path="/calculadora" element={<CalculatorPage />} />
+          <Route path="/replay" element={<ReplayPage />} />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
           <Route

@@ -22,15 +22,18 @@ const fmtR = (v: number | null) =>
 export function TradeFeedbackPanel({
   positionId,
   realR,
+  url,
 }: {
   positionId: string;
   realR: number | null;
+  /** Outro endereço de feedback (replay). */
+  url?: string;
 }) {
   const [fb, setFb] = useState<FeedbackBody | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    api<FeedbackBody>(`/api/paper/positions/${encodeURIComponent(positionId)}/feedback`)
+    api<FeedbackBody>(url ?? `/api/paper/positions/${encodeURIComponent(positionId)}/feedback`)
       .then((b) => {
         if (alive) setFb(b);
       })
@@ -40,7 +43,7 @@ export function TradeFeedbackPanel({
     return () => {
       alive = false;
     };
-  }, [positionId]);
+  }, [positionId, url]);
 
   return (
     <section

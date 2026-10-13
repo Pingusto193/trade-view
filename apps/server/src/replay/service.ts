@@ -264,7 +264,7 @@ export class ReplayService {
    * Feedback de um trade do replay (SPEC §13), com a mesma lógica do treino ao vivo, usando SÓ os
    * candles já revelados — o feedback nunca mostra o futuro.
    */
-  feedback(userId: number, id: string, tradeId: string): TradeFeedback {
+  feedback(userId: number, id: string, tradeId: string): TradeFeedback & { source: string } {
     const r = this.row(userId, id);
     const book = JSON.parse(r.book) as ReplayBook;
     const t = book.trades.find((x) => x.id === tradeId);
@@ -272,7 +272,7 @@ export class ReplayService {
     const meta = JSON.parse(r.meta) as SymbolMeta;
     const candles = (JSON.parse(r.candles) as Candle[]).slice(0, r.cursor);
     const prefs = readPrefs(this.db, userId);
-    return tradeFeedback({
+    const fb = tradeFeedback({
       candles,
       tf: r.tf as Timeframe,
       tz: meta.session.timezone,
@@ -296,6 +296,11 @@ export class ReplayService {
       },
       plan: t.plan,
     });
+    const masked = r.hidden && r.status === 'ativa';
+    return {
+      ...fb,
+      source: `${masked ? 'fonte oculta até o fim' : meta.sourceLabel} — replay: só os candles já revelados`,
+    };
   }
 
   // ------------------------------------------------------------------ internos
