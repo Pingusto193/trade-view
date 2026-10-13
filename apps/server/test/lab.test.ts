@@ -133,6 +133,26 @@ describe('laboratório', () => {
     expect(run.verdict.reasons[0]).toMatch(/Nenhum sinal virou trade: risco não cabe no capital/);
   });
 
+  it('setup desligado no gráfico continua testável; parâmetro fora do permitido é recusado', async () => {
+    const t = await testApp({ bcb, now: () => T0 + 1600 * DAY });
+    close = () => t.app.close();
+    t.fake.candles = walk(1500);
+    const post = (params?: unknown) =>
+      t.app.inject({
+        method: 'POST',
+        url: '/api/lab/run',
+        headers: { 'content-type': 'application/json' },
+        payload: JSON.stringify({ symbolId: 'fake:AAA', tf: '1d', setups: ['s91'], params }),
+      });
+    const base = (await post()).json() as LabRun;
+    const off = (await post({ s91: { enabled: false } })).json() as LabRun;
+    expect(base.metrics.trades).toBeGreaterThan(0);
+    expect(off.metrics.trades).toBe(base.metrics.trades);
+    const bad = await post({ s91: { exit: { mode: 'fixed', targetR: 50 } } });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().error).toMatch(/fora do permitido/);
+  });
+
   it('poucos dados: recusa com explicação (nunca inventa)', async () => {
     const t = await testApp({ bcb });
     close = () => t.app.close();

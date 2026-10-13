@@ -160,7 +160,12 @@ export class LabService {
   }
 
   async run(userId: number, input: LabRunInput): Promise<LabRun> {
-    const params = setupParamsSchema.parse(input.params ?? {});
+    const parsed = setupParamsSchema.safeParse(input.params ?? {});
+    if (!parsed.success) throw new Error('Parâmetros dos setups fora do permitido.');
+    const params = parsed.data;
+    // no laboratório quem escolhe os setups são as caixinhas: um setup desligado no gráfico
+    // (preferências) continua testável aqui
+    for (const s of input.setups) params[s].enabled = true;
     const resp = await this.market.getCandles(input.symbolId, input.tf, input.bars);
     const meta: SymbolMeta = resp.meta;
     const candles = resp.lastCandleOpen ? resp.candles.slice(0, -1) : resp.candles;
