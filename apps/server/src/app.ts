@@ -23,11 +23,13 @@ import { ExperimentService } from './experiments/service';
 import { LabService } from './lab/service';
 import { MacroService } from './macro/service';
 import { PaperService } from './paper/service';
+import { RealJournalService } from './real/service';
 import { alertRoutes } from './routes/alerts';
 import { experimentRoutes } from './routes/experiments';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
+import { realRoutes } from './routes/real';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
 import { scannerRoutes } from './routes/scanner';
@@ -193,6 +195,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     },
   );
   paperRoutes(app, paper);
+  realRoutes(app, new RealJournalService(db, sync, deps.now));
 
   const macro = new MacroService(db, deps.bcb, deps.now);
   macroRoutes(app, macro);
