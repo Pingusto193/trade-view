@@ -2,6 +2,7 @@ import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AdapterRegistry } from '@radar/data';
 import { buildApp } from './app';
+import { scheduleBackups } from './backup';
 import { openDb } from './db/client';
 import { loadEnv } from './env';
 
@@ -43,6 +44,15 @@ async function main() {
   await paper.start();
   // scanner: agenda diária (pregão fechado) e a cada candle intradiário das listas (SPEC §14)
   scanner.start();
+  // backup diário do banco, com retenção (SPEC §17)
+  if (env.BACKUP_EVERY_HOURS > 0 && env.DATABASE_PATH !== ':memory:')
+    scheduleBackups({
+      sqlite: db.$client,
+      dbPath: env.DATABASE_PATH,
+      everyHours: env.BACKUP_EVERY_HOURS,
+      keep: env.BACKUP_KEEP,
+      log: app.log,
+    });
   if (env.RADAR_SIMULATED)
     app.log.warn('ATENÇÃO: fonte de DADOS SIMULADOS ligada (somente desenvolvimento)');
 }

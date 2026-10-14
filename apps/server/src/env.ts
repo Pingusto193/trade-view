@@ -26,6 +26,13 @@ export const envSchema = z.object({
    * dividem o mesmo IP. Os testes de ponta a ponta sobem com um limite alto (vários testes por segundo).
    */
   RATE_LIMIT_MAX: z.coerce.number().int().min(10).default(600),
+  /** Backup automático (SPEC §17): intervalo em horas (0 = desligado) e quantos guardar. */
+  BACKUP_EVERY_HOURS: z.coerce
+    .number()
+    .min(0)
+    .max(24 * 30)
+    .default(24),
+  BACKUP_KEEP: z.coerce.number().int().min(1).max(365).default(14),
   /** Pasta com o build do front (apps/web/dist) para servir em produção. */
   WEB_DIST: z.string().optional(),
   /** Chave (base64, 32 bytes) do cofre de segredos. Vazia = arquivo app-secret.key ao lado do banco. */
