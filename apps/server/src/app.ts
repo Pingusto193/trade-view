@@ -32,6 +32,7 @@ import { paperRoutes } from './routes/paper';
 import { realRoutes } from './routes/real';
 import { replayRoutes } from './routes/replay';
 import { learnRoutes } from './routes/learn';
+import { exportRoutes } from './routes/export';
 import { LearnService } from './learn/service';
 import { ReplayService } from './replay/service';
 import { authRoutes, installAuthGuard } from './routes/auth';
@@ -202,6 +203,19 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   realRoutes(app, new RealJournalService(db, sync, deps.now));
   replayRoutes(app, new ReplayService(db, market, sync, env.RADAR_SIMULATED, deps.now));
   learnRoutes(app, new LearnService(db, market, env.RADAR_SIMULATED, deps.now));
+  exportRoutes(
+    app,
+    db,
+    sync,
+    {
+      // depois de importar: alertas e treino voltam a acompanhar o que veio no arquivo
+      reload: async (userId) => {
+        await alerts.reloadUser(userId);
+        await paper.start();
+      },
+    },
+    deps.now,
+  );
 
   const macro = new MacroService(db, deps.bcb, deps.now);
   macroRoutes(app, macro);
