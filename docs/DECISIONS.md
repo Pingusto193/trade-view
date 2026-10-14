@@ -471,3 +471,19 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
   liberado do setup). Metas arbitrárias, para ritmo — não provam habilidade (isso é o Painel de
   prontidão).
 
+## ADR-0027 — Backup automático e exportação completa (14/10/2026)
+
+- **Backup diário no próprio servidor** (SPEC §17): a cada `BACKUP_EVERY_HOURS` (24) horas, cópia
+  consistente do SQLite (API de backup, com o servidor rodando) + `app-secret.key` + `vapid.json` em
+  `data/backups/<data>`; guarda os `BACKUP_KEEP` (14) mais novos. Falha vira log, nunca derruba o
+  servidor. Fica no mesmo disco: o guia manda copiar para fora.
+- **Exportar/importar JSON pela tela** (Conta › Seus dados): todas as tabelas com `user_id` entram
+  sozinhas (e as filhas listadas em `CHILD`); ficam de fora conta e senha, sessões, tentativas de login,
+  convites, assinaturas de push (presas ao aparelho), canais de notificação (tokens criptografados com a
+  chave deste servidor) e caches de mercado.
+- **Importar substitui tudo** do usuário numa transação (falhou = nada muda); colunas desconhecidas são
+  ignoradas e as novas ficam com o padrão. Limitação: IDs numéricos podem colidir com dados de OUTRO
+  usuário no servidor de destino — a importação é desfeita e a mensagem sugere um servidor novo.
+- **Guias**: `GUIA_BACKUP`, `GUIA_IPHONE`, `FAQ`; `GUIA_DEPLOY` e `GUIA_TELEGRAM` apontam para os guias
+  existentes (publicação e notificações) para não duplicar texto.
+

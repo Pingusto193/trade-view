@@ -89,6 +89,12 @@ Os dados ficam no volume `radar-data` e não se perdem ao atualizar.
 
 ## 8. Backup (faça antes de cada atualização e toda semana)
 
+O servidor já faz **um backup por dia sozinho** (guarda os 14 mais novos em `/data/backups`). Mas ele fica
+no mesmo disco: copie para fora de vez em quando. Detalhes, exportação pela tela e como restaurar:
+`GUIA_BACKUP.md`.
+
+Backup na hora (ex.: antes de atualizar) e cópia para o seu computador:
+
 ```bash
 docker compose exec radar ./node_modules/.bin/tsx src/cli/backup.ts
 docker compose cp radar:/data/backups ./backups
