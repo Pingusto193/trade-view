@@ -6,6 +6,8 @@ test('replay sorteado: avança candle a candle, compra, encerra, revela o ativo 
   page.on('dialog', (d) => void d.accept());
   await page.goto('/replay');
   await page.getByRole('button', { name: 'Sortear ativo e data' }).click();
+  // o sorteio pode cair no BTC simulado (~60 mil por unidade): capital grande para caber 1 unidade
+  await page.getByLabel('Capital fictício').fill('100000000');
   await page.getByRole('button', { name: 'Começar' }).click();
 
   await expect(page.getByTestId('replay-symbol')).toHaveText('Ativo sorteado');

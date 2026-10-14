@@ -479,7 +479,7 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
   servidor. Fica no mesmo disco: o guia manda copiar para fora.
 - **Exportar/importar JSON pela tela** (Conta › Seus dados): todas as tabelas com `user_id` entram
   sozinhas (e as filhas listadas em `CHILD`); ficam de fora conta e senha, sessões, tentativas de login,
-  convites, assinaturas de push (presas ao aparelho), canais de notificação (tokens criptografados com a
+  convites, tokens do agente MT5, assinaturas de push (presas ao aparelho), canais de notificação (tokens criptografados com a
   chave deste servidor) e caches de mercado.
 - **Importar substitui tudo** do usuário numa transação (falhou = nada muda); colunas desconhecidas são
   ignoradas e as novas ficam com o padrão. Limitação: IDs numéricos podem colidir com dados de OUTRO
