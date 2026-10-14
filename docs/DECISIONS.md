@@ -535,3 +535,56 @@ Python no Windows, simulador e guia (`docs/GUIA_MT5.md`). Fatos em DATA_SOURCES 
 **Limitações.** As regras de volume dos setups só estão rotuladas no forex, não desligadas (exigiria
 passar a qualidade do volume ao motor em todas as chamadas). Nada foi testado com um terminal MT5 real.
 Na hora repetida da volta do horário de verão do servidor vale a primeira leitura.
+
+
+## ADR-0024 — Fundamentos (SEC EDGAR e CVM) (14/10/2026)
+
+Fatos externos em `DATA_SOURCES.md` §6 (todos 🟡 ou ❌, nenhum testado contra a fonte real 🔌).
+
+- **Lógica única no core** (`packages/core/src/fundamentals/annual.ts`): os adaptadores
+  (`packages/data/src/adapters/sec-edgar.ts` e `cvm.ts`) só traduzem o formato da fonte em fatos
+  (`FundamentalFact`: período, valor, documento e data de publicação); o cálculo é o mesmo no scanner,
+  nos alertas e no laboratório.
+- **Só exercícios anuais**: duração de 340 a 380 dias; exercícios "seguidos" terminam 350 a 380 dias
+  depois do anterior (52/53 semanas incluídas). Trimestres (10-Q, ITR) e acumulados de 6/9 meses ficam
+  de fora; o ITR da CVM não é baixado. Troca de ano fiscal quebra a sequência → não verificado, a não ser
+  que o balanço novo traga os anos anteriores refeitos.
+- **`epsGrowth2y`** = crescimento anual composto em 2 exercícios, √(LPA_ano ÷ LPA_ano−2) − 1, calculado
+  encadeando as razões ano a ano **dentro do mesmo documento** (desdobramento: o documento novo refaz os
+  comparativos por ação, o antigo não). Arredondado a 9 casas (20% exatos não reprovam por erro binário).
+  LPA ≤ 0 no último exercício = **fraco** (`epsNegative`, suprime o radar e reprova o filtro); LPA ≤ 0
+  dois exercícios antes = **não verificado** (a conta não se aplica). Prejuízo só no ano do meio não
+  impede a conta.
+- **`revenueNoDecline`** = receita do ano ≥ ano−1 ≥ ano−2, sem tolerância; vale o último valor publicado
+  de cada exercício (reapresentações contam). Com só 2 exercícios, uma queda já é "false"; sem queda,
+  "não verificado".
+- **Contas**: SEC = `us-gaap`, LPA `EarningsPerShareBasic` (reserva `EarningsPerShareBasicAndDiluted`) em
+  USD/shares; receita `RevenueFromContractWithCustomerExcludingAssessedTax` > `…IncludingAssessedTax` >
+  `Revenues` > `SalesRevenueNet` em USD; só relatórios anuais (10-K, 20-F, 40-F e emendas). Outra moeda
+  ou `ifrs-full` = não usado, com aviso. CVM = conta 3.01 (receita; em bancos e seguradoras é a receita
+  deles, com aviso) e 3.99.01.* (LPA básico) da classe do ticker; consolidada antes da individual, sem
+  misturar as duas na mesma série. Receita multiplicada pela escala (MIL); LPA já vem em reais por ação.
+- **Ticker → empresa**: SEC pelo `company_tickers.json` (ponto e hífen normalizados); B3 pelo FCA da CVM
+  (`valor_mobiliario`: código de negociação, CNPJ e classe), que é oficial — por isso **não** há tabela
+  feita à mão. Se o mesmo código aparece duas vezes, vale o que ainda negocia e, entre eles, o documento
+  mais novo. Classe PN×PNA que não bate: usa a única linha de preferenciais do documento, se houver só uma.
+  Units, ETFs, FIIs e BDRs ficam sem fundamentos; fracionário (PETR4F) usa o código do lote padrão.
+- **Dado velho**: último exercício terminado há mais de 550 dias = não verificado.
+- **Cache e limites** (`apps/server/src/fundamentals/service.ts`, migração 0008): fatos por documento e
+  mapas de ticker no SQLite; nada é apagado (reapresentação entra como documento novo). Validade: 7 dias
+  (tickers, companyfacts, FCA e DFPs do ano atual e do anterior), 30 dias para DFPs antigas; uma busca por
+  chave de cada vez; depois de erro, 30 min sem tentar. SEC a no máximo 5 req/s (metade do limite) e só
+  com `SEC_USER_AGENT`; CVM a 2 req/s. Fonte fora do ar = último dado guardado + erro + data; sem nada
+  guardado = "não verificado" com o motivo. Dados simulados, cripto e forex: sem fundamentos (null).
+- **Onde vale**: scanner (fundamentos de hoje em cada linha), alertas de reflexividade (lidos ao ligar a
+  série, espera máx. 10 s, e relidos a cada 12 h) e `GET /api/fundamentals`. O **gráfico do navegador
+  ainda não consulta** (fica "não verificado" lá) — próximo passo, fora deste item.
+- **Laboratório sem look-ahead**: `FundamentalsTimeline` dá, em cada candle, só os balanços com data de
+  publicação conhecida e **anterior ao dia do candle** (SEC `filed`; CVM `DT_RECEB`); fato sem data fica
+  de fora. No semanal o candle é datado na segunda-feira, então balanços da própria semana só valem na
+  seguinte (conservador). Espera até 20 s pelos downloads (a primeira vez da B3 baixa ~13 MB por ano
+  desde 3 anos antes do início do teste); se não der, roda sem o filtro e avisa. Limitação: se a CVM
+  guardar só a última versão de cada documento (❌), uma reapresentação faz o laboratório "ver" aquele
+  balanço só a partir da data dela — mais tarde, nunca antes.
+- **E7 fica como está** (sem fundamentos): mede só a regra do pivô em ~20 anos, e os dados abertos da CVM
+  começam em 2010.

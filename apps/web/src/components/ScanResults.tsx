@@ -405,9 +405,9 @@ export function ScanResults({
       </div>
       {current === 'chart' && (
         <p className="text-xs text-warn">
-          Passam em tudo, menos nos fundamentos, que não puderam ser verificados (nenhuma fonte de
-          fundamentos ligada ainda). Não é “aprovado”: confira o lucro e a receita por conta
-          própria.
+          Passam em tudo, menos nos fundamentos, que não puderam ser verificados (sem balanço para o
+          ativo, histórico curto ou fonte fora do ar: veja o motivo na linha). Não é “aprovado”:
+          confira o lucro e a receita por conta própria.
         </p>
       )}
       {rows.length === 0 ? (

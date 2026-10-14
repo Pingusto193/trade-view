@@ -17,6 +17,9 @@ const SKIP = new Set([
   'invites',
   'push_subscriptions',
   'notify_settings',
+  // tokens do agente MT5: credenciais presas a este servidor (gere outro no servidor novo)
+  'mt5_tokens',
+  'mt5_symbols',
   'candles',
   'series_fetch',
   'macro_series',

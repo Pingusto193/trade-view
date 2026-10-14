@@ -15,3 +15,7 @@ Os testes reais, contra as APIs, ficam em `test/live.test.ts` e só rodam com `R
 | `alpaca-bars-page1.json`, `alpaca-bars-page2.json` | `GET /v2/stocks/{sym}/bars` | 🟡 |
 | `brapi-quote-history.json`, `brapi-quote-live.json` | `GET /api/quote/{ticker}` | 🟡 |
 | `bcb-sgs-12.json` | `GET /dados/serie/bcdata.sgs.12/dados` | 🟡 |
+| `sec-company-tickers.json` | `https://www.sec.gov/files/company_tickers.json` | 🟡 (descrito por terceiros; empresas e CIKs **fictícios**) |
+| `sec-companyfacts-ficticia.json` | `GET /api/xbrl/companyfacts/CIK##########.json` | 🟡 (empresa fictícia; 10-K com comparativos, 4º trimestre dentro do 10-K e 10-Q) |
+| `cvm/dfp_cia_aberta_AAAA.csv`, `cvm/dfp_cia_aberta_DRE_con_AAAA.csv`, `cvm/dfp_cia_aberta_DRE_ind_AAAA.csv` | arquivos de dentro do zip anual da DFP da CVM | 🟡 (layout lido no código do pycvm; CNPJs e empresas **fictícios**; os testes convertem para ISO-8859-1 e montam o zip) |
+| `cvm/fca_cia_aberta_valor_mobiliario_2026.csv` | arquivo de dentro do zip do FCA da CVM | 🟡 (idem) |

@@ -1,5 +1,5 @@
 import type { Candle, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
-import type { BcbClient } from '@radar/data';
+import type { BcbClient, CvmClient, SecEdgarClient } from '@radar/data';
 import {
   AdapterRegistry,
   DataSourceError,
@@ -23,6 +23,8 @@ export class FakeAdapter implements MarketDataAdapter {
   calls = 0;
   handlers: SubscribeHandlers[] = [];
   closed = 0;
+  /** Troca campos dos metadados (ex.: mercado 'us' ou 'b3' para os testes de fundamentos). */
+  metaPatch: Partial<SymbolMeta> = {};
 
   isConfigured() {
     return true;
@@ -62,6 +64,7 @@ export class FakeAdapter implements MarketDataAdapter {
       timeframes: ['1m', '1d'],
       adjusted: 'yes',
       notes: [],
+      ...this.metaPatch,
     };
   }
   async getCandles(req: CandleRequest): Promise<Candle[]> {
@@ -123,6 +126,8 @@ export async function testApp(
     bcb?: BcbClient;
     /** Liga RADAR_SIMULATED (aceita o simulador do agente MT5). */
     simulated?: boolean;
+    sec?: SecEdgarClient;
+    cvm?: CvmClient;
   } = {},
 ) {
   const fake = new FakeAdapter();
@@ -142,6 +147,8 @@ export async function testApp(
     logger: false,
     ...(opts.senders ? { senders: opts.senders.senders } : {}),
     ...(opts.bcb ? { bcb: opts.bcb } : {}),
+    ...(opts.sec ? { sec: opts.sec } : {}),
+    ...(opts.cvm ? { cvm: opts.cvm } : {}),
     ...(opts.now !== undefined
       ? { now: typeof opts.now === 'function' ? opts.now : () => opts.now as number }
       : {}),

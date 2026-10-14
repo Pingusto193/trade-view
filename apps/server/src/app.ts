@@ -5,7 +5,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
-import type { AdapterRegistry, BcbClient } from '@radar/data';
+import { CvmClient, SecEdgarClient, type AdapterRegistry, type BcbClient } from '@radar/data';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { AlertService } from './alerts/service';
@@ -13,6 +13,7 @@ import { SecretBox } from './auth/crypto';
 import { AuthError, AuthService } from './auth/service';
 import type { Db } from './db/client';
 import type { Env } from './env';
+import { FundamentalsService } from './fundamentals/service';
 import { CandleStore } from './market/candle-store';
 import { MarketHub } from './market/hub';
 import { MarketService } from './market/service';
@@ -27,6 +28,7 @@ import { PaperService } from './paper/service';
 import { RealJournalService } from './real/service';
 import { alertRoutes } from './routes/alerts';
 import { experimentRoutes } from './routes/experiments';
+import { fundamentalsRoutes } from './routes/fundamentals';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
@@ -54,6 +56,9 @@ export interface AppDeps {
   senders?: Partial<Senders>;
   /** Cliente do Banco Central (testes usam fixtures). */
   bcb?: BcbClient;
+  /** Fontes de fundamentos (testes usam fixtures). */
+  sec?: SecEdgarClient;
+  cvm?: CvmClient;
 }
 
 export interface RadarApp {
@@ -71,6 +76,7 @@ export interface RadarApp {
   experiments: ExperimentService;
   scanner: ScannerService;
   mt5: Mt5Service;
+  fundamentals: FundamentalsService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -175,6 +181,15 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
       }),
   };
   const notifier = new Notifier(db, box, senders, vapid.publicKey, deps.now);
+  // fundamentos (SEC EDGAR e CVM): scanner, alertas de reflexividade e laboratório (ADR-0024)
+  const fundamentals = new FundamentalsService(
+    db,
+    deps.sec ?? new SecEdgarClient(env.SEC_USER_AGENT ? { userAgent: env.SEC_USER_AGENT } : {}),
+    deps.cvm ?? new CvmClient(),
+    deps.now,
+    app.log,
+  );
+  fundamentalsRoutes(app, fundamentals, market);
   const alerts = new AlertService(
     db,
     market,
@@ -184,6 +199,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     env.PUBLIC_URL,
     app.log,
     deps.now,
+    fundamentals,
   );
   alertRoutes(app, alerts, notifier, sync, env.PUBLIC_URL);
 
@@ -227,11 +243,20 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   const macro = new MacroService(db, deps.bcb, deps.now);
   macroRoutes(app, macro);
 
-  const lab = new LabService(db, market, macro, deps.now);
+  const lab = new LabService(db, market, macro, deps.now, fundamentals);
   labRoutes(app, lab);
   const experiments = new ExperimentService(db, market, deps.now);
   experimentRoutes(app, experiments);
-  const scanner = new ScannerService(db, market, hub, sync, app.log, env.RADAR_SIMULATED, deps.now);
+  const scanner = new ScannerService(
+    db,
+    market,
+    hub,
+    sync,
+    app.log,
+    env.RADAR_SIMULATED,
+    deps.now,
+    fundamentals,
+  );
   scannerRoutes(app, scanner);
 
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
@@ -268,5 +293,6 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     experiments,
     scanner,
     mt5,
+    fundamentals,
   };
 }

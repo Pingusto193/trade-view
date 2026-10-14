@@ -427,6 +427,40 @@ describe('applyFilters (filtros combináveis)', () => {
     ).toBe(true);
   });
 
+  it('LPA negativo (prejuízo) reprova de verdade; o motivo do campo nulo vem das notas da fonte', () => {
+    const f = F({ fundamentals: { minEpsGrowth: 0.2, revenueNoDecline: true } });
+    const loss = applyFilters(
+      row({
+        fundamentals: {
+          epsGrowth2y: null,
+          revenueNoDecline: true,
+          epsNegative: true,
+          source: 'CVM',
+        },
+      }),
+      f,
+    );
+    expect(loss).toMatchObject({ pass: false, chartOnly: false });
+    expect(loss.reasons).toEqual(['LPA negativo ou zero no último exercício (prejuízo)']);
+    const short = applyFilters(
+      row({
+        fundamentals: {
+          epsGrowth2y: 0.3,
+          revenueNoDecline: null,
+          source: 'SEC EDGAR',
+          notes: [
+            'Receita: menos de 3 exercícios anuais seguidos (histórico curto ou troca de ano fiscal).',
+          ],
+        },
+      }),
+      f,
+    );
+    expect(short).toMatchObject({ pass: false, chartOnly: true });
+    expect(short.reasons).toEqual([
+      'fundamentos não verificados: SEC EDGAR sem dado de receita (menos de 3 exercícios anuais seguidos (histórico curto ou troca de ano fiscal))',
+    ]);
+  });
+
   it('"Distorção (reflexividade)": hoje, sem fonte de fundamentos, só passa na parte gráfica', () => {
     const out = applyFilters(row(), DISTORTION_FILTERS);
     expect(out).toMatchObject({ pass: false, chartOnly: true });

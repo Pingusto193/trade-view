@@ -102,8 +102,13 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 - [~] Forex pelo agente MT5: busca, gráfico, sessão 24/5 de Nova York, tick volume rotulado, lotes.
   Não testado com corretora real; regras de volume dos setups só rotuladas (não desligadas) no forex
 - [~] Scanner multi-mercado e filtro de reflexividade (`/scanner`, ADR-0020): pronto e testado com dados
-  simulados; resultados reais dependem do servidor publicado; fundamentos ainda sem fonte ligada
-- [ ] Fundamentos (SEC EDGAR, CVM)
+  simulados; resultados reais dependem do servidor publicado; fundamentos ligados (item abaixo)
+- [~] Fundamentos (SEC EDGAR, CVM) (ADR-0024): adaptadores da SEC (companyfacts + company_tickers) e da
+  CVM (DFP anual + FCA para ticker → CNPJ), cálculo único no core (LPA composto em 2 anos e receita sem
+  queda), cache no SQLite, scanner, alertas de reflexividade e laboratório sem look-ahead. **Não testado
+  contra as fontes reais** (SEC e CVM bloqueadas no ambiente; fixtures fictícias feitas à mão; layout da
+  CVM conferido só em fonte secundária). Falta: o gráfico do navegador consultar os fundamentos e rodar
+  `SEC_USER_AGENT=... pnpm test:live`
 
 ## Fase 8 — Produção
 

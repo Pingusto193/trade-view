@@ -59,6 +59,7 @@ describe('exportar e importar (JSON)', () => {
       'login_attempts',
       'push_subscriptions',
       'notify_settings',
+      'mt5_tokens',
     ])
       expect(file.tables[secret], secret).toBeUndefined();
     expect(JSON.stringify(file)).not.toMatch(/argon2|password/i);

@@ -1,0 +1,22 @@
+{
+ "0": {
+  "cik_str": 9990001,
+  "ticker": "FICTA",
+  "title": "FICTICIA ALFA INC"
+ },
+ "1": {
+  "cik_str": 9990002,
+  "ticker": "FCT-B",
+  "title": "FICTICIA BETA CORP CLASS B"
+ },
+ "2": {
+  "cik_str": 9990003,
+  "ticker": "FICTA",
+  "title": "repetido: o primeiro vale"
+ },
+ "3": {
+  "cik_str": "x",
+  "ticker": "RUIM",
+  "title": "cik invalido"
+ }
+}

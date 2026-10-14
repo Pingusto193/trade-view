@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { AlertRuntime, type AlertHit, type DrawingGeometry, type RuntimeAlert } from '@radar/core';
+import {
+  AlertRuntime,
+  type AlertHit,
+  type DrawingGeometry,
+  type Fundamentals,
+  type RuntimeAlert,
+} from '@radar/core';
 import {
   TIMEFRAME_LABEL,
   alertInputSchema,
@@ -13,12 +19,14 @@ import {
   type Candle,
   type FeedStatus,
   type ServerMessage,
+  type SymbolMeta,
   type Timeframe,
 } from '@radar/shared';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
 import { alertFires, alerts, drawings } from '../db/schema';
+import type { FundamentalsService } from '../fundamentals/service';
 import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
 import type { Notifier } from '../notify/notifier';
@@ -27,6 +35,10 @@ import type { SyncHub } from '../sync';
 
 /** Tempo com a fonte em erro até disparar o alerta de sistema "fonte caiu". */
 export const SOURCE_DOWN_MS = 3 * 60_000;
+/** De quanto em quanto tempo os fundamentos de uma série com alerta de reflexividade são relidos. */
+export const FUNDAMENTALS_REFRESH_MS = 12 * 3600_000;
+/** Espera máxima pelos fundamentos ao ligar uma série (depois seguem chegando em segundo plano). */
+const FUNDAMENTALS_WAIT_MS = 10_000;
 
 interface Group {
   key: string;
@@ -41,6 +53,11 @@ interface Group {
   label: string;
   errorSince: number | null;
   disposed: boolean;
+  /** Metadados da fonte (para reler os fundamentos). */
+  meta: SymbolMeta | null;
+  /** Algum alerta da série acompanha a reflexividade (a única que usa fundamentos). */
+  reflex: boolean;
+  fundAt: number;
 }
 
 function rowToAlert(r: typeof alerts.$inferSelect): Alert | null {
@@ -75,6 +92,8 @@ export class AlertService {
     private readonly publicUrl: string,
     private readonly log: FastifyBaseLogger,
     private readonly now: () => number = Date.now,
+    /** Fundamentos para os alertas de reflexividade; ausente = "não verificados". */
+    private readonly fund: FundamentalsService | null = null,
   ) {
     this.stopSync = sync.onChange((userId, msg) => {
       // desenho mudou ou parâmetros dos setups mudaram: reavalia os alertas do usuário
@@ -258,6 +277,11 @@ export class AlertService {
       label: first.symbolId.split(':')[1] ?? first.symbolId,
       errorSince: null,
       disposed: false,
+      meta: null,
+      reflex: list.some(
+        (a) => a.condition.kind === 'setup' && a.condition.setups.includes('reflexivity'),
+      ),
+      fundAt: 0,
     };
     this.groups.set(key, g);
     // assina antes de aquecer e guarda o que chegar no meio do caminho
@@ -265,7 +289,9 @@ export class AlertService {
     try {
       const meta = await this.market.getMeta(g.symbolId);
       g.label = meta.symbol;
+      g.meta = meta;
       const hist = await this.market.getCandles(g.symbolId, g.tf, 1500);
+      const fundamentals = g.reflex ? await this.fundamentals(g, FUNDAMENTALS_WAIT_MS) : null;
       if (g.disposed) return;
       const runtime = new AlertRuntime({
         tf: g.tf,
@@ -273,6 +299,7 @@ export class AlertService {
         tick: meta.tickSize,
         decimals: meta.priceDecimals,
         setupParams: this.setupParams(userId),
+        fundamentals,
       });
       runtime.warmup(hist.candles, hist.lastCandleOpen);
       for (const a of list) {
@@ -314,8 +341,35 @@ export class AlertService {
     this.process(g, m.candle, m.closed);
   }
 
+  /**
+   * Fundamentos de hoje para a série (SEC EDGAR/CVM). Com `waitMs`, desiste de esperar (o resultado
+   * chega depois, pelo `then`); falha = "não verificados", nunca derruba os alertas.
+   */
+  private fundamentals(g: Group, waitMs?: number): Promise<Fundamentals | null> {
+    if (!this.fund || !g.meta) return Promise.resolve(null);
+    g.fundAt = this.now();
+    const p = this.fund.forSymbol(g.meta).then(
+      (f) => {
+        g.runtime?.setFundamentals(f);
+        return f;
+      },
+      (err: unknown) => {
+        this.log.warn({ err, key: g.key }, 'alertas: falha nos fundamentos');
+        return null;
+      },
+    );
+    if (waitMs === undefined) return p;
+    return Promise.race([
+      p,
+      new Promise<null>((ok) => setTimeout(() => ok(null), waitMs).unref?.()),
+    ]);
+  }
+
   private process(g: Group, candle: Candle, closed: boolean): void {
     if (!g.runtime) return;
+    // fundamentos mudam por trimestre: relê de tempos em tempos, sem segurar a avaliação
+    if (closed && g.reflex && this.now() - g.fundAt > FUNDAMENTALS_REFRESH_MS)
+      void this.fundamentals(g);
     let hits: AlertHit[];
     try {
       hits = g.runtime.update(candle, closed);

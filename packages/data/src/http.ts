@@ -48,7 +48,20 @@ export class HttpClient {
 
   /** GET que devolve JSON, passando pela fila. */
   getJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
-    const run = this.queue.then(() => this.execute<T>(url, headers));
+    return this.enqueue(url, headers, async (res) => (await res.json()) as T);
+  }
+
+  /** GET que devolve os bytes (ex.: arquivos .zip), passando pela mesma fila e limites. */
+  getBytes(url: string, headers?: Record<string, string>): Promise<Uint8Array> {
+    return this.enqueue(url, headers, async (res) => new Uint8Array(await res.arrayBuffer()));
+  }
+
+  private enqueue<T>(
+    url: string,
+    headers: Record<string, string> | undefined,
+    read: (res: Response) => Promise<T>,
+  ): Promise<T> {
+    const run = this.queue.then(() => this.execute<T>(url, headers, read));
     this.queue = run.catch(() => undefined);
     return run;
   }
@@ -71,7 +84,11 @@ export class HttpClient {
     }
   }
 
-  private async execute<T>(url: string, headers?: Record<string, string>): Promise<T> {
+  private async execute<T>(
+    url: string,
+    headers: Record<string, string> | undefined,
+    read: (res: Response) => Promise<T>,
+  ): Promise<T> {
     const retries = this.opts.retries ?? 3;
     const base = this.opts.backoffMs ?? 1000;
     let lastErr: unknown;
@@ -97,7 +114,7 @@ export class HttpClient {
         await this.sleep(base * 2 ** attempt);
         continue;
       }
-      if (res.ok) return (await res.json()) as T;
+      if (res.ok) return read(res);
 
       if (res.status === 429 || res.status === 418) {
         const ra = Number(res.headers.get('retry-after'));

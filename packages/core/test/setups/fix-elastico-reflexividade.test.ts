@@ -302,6 +302,46 @@ describe('R2-09 — Reflexividade: aviso permanente e fundamentos em todas as fa
   });
 });
 
+describe('Reflexividade com fundamentos da fonte (ADR-0024)', () => {
+  it('LPA negativo no último exercício (prejuízo) é fraco: sem radar, mesmo com receita subindo', () => {
+    expect(
+      reflex(reflexSeries(), {
+        fundamentals: {
+          epsGrowth2y: null,
+          revenueNoDecline: true,
+          epsNegative: true,
+          source: 'CVM',
+        },
+      }),
+    ).toEqual([]);
+  });
+
+  it('as notas da fonte (exercício usado e motivo do campo nulo) acompanham o radar', () => {
+    const evs = reflex(reflexSeries(), {
+      fundamentals: {
+        epsGrowth2y: 0.25,
+        revenueNoDecline: null,
+        source: 'CVM (DFP)',
+        periodEnd: Date.UTC(2025, 11, 31),
+        notes: [
+          'Receita: menos de 3 exercícios anuais seguidos (histórico curto ou troca de ano fiscal).',
+        ],
+      },
+    });
+    const notes = evs.find((e) => e.state === 'radar')!.notes!.join(' ');
+    expect(notes).toMatch(
+      /LPA cresceu 25% a\.a\. em 2 anos \(CVM \(DFP\), exercício até 31\/12\/2025\)/,
+    );
+    expect(notes).toMatch(/Receita NÃO verificada/);
+    expect(notes).toMatch(/menos de 3 exercícios anuais/);
+  });
+
+  it('sem fundamentos: o motivo diz que não há dados de balanço', () => {
+    const radar = reflex(reflexSeries()).find((e) => e.state === 'radar')!;
+    expect(radar.notes?.join(' ')).toMatch(/sem dados de balanço disponíveis aqui/);
+  });
+});
+
 describe('R2-10 — Reflexividade só no semanal (weeklyOnly)', () => {
   it('no diário não roda; no semanal e sem escala informada roda como antes', () => {
     const b = reflexSeries();

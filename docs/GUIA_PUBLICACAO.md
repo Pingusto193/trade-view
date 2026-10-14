@@ -50,6 +50,7 @@ Preencha pelo menos:
 | `RADAR_SIMULATED` | `0` (dados reais; o servidor se recusa a ligar o simulador em produção) |
 | `ALPACA_KEY_ID`, `ALPACA_SECRET_KEY` | chaves da Alpaca (ações dos EUA) |
 | `BRAPI_TOKEN` | token da brapi (B3) |
+| `SEC_USER_AGENT` | um nome e o seu e-mail (ex.: `Radar pessoal voce@exemplo.com`): a SEC exige essa identificação para dar os fundamentos dos EUA |
 | `VAPID_SUBJECT` | `mailto:` + seu e-mail (exigido pelo push) |
 | `SMTP_*` | só se quiser alertas por e-mail |
 

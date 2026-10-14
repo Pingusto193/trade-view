@@ -9,6 +9,8 @@ export * from './adapters/brapi';
 export * from './adapters/b3-calendar';
 export * from './adapters/bcb';
 export * from './adapters/cotahist';
+export * from './adapters/sec-edgar';
+export * from './adapters/cvm';
 export * from './adapters/simulated';
 export * from './adapters/mt5';
 export * from './adapters/mt5-clock';

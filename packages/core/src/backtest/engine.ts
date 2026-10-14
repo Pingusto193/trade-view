@@ -4,7 +4,7 @@ import { positionSize } from '../risk/position';
 import { roundTick } from '../setups/fills';
 import { SetupEngine } from '../setups/engine';
 import { DEFAULT_SETUP_PARAMS, type SetupParams } from '../setups/params';
-import type { ExitKind, SetupEvent, SetupId } from '../setups/types';
+import type { ExitKind, Fundamentals, SetupEvent, SetupId } from '../setups/types';
 
 /**
  * Backtest barra a barra (SPEC §12.1), orientado a eventos e usando OS MESMOS detectores do app: o
@@ -39,6 +39,11 @@ export interface BacktestConfig {
    * custos que este motor ainda não simula; com vendas ligadas o resultado fica otimista.
    */
   longOnly?: boolean;
+  /**
+   * Fundamentos por candle, só com balanços publicados ANTES dele (ex.: `FundamentalsTimeline.at`).
+   * Ausente = reflexividade sem o filtro de fundamentos ("não verificados").
+   */
+  fundamentalsAt?: (time: number) => Fundamentals | null;
 }
 
 export interface BtTrade {
@@ -120,6 +125,7 @@ export function runBacktest(candles: readonly Candle[], cfg: BacktestConfig): Ba
     tf: cfg.tf,
     tz: cfg.tz,
     only: cfg.setups,
+    ...(cfg.fundamentalsAt ? { fundamentalsAt: cfg.fundamentalsAt } : {}),
   });
   let equity = cfg.capital;
   let open: Open | null = null;
