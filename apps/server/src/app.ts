@@ -22,6 +22,7 @@ import { loadVapid } from './notify/vapid';
 import { ExperimentService } from './experiments/service';
 import { LabService } from './lab/service';
 import { MacroService } from './macro/service';
+import { Mt5Service } from './mt5/service';
 import { PaperService } from './paper/service';
 import { RealJournalService } from './real/service';
 import { alertRoutes } from './routes/alerts';
@@ -37,6 +38,7 @@ import { LearnService } from './learn/service';
 import { ReplayService } from './replay/service';
 import { authRoutes, installAuthGuard } from './routes/auth';
 import { marketRoutes } from './routes/market';
+import { mt5Routes } from './routes/mt5';
 import { scannerRoutes } from './routes/scanner';
 import { userDataRoutes } from './routes/userdata';
 import { ScannerService } from './scanner/service';
@@ -68,6 +70,7 @@ export interface RadarApp {
   lab: LabService;
   experiments: ExperimentService;
   scanner: ScannerService;
+  mt5: Mt5Service;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -139,6 +142,10 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     time: Date.now(),
     simulated: env.RADAR_SIMULATED,
   }));
+
+  // agente MetaTrader 5 (B3 em tempo real e forex): tokens, ingestão e fontes mt5/mt5sim (ADR-0023)
+  const mt5 = new Mt5Service(db, registry, env.RADAR_SIMULATED, app.log, deps.now);
+  mt5Routes(app, mt5, env.PUBLIC_URL);
 
   const sync = new SyncHub();
   marketRoutes(app, market, hub, env.RADAR_SIMULATED, sync);
@@ -244,6 +251,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     paper.close();
     scanner.close();
     hub.closeAll();
+    mt5.close();
   });
   return {
     app,
@@ -259,5 +267,6 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     lab,
     experiments,
     scanner,
+    mt5,
   };
 }

@@ -487,3 +487,51 @@ Decisões nossas para a SPEC §14 (tela `/scanner`; lógica em `packages/core/sr
 - **Guias**: `GUIA_BACKUP`, `GUIA_IPHONE`, `FAQ`; `GUIA_DEPLOY` e `GUIA_TELEGRAM` apontam para os guias
   existentes (publicação e notificações) para não duplicar texto.
 
+
+## ADR-0023 — Agente MT5 e forex (13/10/2026)
+
+**Contexto.** SPEC §6: B3 em tempo real e forex pelo MetaTrader 5 da corretora do usuário, com agente
+Python no Windows, simulador e guia (`docs/GUIA_MT5.md`). Fatos em DATA_SOURCES §16.
+
+- **Transporte: HTTPS POST (não WebSocket, como sugere a SPEC).** Só a biblioteca padrão do Python (o
+  usuário instala apenas o `MetaTrader5`), passa por qualquer proxy/Caddy, cada envio é autenticado e sem
+  estado (reconectar = mandar o próximo) e é fácil de testar. Conexão de saída, sem abrir portas no PC.
+  A resposta de cada envio é o canal de volta: `wants` (ativo + escala que o Radar acompanha) e os
+  históricos pendentes. Custo: ~1 requisição/s por agente (limite próprio de 600/min) e 1–3 s de atraso.
+- **Token por agente**: gerado em Fontes de dados, mostrado uma vez, guardado só como SHA-256, revogável,
+  até 10 por usuário, no cabeçalho `Authorization: Bearer`; a rota `/api/mt5/ingest` fica fora do login
+  por cookie. A senha da corretora nunca passa pelo Radar nem pelo agente (`initialize()` sem login).
+  O agente exige `https://` fora do próprio PC e da rede local.
+- **Só leitura**: o agente usa apenas initialize, shutdown, last_error, terminal_info, symbol_select,
+  symbol_info, symbol_info_tick e copy_rates_from_pos; um teste procura funções de ordem e de conta.
+- **Agente fino**: manda as barras cruas do MT5; conversão de horário, escolha do volume, mercado e
+  metadados ficam no servidor (atualizado no deploy; o agente no PC do leigo raramente é atualizado).
+- **Horário** (🟡 contraditório): `server_timezone` = auto, NY+7, UTC±HH:MM ou IANA. "auto" mede com
+  ticks novos contra o relógio do PC (arredonda a 30 min, ≥ 3 medidas iguais; guardado por token). Config
+  explícita vale (avisa se o tick discorda); B3 com UTC−3 → America/Sao_Paulo; forex com a diferença de
+  NY+7 → supõe NY+7 (com aviso); senão diferença fixa (aviso de horário de verão); sem medida: B3 supõe
+  Brasília e forex usa UTC com aviso "DESCONHECIDO". Diário: data do servidor = data do pregão (ADR-0006).
+- **Escalas**: M1, M5, M15, M30, H1 e D1 do MT5; semanal e mensal montados do diário (semana na
+  segunda); em pares de moedas, a barra de domingo entra na semana seguinte. Histórico pedido ao agente
+  (até 10 mil barras, espera de até 20 s, no máximo 3 históricos por envio).
+- **Candle fechado**: as barras anteriores à última do lote; a última fecha quando o período acaba pela
+  sessão, com folga de 3 s no intradiário e 15 min no diário+. Fechado idêntico não é reenviado.
+- **Sem agente** (15 s sem envio): `getCandles` falha com "sem contato desde DD/MM/AAAA HH:MM" e o
+  servidor devolve o cache do SQLite com o erro e a data do último dado (a memória nunca é servida como
+  atual). Ativos anunciados ficam no banco (`mt5_symbols`, migração 0010) e seguem na busca como
+  "agente MT5 desconectado" após reinício. Na volta, os históricos são pedidos de novo.
+- **Dois agentes** (B3 e forex): um token cada; mesmo ativo em dois agentes conectados = vale o primeiro.
+- **Simulador** (`--simulate`): passeio aleatório determinístico 24/7, relógio UTC. O servidor só aceita
+  com `RADAR_SIMULATED=1` (403 explicado em produção) e grava na fonte separada `mt5sim:` (nunca mistura
+  com `mt5:`), com atraso "simulated" → faixa DADOS SIMULADOS. `--check` testa endereço e token sem dados.
+- **Forex**: volume = tick volume (selo "não é volume negociado", legenda "Tick vol", nota no meta);
+  sessão domingo 17h → sexta 17h de Nova York escrita no relógio do servidor; quantidade em lotes, valor
+  do ponto = tamanho do contrato (coerente com a calculadora, ADR-0022); preço é o da corretora.
+- **B3 pelo MT5**: `real_volume` se o histórico tiver algum valor > 0, senão tick volume com aviso;
+  futuros com valor do ponto = valor do tick ÷ tamanho do tick (WIN R$ 0,20; WDO R$ 10) e janela larga
+  09:00–18:30 (❌ não verificada); ações com a sessão da B3 já usada pela brapi; lote = `volume_min`.
+- **Meta com validade** (`metaTtlMs` = 60 s) para refletir corretora, fuso e volume atuais.
+
+**Limitações.** As regras de volume dos setups só estão rotuladas no forex, não desligadas (exigiria
+passar a qualidade do volume ao motor em todas as chamadas). Nada foi testado com um terminal MT5 real.
+Na hora repetida da volta do horário de verão do servidor vale a primeira leitura.

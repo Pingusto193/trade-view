@@ -595,3 +595,42 @@ export const exercises = sqliteTable(
   },
   (t) => [index('exercises_user_idx').on(t.userId, t.createdAt)],
 );
+
+// ------------------------------------------------------------------ agente MetaTrader 5 (ADR-0023)
+
+/**
+ * Tokens dos agentes MT5 (um por PC/terminal). Só o hash SHA-256 fica guardado: o token aparece uma
+ * vez na tela. Nunca há senha de corretora aqui — o agente usa o MT5 já logado no PC do usuário.
+ */
+export const mt5Tokens = sqliteTable(
+  'mt5_tokens',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    createdAt: integer('created_at').notNull(),
+    lastSeenAt: integer('last_seen_at'),
+    /** Último estado informado pelo agente (JSON: modo, versão, corretora, fuso medido, erros). */
+    lastInfo: text('last_info'),
+    revokedAt: integer('revoked_at'),
+  },
+  (t) => [index('mt5_tokens_user_idx').on(t.userId)],
+);
+
+/** Ativos já anunciados pelos agentes (para mostrar o cache com o erro honesto após reinício). */
+export const mt5Symbols = sqliteTable(
+  'mt5_symbols',
+  {
+    source: text('source').notNull(),
+    symbol: text('symbol').notNull(),
+    tokenId: integer('token_id')
+      .notNull()
+      .references(() => mt5Tokens.id, { onDelete: 'cascade' }),
+    json: text('json').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.source, t.symbol] })],
+);

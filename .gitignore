@@ -20,6 +20,7 @@ __pycache__/
 *.pyc
 .venv/
 agents/mt5-bridge/config.json
+agents/mt5-bridge/config.ini
 
 # worktrees temporários de agentes
 .claude/worktrees/

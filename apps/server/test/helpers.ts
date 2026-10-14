@@ -121,6 +121,8 @@ export async function testApp(
     auth?: boolean;
     senders?: FakeSenders;
     bcb?: BcbClient;
+    /** Liga RADAR_SIMULATED (aceita o simulador do agente MT5). */
+    simulated?: boolean;
   } = {},
 ) {
   const fake = new FakeAdapter();
@@ -129,6 +131,7 @@ export async function testApp(
     DATABASE_PATH: ':memory:',
     RADAR_DEV_NO_AUTH: opts.auth ? '0' : '1',
     PUBLIC_URL: 'http://localhost:5173',
+    ...(opts.simulated ? { RADAR_SIMULATED: '1' } : {}),
   });
   const db = openDb(':memory:');
   const registry = new AdapterRegistry([fake]);

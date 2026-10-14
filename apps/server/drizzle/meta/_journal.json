@@ -71,6 +71,13 @@
       "when": 1791931660725,
       "tag": "0009_exercises",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791932178782,
+      "tag": "0010_mt5_agent",
+      "breakpoints": true
     }
   ]
 }

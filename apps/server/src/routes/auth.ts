@@ -137,6 +137,8 @@ export function installAuthGuard(app: FastifyInstance, auth: AuthService, env: E
     }
     req.user = auth.userFromToken(req.cookies[SESSION_COOKIE]);
     if (url.startsWith('/api/health') || url.startsWith('/api/auth/')) return;
+    // agente MT5: autenticado pelo próprio token (Bearer) na rota, não pelo cookie
+    if (url === '/api/mt5/ingest' || url.startsWith('/api/mt5/ingest?')) return;
     if (!req.user) return reply.code(401).send({ error: 'Faça login para continuar.' });
   });
 }

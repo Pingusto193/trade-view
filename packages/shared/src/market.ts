@@ -38,7 +38,7 @@ export const VOLUME_QUALITY_LABEL: Readonly<Record<VolumeQuality, string>> = {
   complete: 'Volume completo',
   partial: 'Volume parcial',
   'exchange-only': 'Volume só desta exchange',
-  tick: 'Tick volume (corretora)',
+  tick: 'Tick volume (não é volume negociado)',
   none: 'Sem volume',
 };
 

@@ -1,5 +1,11 @@
 import { CLIENT_ID } from './client-id';
-import type { CandlesResponse, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
+import type {
+  CandlesResponse,
+  Mt5AgentStatus,
+  SymbolMeta,
+  SymbolSearchResult,
+  Timeframe,
+} from '@radar/shared';
 
 export class ApiError extends Error {
   constructor(
@@ -58,3 +64,16 @@ export interface SourceInfo {
 }
 
 export const getSources = () => api<{ simulated: boolean; sources: SourceInfo[] }>('/api/sources');
+
+// ---------- agente MetaTrader 5 (ADR-0023)
+export const getMt5Agents = () =>
+  api<{ agents: Mt5AgentStatus[]; simulatedAllowed: boolean; url: string }>('/api/mt5/agents');
+
+export const createMt5Token = (name: string) =>
+  api<{ id: number; name: string; token: string; url: string }>('/api/mt5/tokens', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+
+export const revokeMt5Token = (id: number) =>
+  api<{ ok: true }>(`/api/mt5/tokens/${id}`, { method: 'DELETE' });

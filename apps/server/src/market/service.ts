@@ -37,7 +37,7 @@ function errorStatus(err: unknown, lastValidAt?: number): FeedStatus {
 }
 
 export class MarketService {
-  private readonly metaCache = new Map<string, SymbolMeta>();
+  private readonly metaCache = new Map<string, { meta: SymbolMeta; at: number }>();
 
   constructor(
     readonly registry: AdapterRegistry,
@@ -46,11 +46,14 @@ export class MarketService {
   ) {}
 
   async getMeta(id: string): Promise<SymbolMeta> {
-    const hit = this.metaCache.get(id);
-    if (hit) return hit;
     const { adapter, symbol } = this.registry.resolve(id);
+    const hit = this.metaCache.get(id);
+    // Fontes cujo meta muda com o tempo (agente MT5: corretora, fuso, volume) pedem renovação.
+    if (hit && (adapter.metaTtlMs === undefined || this.now() - hit.at < adapter.metaTtlMs)) {
+      return hit.meta;
+    }
     const meta = await adapter.getMeta(symbol);
-    this.metaCache.set(id, meta);
+    this.metaCache.set(id, { meta, at: this.now() });
     return meta;
   }
 
