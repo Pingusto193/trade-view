@@ -32,7 +32,9 @@ test('VWAP ligada: some no diário com aviso na legenda e aparece no intradiári
     // intradiário: a VWAP volta (no celular, abrindo os valores) e o aviso some
     await page.goto('/grafico?id=sim:SIMBTC&tf=5m');
     const vwap = page.getByText(/^VWAP \d/);
-    await expect(vwap).toBeAttached();
+    // os indicadores de 1.500 candles são calculados no worker depois do carregamento: no CI (mais
+    // lento) passa de 5 s
+    await expect(vwap).toBeAttached({ timeout: 15_000 });
     if (!(await vwap.isVisible()))
       await page.getByRole('button', { name: 'indicadores', exact: true }).click();
     await expect(vwap).toBeVisible();
