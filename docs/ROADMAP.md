@@ -94,8 +94,13 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 7 — B3 e forex em tempo real, scanner e fundamentos
 
-- [ ] Agente MT5 (Python) com simulador e guia
-- [ ] Forex
+- [~] Agente MT5 (Python) com simulador e guia (`agents/mt5-bridge`, `docs/GUIA_MT5.md`, ADR-0023): token
+  em Fontes de dados, ingestão autenticada, histórico e tempo real, erro honesto com a data do último
+  contato; testado com o simulador de ponta a ponta (servidor real + agente Python) e com um MT5 falso.
+  **Não testado com um terminal MetaTrader 5 real** (o pacote só roda no Windows): falta rodar no PC do
+  usuário seguindo o guia
+- [~] Forex pelo agente MT5: busca, gráfico, sessão 24/5 de Nova York, tick volume rotulado, lotes.
+  Não testado com corretora real; regras de volume dos setups só rotuladas (não desligadas) no forex
 - [~] Scanner multi-mercado e filtro de reflexividade (`/scanner`, ADR-0020): pronto e testado com dados
   simulados; resultados reais dependem do servidor publicado; fundamentos ainda sem fonte ligada
 - [ ] Fundamentos (SEC EDGAR, CVM)
