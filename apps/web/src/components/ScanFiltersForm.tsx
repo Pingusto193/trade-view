@@ -432,8 +432,9 @@ export function ScanFiltersForm({
           Receita sem queda
         </label>
         <p className="text-[11px] text-warn">
-          Ainda não há fonte de fundamentos ligada (SEC/CVM). Quem depender disso aparece à parte
-          como “fundamentos não verificados” — nunca como aprovado.{' '}
+          Balanços anuais da SEC (EUA) e da CVM (B3). Sem dado (cripto, ETF, unit, histórico curto
+          ou fonte fora do ar), o ativo aparece à parte como “fundamentos não verificados” — nunca
+          como aprovado.{' '}
           <Link to={libraryPath('reflexividade')} className="text-accent underline">
             Reflexividade na Biblioteca
           </Link>

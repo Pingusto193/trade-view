@@ -414,7 +414,7 @@ export const PARAM_GROUPS: readonly ParamGroup[] = [
         step: 0.01,
         pct: true,
         label: 'Crescimento mínimo do lucro por ação (ao ano)',
-        help: 'Só vale quando há dados de balanço. O Radar ainda não tem essa fonte: o sinal sai como "fundamentos NÃO verificados".',
+        help: 'Balanços anuais da SEC (EUA) e da CVM (B3), no scanner, nos alertas e no laboratório. No gráfico ainda sai "fundamentos NÃO verificados".',
       },
       { path: 'weeklyOnly', kind: 'bool', label: 'Só no gráfico semanal' },
       {
