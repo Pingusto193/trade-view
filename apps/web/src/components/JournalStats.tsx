@@ -100,7 +100,15 @@ export function TaxTable({
   );
 }
 
-export function Stat({ label, value, tone }: { label: string; value: string; tone?: 'up' | 'down' }) {
+export function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: 'up' | 'down';
+}) {
   return (
     <div className="rounded bg-bg p-2">
       <p className="text-[11px] text-muted">{label}</p>
