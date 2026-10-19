@@ -13,6 +13,8 @@ on:
     paths:
       - '.github/workflows/live.yml'
       - 'packages/data/test/live.test.ts'
+      - 'apps/web/e2e-live/**'
+      - 'apps/web/playwright.live.config.ts'
 
 permissions:
   contents: read
@@ -40,3 +42,23 @@ jobs:
           BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+
+  e2e:
+    name: Telas com dados reais (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @radar/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @radar/web exec playwright test -c playwright.live.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-live-report
+          path: apps/web/test-results/

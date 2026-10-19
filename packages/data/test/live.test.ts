@@ -14,6 +14,7 @@ import {
   SecEdgarClient,
   cvmFactsFor,
   parseCotahist,
+  parseCotahistLine,
 } from '../src';
 
 /**
@@ -93,14 +94,32 @@ describe.skipIf(!live)('integração real (internet)', () => {
     const petr = parseCotahist(text, new Set(['PETR4'])).get('PETR4');
     expect(petr).toHaveLength(1);
     const c = petr![0]!;
-    console.info(`[cotahist] ${name}: PETR4 ${JSON.stringify(c)}`);
+    const rec = text
+      .split(/\r?\n/)
+      .map(parseCotahistLine)
+      .find((r) => r?.ticker === 'PETR4' && r.market === '010')!;
+    console.info(
+      `[cotahist] ${name}: PETR4 ${JSON.stringify(c)} nome="${rec.name}" negócios=${rec.trades} financeiro=${rec.financialVolume}`,
+    );
     expect(sane(c)).toBe(true);
     // diário = meia-noite UTC da data do pregão (ADR-0006), igual à data do arquivo
     const d = found!.day;
     expect(c.time).toBe(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    expect(c.close).toBeGreaterThan(5);
-    expect(c.close).toBeLessThan(500);
-    expect(c.volume).toBeGreaterThan(0);
+    expect(rec.name).toMatch(/PETROBRAS/);
+    expect(rec.trades).toBeGreaterThan(0);
+    // prova das posições de quantidade (QUATOT) e volume financeiro (VOLTOT): o preço médio do dia
+    // (financeiro ÷ quantidade) tem que cair entre a mínima e a máxima
+    const avg = rec.financialVolume / c.volume;
+    expect(avg).toBeGreaterThanOrEqual(c.low);
+    expect(avg).toBeLessThanOrEqual(c.high);
+    // fonte independente: o mesmo pregão na brapi (diferença ≤ 1%; a brapi pode ajustar proventos)
+    const b = (await new BrapiAdapter().getCandles({ symbol: 'PETR4', tf: '1d', limit: 15 })).find(
+      (x) => x.time === c.time,
+    );
+    console.info(`[cotahist × brapi] ${JSON.stringify(b ?? null)}`);
+    expect(b, 'brapi sem o mesmo pregão (ou com outro horário do candle)').toBeDefined();
+    for (const k of ['open', 'high', 'low', 'close'] as const)
+      expect(Math.abs(b![k] / c[k] - 1), k).toBeLessThan(0.01);
   }, 120_000);
 
   it.skipIf(!process.env.ALPACA_KEY_ID || !process.env.ALPACA_SECRET_KEY)(
