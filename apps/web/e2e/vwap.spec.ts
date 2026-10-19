@@ -7,8 +7,14 @@ test('VWAP ligada: some no diário com aviso na legenda e aparece no intradiári
 }) => {
   const name = `Com VWAP ${test.info().project.name}`;
   page.on('dialog', (d) => void d.accept(name));
+  // o PUT que leva o preset (abrir o gráfico também manda um, com o último ativo)
   const savedPrefs = () =>
-    page.waitForResponse((r) => r.url().includes('/api/prefs') && r.request().method() === 'PUT');
+    page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/prefs') &&
+        r.request().method() === 'PUT' &&
+        (r.request().postData() ?? '').includes('"presetId"'),
+    );
   await page.goto('/grafico?id=sim:SIMBTC&tf=1d');
   // estado previsível: parte do preset padrão (outro teste pode ter deixado outro salvo)
   const preset = page.getByLabel('Preset de indicadores');

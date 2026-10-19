@@ -27,3 +27,31 @@ test('presets: desligar a MME 9 e salvar como preset novo', async ({ page }) => 
     'Meu preset de teste',
   );
 });
+
+test('preferência trocada e app recarregado na hora: a troca não se perde', async ({ page }) => {
+  test.skip(test.info().project.name !== 'desktop', 'roda uma vez');
+  await page.goto('/grafico?id=sim:SIMBTC&tf=1d');
+  const preset = page.getByLabel('Preset de indicadores');
+  await expect(preset).toBeVisible();
+  const before = await preset.inputValue();
+  const target = before === 'limpo' ? 'padrao-do-canal' : 'limpo';
+  try {
+    // recarrega logo depois de trocar (antes do envio agrupado de 400 ms): antes, a troca se perdia e
+    // o valor velho do servidor sobrescrevia a cópia local
+    await preset.selectOption(target);
+    await page.reload();
+    await expect(preset).toHaveValue(target);
+    const server = await page.evaluate(() =>
+      fetch('/api/prefs').then((r) => r.json() as Promise<{ presetId: string }>),
+    );
+    expect(server.presetId).toBe(target);
+  } finally {
+    await preset.selectOption(before);
+    await page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/prefs') &&
+        r.request().method() === 'PUT' &&
+        (r.request().postData() ?? '').includes('"presetId"'),
+    );
+  }
+});

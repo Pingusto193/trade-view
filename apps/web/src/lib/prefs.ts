@@ -32,16 +32,34 @@ interface PrefsState extends Prefs {
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pending: Partial<Prefs> = {};
 function pushToServer(patch: Partial<Prefs>) {
   pending = { ...pending, ...patch };
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    const body = pending;
-    pending = {};
-    api('/api/prefs', { method: 'PUT', body: JSON.stringify(body) }).catch(() => undefined);
-  }, 400);
+  saveTimer = setTimeout(flushPrefs, 400);
 }
-let pending: Partial<Prefs> = {};
+
+/** Envia na hora o que está pendente (as mudanças são agrupadas por 400 ms). */
+function flushPrefs() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  if (Object.keys(pending).length === 0) return;
+  const body = pending;
+  pending = {};
+  // keepalive: o envio sobrevive ao fechamento ou à recarga da página
+  api('/api/prefs', { method: 'PUT', body: JSON.stringify(body), keepalive: true }).catch(
+    () => undefined,
+  );
+}
+
+// fechar, recarregar ou mandar o app para o fundo logo depois de uma mudança não pode perdê-la (senão o
+// valor velho do servidor ainda sobrescreve a cópia local na próxima abertura)
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  window.addEventListener('pagehide', flushPrefs);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPrefs();
+  });
+}
 
 export const usePrefs = create<PrefsState>()(
   persist(
