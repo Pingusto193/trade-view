@@ -14,3 +14,4 @@ export * from './real';
 export * from './replay';
 export * from './trail';
 export * from './mt5';
+export * from './assistant';

@@ -36,6 +36,8 @@ import { realRoutes } from './routes/real';
 import { replayRoutes } from './routes/replay';
 import { learnRoutes } from './routes/learn';
 import { exportRoutes } from './routes/export';
+import { assistantRoutes } from './routes/assistant';
+import { AssistantService, type AnthropicLike } from './assistant/service';
 import { LearnService } from './learn/service';
 import { ReplayService } from './replay/service';
 import { authRoutes, installAuthGuard } from './routes/auth';
@@ -59,6 +61,8 @@ export interface AppDeps {
   /** Fontes de fundamentos (testes usam fixtures). */
   sec?: SecEdgarClient;
   cvm?: CvmClient;
+  /** Cliente da API da Anthropic por chave (testes usam um falso, sem internet). */
+  anthropic?: (apiKey: string) => AnthropicLike;
 }
 
 export interface RadarApp {
@@ -226,6 +230,20 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   realRoutes(app, new RealJournalService(db, sync, deps.now));
   replayRoutes(app, new ReplayService(db, market, sync, env.RADAR_SIMULATED, deps.now));
   learnRoutes(app, new LearnService(db, market, env.RADAR_SIMULATED, deps.now));
+  assistantRoutes(
+    app,
+    new AssistantService(
+      db,
+      box,
+      {
+        model: env.ASSISTANT_MODEL,
+        priceIn: env.ASSISTANT_PRICE_IN,
+        priceOut: env.ASSISTANT_PRICE_OUT,
+      },
+      deps.anthropic,
+      deps.now,
+    ),
+  );
   exportRoutes(
     app,
     db,

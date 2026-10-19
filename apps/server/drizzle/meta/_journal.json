@@ -85,6 +85,13 @@
       "when": 1791974709258,
       "tag": "0011_fundamentals",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791975774608,
+      "tag": "0012_assistant",
+      "breakpoints": true
     }
   ]
 }

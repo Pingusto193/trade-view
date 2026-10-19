@@ -33,6 +33,13 @@ export const envSchema = z.object({
     .max(24 * 30)
     .default(24),
   BACKUP_KEEP: z.coerce.number().int().min(1).max(365).default(14),
+  /**
+   * Assistente com IA (SPEC §16): modelo e preços (US$ por milhão de tokens) sugeridos na tela. Ficam no
+   * .env, não no código, porque mudam (DATA_SOURCES §17); o usuário pode trocar na tela.
+   */
+  ASSISTANT_MODEL: z.string().default(''),
+  ASSISTANT_PRICE_IN: z.coerce.number().min(0).default(0),
+  ASSISTANT_PRICE_OUT: z.coerce.number().min(0).default(0),
   /** Pasta com o build do front (apps/web/dist) para servir em produção. */
   WEB_DIST: z.string().optional(),
   /** Chave (base64, 32 bytes) do cofre de segredos. Vazia = arquivo app-secret.key ao lado do banco. */

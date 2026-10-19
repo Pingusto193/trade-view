@@ -1,3 +1,4 @@
+import type { AnthropicLike } from '../src/assistant/service';
 import type { Candle, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
 import type { BcbClient, CvmClient, SecEdgarClient } from '@radar/data';
 import {
@@ -124,6 +125,7 @@ export async function testApp(
     auth?: boolean;
     senders?: FakeSenders;
     bcb?: BcbClient;
+    anthropic?: (apiKey: string) => AnthropicLike;
     /** Liga RADAR_SIMULATED (aceita o simulador do agente MT5). */
     simulated?: boolean;
     sec?: SecEdgarClient;
@@ -147,6 +149,7 @@ export async function testApp(
     logger: false,
     ...(opts.senders ? { senders: opts.senders.senders } : {}),
     ...(opts.bcb ? { bcb: opts.bcb } : {}),
+    ...(opts.anthropic ? { anthropic: opts.anthropic } : {}),
     ...(opts.sec ? { sec: opts.sec } : {}),
     ...(opts.cvm ? { cvm: opts.cvm } : {}),
     ...(opts.now !== undefined

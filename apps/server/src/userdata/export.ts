@@ -19,6 +19,8 @@ const SKIP = new Set([
   'notify_settings',
   // tokens do agente MT5: credenciais presas a este servidor (gere outro no servidor novo)
   'mt5_tokens',
+  // chave da API da Anthropic (criptografada com a chave deste servidor)
+  'assistant_settings',
   'mt5_symbols',
   'candles',
   'series_fetch',

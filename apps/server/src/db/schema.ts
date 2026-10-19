@@ -677,3 +677,33 @@ export const mt5Symbols = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.source, t.symbol] })],
 );
+
+/** Assistente com IA (SPEC §16): configuração por usuário; a chave da API vai criptografada. */
+export const assistantSettings = sqliteTable('assistant_settings', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  model: text('model').notNull(),
+  monthlyLimitUsd: real('monthly_limit_usd').notNull(),
+  priceIn: real('price_in').notNull(),
+  priceOut: real('price_out').notNull(),
+  apiKey: text('api_key'),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+/** Consumo do assistente por mês (America/Sao_Paulo), para o limite mensal. */
+export const assistantUsage = sqliteTable(
+  'assistant_usage',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    month: text('month').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    costUsd: real('cost_usd').notNull().default(0),
+    requests: integer('requests').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.month] })],
+);

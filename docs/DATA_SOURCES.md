@@ -273,3 +273,14 @@ Nenhuma chamada a um terminal MT5 real foi feita daqui (o pacote só roda no Win
 servidor converte para UTC (ADR-0006). Escalas lidas do MT5: M1, M5, M15, M30, H1 e D1 (o semanal e o
 mensal são montados a partir do diário, com a semana começando na segunda). Volume: forex = tick volume;
 B3 = `real_volume` quando a corretora manda, senão tick volume (com aviso).
+
+## 17. Assistente com IA — API da Anthropic (Fase 9, opcional)
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| Preços por milhão de tokens (US$): Claude Opus 5.5 entrada 4 / saída 20 (leitura de cache 0,20); Claude Sonnet 5.5 2 / 10; Claude Haiku 5.5 0,10 / 0,50 (até 100 mil tokens no pedido). | ✅ (página oficial lida) | [Anthropic — Pricing](https://platform.claude.com/docs/en/about-claude/pricing) | 14/10/2026 |
+| Modelo atual da linha Opus: `claude-opus-5-5` (pensamento sempre ligado; profundidade pelo `effort`, padrão `medium`). A lista de modelos vigentes vem do endpoint `GET /v1/models`. | 🟡 (referência do SDK oficial, cache de 06/10/2026) | [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) | 14/10/2026 |
+| Recusa por segurança volta como `stop_reason: "refusal"`; o parâmetro `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`) refaz o pedido em outro modelo na mesma chamada (Opus 5.5, Opus 5, Sonnet 5.5, Fable 5.1). | 🟡 (referência do SDK oficial) | [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) | 14/10/2026 |
+| A conexão do ambiente de desenvolvimento com `api.anthropic.com` não foi testada (rede de saída restrita). | 🔌 | — | 14/10/2026 |
+
+**Decisões:** o nome do modelo e os preços NÃO ficam fixos no código: vêm do `.env` (`ASSISTANT_MODEL`, `ASSISTANT_PRICE_IN`, `ASSISTANT_PRICE_OUT`) e podem ser mudados na tela; a lista de modelos é buscada na API com a chave do usuário. O custo mostrado é estimativa pelos preços configurados (com reserva para outro modelo, o preço real pode diferir um pouco).
