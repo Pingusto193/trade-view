@@ -4,9 +4,9 @@ import type { Candle } from '@radar/shared';
  * Leitor do arquivo de Séries Históricas da B3 (COTAHIST). Ver docs/DATA_SOURCES.md §4.
  *
  * Registros de largura fixa (245 bytes). Posições (1-indexadas, inclusivas) conforme o layout
- * "SeriesHistoricas_Layout.pdf" da B3 — ❌ NÃO VERIFICADO no PDF nesta sessão (escritas a partir de
- * conhecimento prévio). O teste usa uma linha montada à mão; valide com um arquivo real antes de
- * confiar no laboratório.
+ * "SeriesHistoricas_Layout.pdf" da B3. Conferidas com o arquivo REAL de 16/10/2026 (teste em
+ * `test/live.test.ts`, workflow "Dados reais"): PETR4 igual à brapi e preço médio coerente. FATCOT,
+ * CODBDI e ESPECI não foram conferidos (a PETR4 tem fator 1).
  *
  * IMPORTANTE: os preços do COTAHIST **não são ajustados** por proventos e desdobramentos.
  */

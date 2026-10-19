@@ -32,6 +32,7 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 | Formato do kline REST: array `[openTime, open, high, low, close, volume, closeTime, quoteVolume, trades, takerBase, takerQuote, ignore]`, preços como string. Evento WS `e: "kline"` com objeto `k` (`t,T,s,i,o,c,h,l,v,x`), onde `x` indica candle fechado. | 🟡          | Conhecimento prévio da API, coerente com a doc; **não lido nesta sessão**                                                                                                                                    | 12/10/2026 |
 | Limite de 1000 klines por chamada REST (padrão 500). Peso da chamada.                                                                                                                                                                                        | ❌          | —                                                                                                                                                                                                            | —          |
 | Binance bloqueia IPs de regiões restritas (EUA, entre outras) com HTTP 451 citando "Eligibility" dos termos. Servidor deve ficar fora dessas regiões (Brasil preferido).                                                                                     | 🟡          | Relatos em fóruns ([Linode](https://www.linode.com/community/questions/23972/linode-and-binancecom), [Vercel](https://community.vercel.com/t/binance-api-calls-on-vercel/29895)). Termos oficiais não lidos. | 12/10/2026 |
+| `data-api.binance.vision` (REST) e `data-stream.binance.vision` (WebSocket, candle de 1m) responderam a partir dos servidores do GitHub Actions (região não informada no log; normalmente EUA). O bloqueio 451 acima vale para `api.binance.com`, que o app não usa — não testado. | ✅ (teste real) | [workflow "Dados reais"](https://github.com/Pingusto193/trade-view/actions/runs/39340445244) | 19/10/2026 |
 | O volume é **só o da Binance**, não do mercado cripto inteiro.                                                                                                                                                                                               | ✅ (lógico) | Natureza dos dados                                                                                                                                                                                           | —          |
 
 **Adaptador de reserva:** previsto na interface (`packages/data`), ainda não implementado. Candidatas a verificar: Kraken, OKX, Mercado Bitcoin.
@@ -56,6 +57,7 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 | Preços: Startup R$ 119,99/mês; Pro R$ 139,99/mês.                                                                                                                                                                   | 🟡                                     | [FAQ desconto anual](https://brapi.dev/faq/ha-desconto-para-assinatura-anual-dos-planos-pagos)              | 12/10/2026 |
 | Endpoint atual de histórico: `/api/v2/stocks/historical?symbols=PETR4&range=1y&interval=1d`. Endpoint antigo `/api/quote/{ticker}?range=&interval=` com array `historicalDataPrice`. Intervalos `1d`, `1wk`, `1mo`. | 🟡                                     | [Docs](https://brapi.dev/docs), [FAQ timeframes](https://brapi.dev/faq/quais-sao-os-timeframes-disponiveis) | 12/10/2026 |
 | Token: a FAQ diz que PETR4 funciona sem token; os exemplos dizem que todos exigem token. **Chave nunca no navegador** (termos).                                                                                     | 🟡 contraditório                       | [Termos](https://brapi.dev/legal/terms-of-use)                                                              | 12/10/2026 |
+| **PETR4 sem token funciona**: o histórico diário (`/quote/PETR4?range=3mo&interval=1d`) voltou com dados, sem token. Outros códigos sem token não foram testados; o app continua pedindo token para ligar a brapi. | ✅ (teste real, só PETR4) | [workflow "Dados reais"](https://github.com/Pingusto193/trade-view/actions/runs/39340445244) | 19/10/2026 |
 
 **Consequência para o projeto:** com 3 meses de histórico, o plano gratuito da brapi **não serve para backtest**
 (o E1 pede 10 anos). Ver item 4.
@@ -66,7 +68,7 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | A B3 publica gratuitamente arquivos anuais `COTAHIST_AAAA.ZIP` (texto `COTAHIST.AAAA.TXT`), registros de 245 bytes com header, cotações diárias e trailer, para todos os papéis. | ✅                                                     | [Cotações históricas — B3](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/), [Layout (PDF)](https://www.b3.com.br/data/files/33/67/B9/50/D84057102C784E47AC094EA8/SeriesHistoricas_Layout.pdf) | 12/10/2026 |
 | Os preços do COTAHIST **não são ajustados** por proventos e desdobramentos.                                                                                                      | 🟡 (nenhuma doc menciona ajuste; consenso de quem usa) | [rb3](https://docs.ropensci.org/rb3/articles/Getting-started.html)                                                                                                                                                                                                            | 12/10/2026 |
-| URL de download `https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D<DDMMAAAA>.ZIP` (diário; anual `COTAHIST_A<AAAA>.ZIP`) e posições dos campos usadas em `cotahist.ts`. | 🟡 (padrão usado pela comunidade; a confirmar pelo teste real do workflow "Dados reais") | [rb3](https://docs.ropensci.org/rb3/articles/Getting-started.html) | 19/10/2026 |
+| URL de download `https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D<DDMMAAAA>.ZIP` (diário; anual `COTAHIST_A<AAAA>.ZIP` não testado) e posições de DATA, CODNEG, TPMERC, NOMRES, PREABE, PREMAX, PREMIN, PREULT, TOTNEG, QUATOT e VOLTOT usadas em `cotahist.ts`. Conferido com o arquivo real de 16/10/2026: PETR4 igual à brapi nos 4 preços e na quantidade; financeiro ÷ quantidade (R$ 58,85) entre mínima e máxima. FATCOT, CODBDI e ESPECI não conferidos (PETR4 tem fator 1). | ✅ (teste real) | [workflow "Dados reais"](https://github.com/Pingusto193/trade-view/actions/runs/39340445244), [rb3](https://docs.ropensci.org/rb3/articles/Getting-started.html) | 19/10/2026 |
 
 **Decisão:** o COTAHIST vira o adaptador de histórico diário da B3 para o laboratório (Fase 6), com o selo
 "**não ajustado por proventos**" até existir uma fonte de eventos corporativos. Ver ADR-0009.
@@ -92,6 +94,10 @@ Verificado em 13/10/2026 **só por busca na web**: o ambiente bloqueia `data.sec
 oficial visto pelo buscador = 🟡 (mesma regra do §13). O layout dos CSVs da CVM foi confirmado lendo o
 código-fonte de uma biblioteca de terceiros (`pycvm` 0.4.1, baixada do PyPI) = 🟡. **Nenhuma chamada
 real foi feita daqui** (🔌): os adaptadores foram escritos contra fixtures feitas à mão.
+
+**Atualização 19/10/2026:** a CVM foi testada de verdade pelo [workflow "Dados reais"](https://github.com/Pingusto193/trade-view/actions/runs/39340445244) (FCA ticker → CNPJ e DFP da
+PETR4, com fundamentos calculados) = ✅. A SEC continua 🔌: o teste só roda com o segredo
+`SEC_USER_AGENT` ("Seu nome seu@email", exigido pela SEC) cadastrado no GitHub.
 
 ### 6.1 SEC EDGAR (ações dos EUA)
 
@@ -146,6 +152,7 @@ fundamentos ("não verificado").
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | Série **432** = Meta Selic definida pelo Copom (% a.a.).                                                                                                                                  | ✅   | [Dados abertos BCB — 432](https://dadosabertos.bcb.gov.br/dataset/432-taxa-de-juros---meta-selic-definida-pelo-copom)                     | 12/10/2026 |
 | Série **12** = CDI diário (% ao dia), dias úteis, desde 1986.                                                                                                                             | 🟡   | [sgs2 (PyPI)](https://pypi.org/project/sgs2/), [brfinance (CRAN)](https://ftp.fau.de/cran/web/packages/brfinance/refman/brfinance.html)   | 12/10/2026 |
+| Chamada real às séries 432 e 12 funcionou (últimos valores) e o painel Brasil mostrou o CDI ao ano calculado a partir delas. | ✅ (teste real) | [workflow "Dados reais"](https://github.com/Pingusto193/trade-view/actions/runs/39340445244) | 19/10/2026 |
 | Série **4389** = CDI anualizado base 252.                                                                                                                                                 | ❌   | Não confirmado nesta sessão                                                                                                               | —          |
 | Série **1178** = Selic anualizada base 252.                                                                                                                                               | ✅   | [Dados abertos BCB — 1178](https://dadosabertos.bcb.gov.br/dataset/1178-taxa-de-juros---selic-anualizada-base-252)                        | 12/10/2026 |
 | Desde 26/03/2025, consultas JSON/CSV de séries diárias exigem filtro de datas e **cada consulta é limitada a 10 anos**.                                                                   | ✅   | Mesma página da série 1178                                                                                                                | 12/10/2026 |
@@ -281,6 +288,25 @@ B3 = `real_volume` quando a corretora manda, senão tick volume (com aviso).
 | Preços por milhão de tokens (US$): Claude Opus 5.5 entrada 4 / saída 20 (leitura de cache 0,20); Claude Sonnet 5.5 2 / 10; Claude Haiku 5.5 0,10 / 0,50 (até 100 mil tokens no pedido). | ✅ (página oficial lida) | [Anthropic — Pricing](https://platform.claude.com/docs/en/about-claude/pricing) | 14/10/2026 |
 | Modelo atual da linha Opus: `claude-opus-5-5` (pensamento sempre ligado; profundidade pelo `effort`, padrão `medium`). A lista de modelos vigentes vem do endpoint `GET /v1/models`. | 🟡 (referência do SDK oficial, cache de 06/10/2026) | [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) | 14/10/2026 |
 | Recusa por segurança volta como `stop_reason: "refusal"`; o parâmetro `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`) refaz o pedido em outro modelo na mesma chamada (Opus 5.5, Opus 5, Sonnet 5.5, Fable 5.1). | 🟡 (referência do SDK oficial) | [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) | 14/10/2026 |
-| A conexão do ambiente de desenvolvimento com `api.anthropic.com` não foi testada (rede de saída restrita). | 🔌 | — | 14/10/2026 |
+| O ambiente de desenvolvimento alcança `api.anthropic.com` (HTTP 401 sem chave, como esperado). Nenhuma chamada com chave foi feita (custa dinheiro do usuário). | 🔌 (conexão ok; uso com chave pendente) | — | 19/10/2026 |
 
 **Decisões:** o nome do modelo e os preços NÃO ficam fixos no código: vêm do `.env` (`ASSISTANT_MODEL`, `ASSISTANT_PRICE_IN`, `ASSISTANT_PRICE_OUT`) e podem ser mudados na tela; a lista de modelos é buscada na API com a chave do usuário. O custo mostrado é estimativa pelos preços configurados (com reserva para outro modelo, o preço real pode diferir um pouco).
+
+## 18. Testes com dados reais (workflow "Dados reais" no GitHub)
+
+O ambiente de desenvolvimento bloqueia as fontes (403 do proxy), mas os servidores do GitHub Actions
+têm internet. O workflow `.github/workflows/live.yml` roda `pnpm test:live` e um E2E com o servidor sem
+simulador (`apps/web/e2e-live`). Roda ao mudar esses testes, por pedido manual (Actions › Dados reais ›
+Run workflow) e toda segunda às 09:13 de Brasília. Primeira rodada completa: [workflow "Dados reais"](https://github.com/Pingusto193/trade-view/actions/runs/39340445244), 19/10/2026.
+
+| Fonte | Resultado em 19/10/2026 |
+| ----- | ----------------------- |
+| Binance (REST e WebSocket, `binance.vision`) | ✅ 10 candles diários, metadados, candle de 1m ao vivo; no app, BTC no 1m atualiza sozinho (desktop e 375 px) |
+| Banco Central (SGS 432 e 12) | ✅ valores reais; painel Brasil mostra o CDI real |
+| brapi (PETR4 sem token) | ✅ 5 candles diários |
+| B3 COTAHIST diário | ✅ arquivo de 16/10/2026; campos conferidos contra a brapi e pelo preço médio |
+| CVM (FCA + DFP) | ✅ PETR4 com fundamentos calculados |
+| SEC EDGAR | 🔌 pulado: falta o segredo `SEC_USER_AGENT` |
+| Alpaca | 🔌 pulado: faltam `ALPACA_KEY_ID` e `ALPACA_SECRET_KEY` |
+| MetaTrader 5 | 🔌 precisa do MT5 aberto num Windows (fora do alcance do GitHub) |
+| Anthropic (assistente) | 🔌 de propósito fora: cada chamada custa dinheiro da conta do usuário |
