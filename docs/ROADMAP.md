@@ -120,7 +120,9 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
   (ADR-0027); guias `GUIA_BACKUP`, `GUIA_IPHONE`, `FAQ`, `GUIA_DEPLOY`, `GUIA_TELEGRAM`
 - [~] Revisão de segurança (SPEC §17): argon2id, cookie HttpOnly/SameSite/Secure, 2FA, cadastro fechado,
   limite de tentativas, CSP/helmet, bloqueio de origem cruzada, zod, segredos criptografados — conferidos
-  no código; falta teste de invasão externo com o servidor publicado
+  no código; falta teste de invasão externo com o servidor publicado. `pnpm audit` em 19/10/2026: produção
+  sem vulnerabilidades conhecidas; desenvolvimento com 1 moderada (esbuild antigo dentro do `drizzle-kit`,
+  alerta sobre o servidor de desenvolvimento do esbuild, que o drizzle-kit não usa; não vai para produção)
 
 ## Fase 9 — Assistente com IA (opcional)
 
