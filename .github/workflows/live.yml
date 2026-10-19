@@ -1,0 +1,42 @@
+name: Dados reais
+
+# Testes de integração contra as fontes REAIS (Binance, BCB, B3/COTAHIST, brapi, CVM e, com segredos,
+# SEC e Alpaca). Fica fora do CI normal: depende da internet e das fontes estarem no ar.
+# Segredos opcionais (Settings › Secrets and variables › Actions): SEC_USER_AGENT ("Seu nome seu@email",
+# exigido pela SEC), BRAPI_TOKEN, ALPACA_KEY_ID e ALPACA_SECRET_KEY. Sem eles, esses testes são pulados.
+on:
+  workflow_dispatch:
+  schedule:
+    # toda segunda às 12:13 UTC (09:13 em Brasília)
+    - cron: '13 12 * * 1'
+  push:
+    paths:
+      - '.github/workflows/live.yml'
+      - 'packages/data/test/live.test.ts'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live:
+    name: Fontes reais (internet)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:live
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}

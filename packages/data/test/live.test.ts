@@ -1,21 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { computeFundamentals } from '@radar/core';
+import type { Candle } from '@radar/shared';
+import { unzipSync } from 'fflate';
 import {
+  AlpacaAdapter,
   BcbClient,
   BinanceAdapter,
+  BrapiAdapter,
   CVM_SOURCE,
   CvmClient,
   SEC_SOURCE,
   SGS,
   SecEdgarClient,
   cvmFactsFor,
+  parseCotahist,
 } from '../src';
 
 /**
  * Testes de integração REAIS — só rodam com RADAR_LIVE_TESTS=1 e internet.
- * Comando: `pnpm test:live`. Nunca rodaram no ambiente onde o código foi escrito (sem rede).
+ * Comando: `pnpm test:live`. No GitHub rodam pelo workflow "Dados reais" (`.github/workflows/live.yml`);
+ * o ambiente onde o código foi escrito não tem rede para essas fontes.
  */
 const live = Boolean(process.env.RADAR_LIVE_TESTS);
+
+/** Candle coerente: mínima ≤ abertura/fechamento ≤ máxima, preço positivo. */
+const sane = (c: Candle) =>
+  c.low > 0 && c.low <= Math.min(c.open, c.close) && Math.max(c.open, c.close) <= c.high;
 
 describe.skipIf(!live)('integração real (internet)', () => {
   it('Binance: 10 candles diários de BTCUSDT', async () => {
@@ -28,6 +38,84 @@ describe.skipIf(!live)('integração real (internet)', () => {
     const m = await new BinanceAdapter().getMeta('BTCUSDT');
     expect(m.tickSize).toBeGreaterThan(0);
   }, 30_000);
+
+  it('Binance: WebSocket entrega o candle de 1 minuto em formação', async () => {
+    const got = await new Promise<{ candle: Candle; closed: boolean }>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error('sem mensagem do WebSocket em 30 s')),
+        30_000,
+      );
+      const sub = new BinanceAdapter().subscribe('BTCUSDT', '1m', {
+        onCandle: (u) => {
+          clearTimeout(timer);
+          sub.close();
+          resolve(u);
+        },
+        onStatus: () => undefined,
+      });
+    });
+    expect(sane(got.candle)).toBe(true);
+    expect(Math.abs(got.candle.time - Date.now())).toBeLessThan(5 * 60_000);
+  }, 40_000);
+
+  it('brapi: PETR4 sem token (a documentação se contradiz; o resultado vai para DATA_SOURCES §3)', async () => {
+    const token = process.env.BRAPI_TOKEN;
+    const brapi = new BrapiAdapter(token ? { token } : {});
+    try {
+      const c = await brapi.getCandles({ symbol: 'PETR4', tf: '1d', limit: 5 });
+      console.info(`[brapi] ${token ? 'com' : 'sem'} token: ${c.length} candles`);
+      expect(c.length).toBeGreaterThan(0);
+      expect(c.every(sane)).toBe(true);
+    } catch (e) {
+      console.info(`[brapi] ${token ? 'com' : 'sem'} token: erro "${(e as Error).message}"`);
+      // sem token, recusar é aceitável (vira o fato registrado); com token tem que funcionar
+      if (token) throw e;
+      expect((e as Error).message.length).toBeGreaterThan(0);
+    }
+  }, 30_000);
+
+  it('B3: arquivo diário do COTAHIST mais recente, PETR4 com campos nas posições certas', async () => {
+    let found: { day: Date; bytes: Uint8Array } | null = null;
+    for (let back = 1; back <= 10 && !found; back++) {
+      const day = new Date(Date.now() - back * 86_400_000);
+      const dd = String(day.getUTCDate()).padStart(2, '0');
+      const mm = String(day.getUTCMonth() + 1).padStart(2, '0');
+      const url = `https://bvmf.bmfbovespa.com.br/InstDados/SerHist/COTAHIST_D${dd}${mm}${day.getUTCFullYear()}.ZIP`;
+      const r = await fetch(url);
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      // fim de semana/feriado: a B3 pode devolver erro ou uma página em vez do ZIP
+      if (r.ok && bytes[0] === 0x50 && bytes[1] === 0x4b) found = { day, bytes };
+    }
+    expect(found, 'nenhum COTAHIST diário nos últimos 10 dias').not.toBeNull();
+    const files = unzipSync(found!.bytes);
+    const name = Object.keys(files)[0]!;
+    const text = new TextDecoder('latin1').decode(files[name]);
+    const petr = parseCotahist(text, new Set(['PETR4'])).get('PETR4');
+    expect(petr).toHaveLength(1);
+    const c = petr![0]!;
+    console.info(`[cotahist] ${name}: PETR4 ${JSON.stringify(c)}`);
+    expect(sane(c)).toBe(true);
+    // diário = meia-noite UTC da data do pregão (ADR-0006), igual à data do arquivo
+    const d = found!.day;
+    expect(c.time).toBe(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    expect(c.close).toBeGreaterThan(5);
+    expect(c.close).toBeLessThan(500);
+    expect(c.volume).toBeGreaterThan(0);
+  }, 120_000);
+
+  it.skipIf(!process.env.ALPACA_KEY_ID || !process.env.ALPACA_SECRET_KEY)(
+    'Alpaca: 10 candles diários da AAPL (plano gratuito)',
+    async () => {
+      const alpaca = new AlpacaAdapter({
+        keyId: process.env.ALPACA_KEY_ID,
+        secretKey: process.env.ALPACA_SECRET_KEY,
+      });
+      const c = await alpaca.getCandles({ symbol: 'AAPL', tf: '1d', limit: 10 });
+      expect(c.length).toBeGreaterThan(0);
+      expect(c.every(sane)).toBe(true);
+    },
+    30_000,
+  );
 
   it('BCB: Meta Selic (432) e CDI (12)', async () => {
     const bcb = new BcbClient();
