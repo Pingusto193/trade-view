@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AssistantSettingsPanel } from '../components/AssistantSettings';
 import { DataExport } from '../components/DataExport';
 import { api } from '../lib/api';
 import { logout, useAuth } from '../lib/auth';
@@ -36,8 +37,9 @@ export function AccountPage() {
         <p className="rounded bg-warn/20 p-3">
           Modo de desenvolvimento sem login (RADAR_DEV_NO_AUTH). Em produção o login é obrigatório.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 space-y-4">
           <DataExport />
+          <AssistantSettingsPanel />
         </div>
       </div>
     );
@@ -197,6 +199,7 @@ export function AccountPage() {
       </section>
 
       <DataExport />
+      <AssistantSettingsPanel />
       <section className="flex gap-2">
         <button
           className="rounded border border-line px-3 py-2"

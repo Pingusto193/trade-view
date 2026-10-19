@@ -123,4 +123,7 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 
 ## Fase 9 — Assistente com IA (opcional)
 
-- [ ] Assistente crítico com a chave do usuário, limite de custo mensal
+- [x] Assistente crítico com a chave do usuário (criptografada, nunca volta ao navegador), modelo e
+  preços configuráveis, limite de custo mensal conferido antes de cada pergunta, botão "💬 IA" no topo
+  com o resumo da tela à vista antes de enviar (ADR-0028)
+- [ ] Testar contra a API real da Anthropic (sem rede para ela neste ambiente)

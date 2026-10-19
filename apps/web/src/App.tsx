@@ -7,6 +7,8 @@ import { UpdatePrompt } from './components/UpdatePrompt';
 import { setUnauthorizedHandler } from './lib/api';
 import { useAuth } from './lib/auth';
 import { usePrefs } from './lib/prefs';
+import { useAssistant } from './lib/assistant-store';
+import { AssistantButton, AssistantPanel } from './components/AssistantPanel';
 import { AboutPage } from './pages/AboutPage';
 import { AccountPage } from './pages/AccountPage';
 import { AlertsPage } from './pages/AlertsPage';
@@ -98,6 +100,7 @@ function Shell() {
   // logado: carrega preferências e presets do servidor (fonte da verdade)
   useEffect(() => {
     void usePrefs.getState().loadFromServer();
+    void useAssistant.getState().load();
   }, []);
   return (
     <div className="safe-top flex h-full flex-col">
@@ -118,8 +121,10 @@ function Shell() {
             </NavLink>
           ))}
         </nav>
+        <AssistantButton />
         <ModeSwitch />
       </header>
+      <AssistantPanel />
       <TrainBanner />
       <main className="min-h-0 flex-1 overflow-auto">
         <Routes>

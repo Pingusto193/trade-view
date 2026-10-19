@@ -588,3 +588,25 @@ Fatos externos em `DATA_SOURCES.md` §6 (todos 🟡 ou ❌, nenhum testado contr
   balanço só a partir da data dela — mais tarde, nunca antes.
 - **E7 fica como está** (sem fundamentos): mede só a regra do pivô em ~20 anos, e os dados abertos da CVM
   começam em 2010.
+
+## ADR-0028 — Assistente com IA opcional (Anthropic, chave do usuário) (19/10/2026)
+
+- **Desligado por padrão** (SPEC §16). Liga em Conta › Assistente com a chave da API da Anthropic do
+  próprio usuário (pagamento por uso na conta dele). A chave fica só no servidor, criptografada com a
+  `app-secret.key`; o navegador só vê os 4 últimos caracteres. Fica fora da exportação JSON.
+- **Nome do modelo e preços não ficam fixos no código**: vêm de `ASSISTANT_MODEL`,
+  `ASSISTANT_PRICE_IN/OUT` (sugestão no `.env.example`, conferida em DATA_SOURCES §17) e podem ser
+  trocados na tela; "Ver modelos da minha chave" lista os disponíveis pela própria API.
+- **Limite mensal em US$ (nosso, não do vídeo)**: antes de cada pergunta, o servidor soma o gasto
+  estimado do mês (em America/Sao_Paulo) com o PIOR caso da pergunta (entrada estimada a 3 caracteres
+  por token + teto de 4.000 tokens de saída) e recusa (402) se passar do limite — melhor recusar uma
+  pergunta que estourar a conta. O gasto é ESTIMADO pelos preços configurados; a fatura real é a da
+  Anthropic (pode divergir se os preços mudarem).
+- **O que é enviado fica à vista**: a pergunta + um resumo em JSON da tela (ativo, escala, indicadores,
+  setups, estatísticas do laboratório/diário/treino/replay, risco por trade). Nunca senha, sessão, chave
+  ou dado da conta. O texto do sistema manda tratar o contexto como dados, não instruções.
+- **Personalidade fixa**: analista crítico (riscos, custos, IR, CDI, amostra), nunca certeza sobre o
+  futuro, nunca ordem de compra ou venda. Recusa do modelo vira mensagem clara; nos modelos que aceitam,
+  a reserva automática da Anthropic (`fallbacks: "default"`) refaz a resposta em outro modelo.
+- **Limitação**: não testado contra a API real neste ambiente (rede bloqueada); os testes usam um
+  cliente falso com o formato do SDK oficial `@anthropic-ai/sdk`.
