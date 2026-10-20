@@ -27,6 +27,8 @@ export const prefsSchema = z.object({
   paperAccountId: z.string().max(64).optional(),
   /** Parâmetros dos setups (validados no navegador e no servidor pelo schema do core). */
   setupParams: z.record(z.string(), z.unknown()).optional(),
+  /** Gráfico simples (velas, 1 média, volume, setas discretas e leitura) ou completo (ADR-0029). */
+  view: z.enum(['simples', 'completo']).default('simples'),
   /** Trilha (SPEC §13): páginas da Biblioteca marcadas como lidas. */
   trailRead: z.array(z.string().min(1).max(60)).max(200).default([]),
 });

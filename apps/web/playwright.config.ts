@@ -23,7 +23,13 @@ export default defineConfig({
     ...(chromiumPath ? { launchOptions: { executablePath: chromiumPath } } : {}),
   },
   projects: [
-    { name: 'desktop', testIgnore: /auth\.spec/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'setup', testMatch: /prefs\.setup\.ts/, use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'desktop',
+      testIgnore: /auth\.spec/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'auth',
       testMatch: /auth\.spec/,
@@ -32,6 +38,7 @@ export default defineConfig({
     {
       name: 'iphone',
       testIgnore: /auth\.spec/,
+      dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 375, height: 760 },

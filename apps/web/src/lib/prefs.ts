@@ -16,6 +16,7 @@ interface PrefsState extends Prefs {
   customPresets: IndicatorPreset[];
   recent: { id: string; tf: Timeframe }[];
   serverLoaded: boolean;
+  setView(v: Prefs['view']): void;
   setChartType(t: ChartType): void;
   setPresetId(id: string): void;
   setFractalId(id: string): void;
@@ -68,6 +69,10 @@ export const usePrefs = create<PrefsState>()(
       customPresets: [],
       recent: [],
       serverLoaded: false,
+      setView: (view) => {
+        set({ view });
+        pushToServer({ view });
+      },
       setChartType: (chartType) => {
         set({ chartType });
         pushToServer({ chartType });

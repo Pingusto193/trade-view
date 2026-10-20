@@ -194,6 +194,20 @@ export const CLEAN_PRESET: IndicatorPreset = {
 
 export const BUILT_IN_PRESETS: readonly IndicatorPreset[] = [CHANNEL_PRESET, CLEAN_PRESET];
 
+/**
+ * Preset do modo simples (ADR-0029): candles, UMA média (a MMA50, a mesma da regra de tendência) e
+ * volume. Fica fora da lista de presets: o modo simples sempre usa este.
+ */
+export const SIMPLE_PRESET: IndicatorPreset = {
+  id: 'simples',
+  name: 'Simples',
+  builtIn: true,
+  indicators: CHANNEL_PRESET.indicators.map((i) => ({
+    ...i,
+    enabled: i.kind === 'volume' || i.id === 'mma50',
+  })),
+};
+
 // ---------------------------------------------------------------------------------------------
 
 export type Pane = 'price' | 'volume' | 'adx' | 'atr' | 'macd' | 'rsi' | 'stochastic';

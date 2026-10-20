@@ -130,3 +130,12 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
   preços configuráveis, limite de custo mensal conferido antes de cada pergunta, botão "💬 IA" no topo
   com o resumo da tela à vista antes de enviar (ADR-0028)
 - [ ] Testar contra a API real da Anthropic (sem rede para ela neste ambiente)
+
+## Fase 10 — Simples para o dia a dia (pedido do usuário, 20/10/2026)
+
+- [x] Modo simples padrão no gráfico (velas, 1 média, volume, setas discretas, linhas do trade) com a
+      chave Simples/Completo; cabe em 375 px (ADR-0029)
+- [x] Cartão "Leitura simples": tendência de agora + histórico contra um candle qualquer, sem
+      look-ahead, com veredito honesto; página da Biblioteca "Leitura simples"
+- [ ] Forex pela internet (sem PC Windows) + MT5 quando o PC estiver ligado
+

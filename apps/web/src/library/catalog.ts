@@ -5,7 +5,7 @@
 export const LIBRARY_GROUPS = [
   {
     title: 'Comece por aqui',
-    slugs: ['antes-de-arriscar-dinheiro', 'contradicoes-entre-as-fontes'],
+    slugs: ['leitura-simples', 'antes-de-arriscar-dinheiro', 'contradicoes-entre-as-fontes'],
   },
   {
     title: 'Setups',

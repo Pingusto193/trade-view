@@ -456,11 +456,15 @@ export class ChartController {
     }
   }
 
-  /** Marcadores dos setups no gráfico (SPEC §8): armado, acionado e resultado. */
+  /**
+   * Marcadores dos setups no gráfico (SPEC §8): armado, acionado e resultado. `simple` (modo simples,
+   * ADR-0029): só uma seta discreta na entrada, sem nome do setup nem resultado em R.
+   */
   setSetupMarkers(
     events: readonly SetupEvent[],
     hidden: readonly SetupId[],
     showRadar: boolean,
+    simple = false,
   ): void {
     const tf = this.opts.tf;
     const list: SeriesMarker<Time>[] = [];
@@ -470,6 +474,18 @@ export class ChartController {
       const buy = e.side === 'buy';
       const t = toChartTime(e.time, tf);
       const tag = SHORT[e.setup];
+      if (simple) {
+        if (e.state === 'acionado' && e.entryIndex === e.index && e.price === e.entry)
+          list.push({
+            time: t,
+            position: buy ? 'belowBar' : 'aboveBar',
+            shape: buy ? 'arrowUp' : 'arrowDown',
+            color: buy ? '#22c55e' : '#ef4444',
+            size: 0.8,
+            id: e.id + ':entrada',
+          });
+        continue;
+      }
       if (e.state === 'radar') {
         if (!showRadar) continue;
         list.push({

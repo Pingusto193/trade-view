@@ -610,3 +610,27 @@ Fatos externos em `DATA_SOURCES.md` §6 (todos 🟡 ou ❌, nenhum testado contr
   a reserva automática da Anthropic (`fallbacks: "default"`) refaz a resposta em outro modelo.
 - **Limitação**: não testado contra a API real neste ambiente (rede bloqueada); os testes usam um
   cliente falso com o formato do SDK oficial `@anthropic-ai/sdk`.
+
+## ADR-0029 — Modo simples e leitura "para onde o preço tende a ir" (20/10/2026)
+
+Pedido do usuário: o gráfico completo tem informação demais; ele quer algo simples que ajude a ver se
+o preço tende a subir ou a descer.
+
+- **Modo simples é o padrão** (preferência `view`, guardada no servidor). Mostra candles, **uma** média
+  (MMA50, a mesma da regra de tendência), volume, uma seta discreta quando um setup é acionado (sem
+  nome, sem resultado em R) e as linhas do trade do próprio usuário (Treino). Some: Bollinger, demais
+  médias, ADX/ATR, nomes dos setups, ±R, linhas de gatilho/stop/alvo dos setups, painéis laterais,
+  desenhos, 3 escalas. O modo completo continua a um toque e é o mesmo de antes.
+- **Leitura simples** (`packages/core/src/setups/reading.ts`, uma implementação só): a tendência de agora
+  pela MESMA regra do painel de contexto (SPEC §9) + o que aconteceu antes no mesmo ativo e escala:
+  % dos casos com o preço mais alto 10 candles depois, **sempre comparado com um candle qualquer**.
+- **Honestidade (nossos números, não do vídeo):** casos sem sobreposição; só casos com o futuro de 10
+  candles já fechado; sem look-ahead (testado); "vantagem" só com ≥ 30 casos, ≥ 5 pontos percentuais
+  contra um candle qualquer e z ≥ 2 (teste de proporção simples). O caso mais comum é "sem vantagem
+  clara" — e a tela diz isso. Não entram custos nem imposto; o cartão avisa e aponta a Biblioteca
+  ("Leitura simples").
+- **Por que não "prever"**: a SPEC (§3) proíbe prometer lucro e exige ceticismo. A pergunta "vai subir?"
+  não tem resposta confiável; a pergunta honesta é "quando esteve assim, foi diferente do normal?".
+- **Limitações conhecidas:** testes múltiplos (o usuário pode olhar muitos ativos e escalas até achar
+  uma "vantagem" por acaso); o teste z ignora a dependência entre casos próximos; o histórico carregado
+  no gráfico é limitado (no diário, alguns anos).

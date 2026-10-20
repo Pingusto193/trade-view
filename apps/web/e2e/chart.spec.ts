@@ -108,7 +108,7 @@ test('tablet (820 px): menu não transborda e a chave Treino/Real fica visível'
 }) => {
   await page.setViewportSize({ width: 820, height: 1000 });
   await page.goto('/grafico?id=sim:SIMACAO&tf=1d');
-  await expect(page.getByRole('group', { name: 'Modo' })).toBeInViewport();
+  await expect(page.getByRole('group', { name: 'Modo', exact: true })).toBeInViewport();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );

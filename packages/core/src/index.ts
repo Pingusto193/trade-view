@@ -17,6 +17,7 @@ export * from './setups/fills';
 export * from './setups/types';
 export * from './setups/engine';
 export * from './setups/context';
+export * from './setups/reading';
 export * from './setups/higher';
 export * from './alerts/evaluate';
 export * from './tax/b3';

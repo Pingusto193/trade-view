@@ -3,9 +3,11 @@ import {
   IndicatorEngine,
   SetupEngine,
   computeContext,
+  marketReading,
   sessionDate,
   setupParamsSchema,
   type ContextReport,
+  type MarketReading,
   type IndicatorOutput,
   type IndicatorPreset,
   type SetupEvent,
@@ -56,6 +58,8 @@ export interface AnalysisPayload {
   events: SetupEvent[];
   open: OpenSetup[];
   context: ContextReport | null;
+  /** Leitura simples "para onde o preço tende a ir" (ADR-0029). */
+  reading: MarketReading | null;
   higherLabel: string | null;
 }
 
@@ -96,6 +100,11 @@ function analysis(st: ChartState, events: SetupEvent[], reset: boolean, key: str
     higherTrend: h ? h.trend : null,
     ...(higherTf ? { higherLabel: TIMEFRAME_LABEL[higherTf] } : {}),
   });
+  const reading = marketReading(st.closed, {
+    pa: st.params.pa,
+    higherTrend: h ? h.trend : null,
+    higherLabel: higherTf ? TIMEFRAME_LABEL[higherTf] : null,
+  });
   const open: OpenSetup[] = st.setups.open().map((o) => ({
     setup: o.setup,
     id: o.id,
@@ -113,6 +122,7 @@ function analysis(st: ChartState, events: SetupEvent[], reset: boolean, key: str
     events,
     open,
     context,
+    reading,
     higherLabel: higherTf ? TIMEFRAME_LABEL[higherTf] : null,
   });
 }

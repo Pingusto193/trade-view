@@ -1,4 +1,4 @@
-import { BUILT_IN_PRESETS } from '@radar/core';
+import { BUILT_IN_PRESETS, SIMPLE_PRESET } from '@radar/core';
 import type { Timeframe } from '@radar/shared';
 import { FRACTAL_MAPPINGS, TIMEFRAMES, TIMEFRAME_LABEL, timeframeSchema } from '@radar/shared';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
 import { ContextPanel } from '../components/ContextPanel';
+import { ReadingCard } from '../components/ReadingCard';
 import { HelpLink } from '../components/HelpLink';
 import { SetupsPanel } from '../components/SetupsPanel';
 import { WatchlistPanel } from '../components/WatchlistPanel';
@@ -42,7 +43,8 @@ export function ChartPage() {
   const id = params.get('id') ?? prefs.recent[0]?.id ?? DEFAULT_ID;
   const tfParsed = timeframeSchema.safeParse(params.get('tf'));
   const tf: Timeframe = tfParsed.success ? tfParsed.data : (prefs.recent[0]?.tf ?? '1d');
-  const fractal = params.get('modo') === '3';
+  const simple = prefs.view === 'simples';
+  const fractal = !simple && params.get('modo') === '3';
   const mapping = FRACTAL_MAPPINGS.find((m) => m.id === prefs.fractalId) ?? FRACTAL_MAPPINGS[0]!;
 
   const [drawMode, setDrawMode] = useState(false);
@@ -103,10 +105,16 @@ export function ChartPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto border-b border-line px-2 py-1.5">
+      <div
+        className={`no-scrollbar flex items-center gap-2 border-b border-line px-2 py-1.5 ${simple ? 'flex-wrap' : 'overflow-x-auto'}`}
+      >
         <SymbolSearch current={id} onPick={(next) => set({ id: next })} />
         {!fractal && (
-          <div className="flex rounded border border-line" role="group" aria-label="Escala">
+          <div
+            className={`flex rounded border border-line ${simple ? 'order-last w-full justify-between sm:order-none sm:w-auto sm:justify-start' : ''}`}
+            role="group"
+            aria-label="Escala"
+          >
             {TIMEFRAMES.map((t) => (
               <button
                 key={t}
@@ -120,81 +128,107 @@ export function ChartPage() {
             ))}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => set({ modo: fractal ? null : '3' })}
-          className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${fractal ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
-          title="Modo 3 escalas: contexto, setup e gatilho"
+        <div
+          className="flex shrink-0 overflow-hidden rounded-full border border-line text-xs"
+          role="group"
+          aria-label="Modo do gráfico"
         >
-          3 escalas
-        </button>
-        {fractal && (
-          <select
-            value={mapping.id}
-            onChange={(e) => prefs.setFractalId(e.target.value)}
-            className="rounded border border-line bg-panel px-1 py-1 text-xs"
-            aria-label="Mapeamento das 3 escalas"
-          >
-            {FRACTAL_MAPPINGS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label} ({TIMEFRAME_LABEL[m.context]} + {TIMEFRAME_LABEL[m.setup]} +{' '}
-                {TIMEFRAME_LABEL[m.trigger]})
-              </option>
-            ))}
-          </select>
-        )}
-        {fractal && <HelpLink slug="visao-fractal" label="Ajuda: visão fractal (3 escalas)" />}
-        <button
-          type="button"
-          onClick={() => {
-            setDrawMode((m) => !m);
-            useDrawingTool.getState().setTool(null);
-          }}
-          aria-pressed={drawMode}
-          className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${drawMode ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
-          title="Ferramentas de desenho"
-        >
-          ✏️ Desenhar
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowList((v) => !v)}
-          className="whitespace-nowrap rounded border border-line px-2 py-1 text-xs text-muted"
-          title="Lista de desenhos (reexibir ocultos)"
-        >
-          ☰ Desenhos
-        </button>
-        <select
-          value={prefs.chartType}
-          onChange={(e) => prefs.setChartType(e.target.value as ChartType)}
-          className="rounded border border-line bg-panel px-1 py-1 text-xs"
-          aria-label="Tipo de gráfico"
-        >
-          <option value="candles">Candles</option>
-          <option value="heikin">Heikin-Ashi</option>
-          <option value="line">Linha</option>
-        </select>
-        <select
-          value={preset.id}
-          onChange={(e) => prefs.setPresetId(e.target.value)}
-          className="rounded border border-line bg-panel px-1 py-1 text-xs"
-          aria-label="Preset de indicadores"
-        >
-          {[...BUILT_IN_PRESETS, ...prefs.customPresets].map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
+          {(
+            [
+              ['simples', 'Simples'],
+              ['completo', 'Completo'],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => prefs.setView(v)}
+              aria-pressed={prefs.view === v}
+              className={`px-3 py-1 ${prefs.view === v ? 'bg-accent font-semibold text-black' : 'text-muted hover:text-text'}`}
+            >
+              {label}
+            </button>
           ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => setEditPreset(true)}
-          className="rounded border border-line px-2 py-1 text-xs text-muted"
-          title="Editar indicadores"
-          aria-label="Editar indicadores"
-        >
-          ⚙
-        </button>
+        </div>
+        {!simple && (
+          <>
+            <button
+              type="button"
+              onClick={() => set({ modo: fractal ? null : '3' })}
+              className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${fractal ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
+              title="Modo 3 escalas: contexto, setup e gatilho"
+            >
+              3 escalas
+            </button>
+            {fractal && (
+              <select
+                value={mapping.id}
+                onChange={(e) => prefs.setFractalId(e.target.value)}
+                className="rounded border border-line bg-panel px-1 py-1 text-xs"
+                aria-label="Mapeamento das 3 escalas"
+              >
+                {FRACTAL_MAPPINGS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label} ({TIMEFRAME_LABEL[m.context]} + {TIMEFRAME_LABEL[m.setup]} +{' '}
+                    {TIMEFRAME_LABEL[m.trigger]})
+                  </option>
+                ))}
+              </select>
+            )}
+            {fractal && <HelpLink slug="visao-fractal" label="Ajuda: visão fractal (3 escalas)" />}
+            <button
+              type="button"
+              onClick={() => {
+                setDrawMode((m) => !m);
+                useDrawingTool.getState().setTool(null);
+              }}
+              aria-pressed={drawMode}
+              className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${drawMode ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
+              title="Ferramentas de desenho"
+            >
+              ✏️ Desenhar
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowList((v) => !v)}
+              className="whitespace-nowrap rounded border border-line px-2 py-1 text-xs text-muted"
+              title="Lista de desenhos (reexibir ocultos)"
+            >
+              ☰ Desenhos
+            </button>
+            <select
+              value={prefs.chartType}
+              onChange={(e) => prefs.setChartType(e.target.value as ChartType)}
+              className="rounded border border-line bg-panel px-1 py-1 text-xs"
+              aria-label="Tipo de gráfico"
+            >
+              <option value="candles">Candles</option>
+              <option value="heikin">Heikin-Ashi</option>
+              <option value="line">Linha</option>
+            </select>
+            <select
+              value={preset.id}
+              onChange={(e) => prefs.setPresetId(e.target.value)}
+              className="rounded border border-line bg-panel px-1 py-1 text-xs"
+              aria-label="Preset de indicadores"
+            >
+              {[...BUILT_IN_PRESETS, ...prefs.customPresets].map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setEditPreset(true)}
+              className="rounded border border-line px-2 py-1 text-xs text-muted"
+              title="Editar indicadores"
+              aria-label="Editar indicadores"
+            >
+              ⚙
+            </button>
+          </>
+        )}
         {prefs.mode === 'treino' && (
           <button
             type="button"
@@ -202,7 +236,7 @@ export function ChartPage() {
             className="whitespace-nowrap rounded border border-train/70 bg-train/15 px-2 py-1 text-xs font-semibold text-train"
             title="Comprar com dinheiro fictício (preço real)"
           >
-            🎯 Treino
+            🎯<span className={simple ? 'sr-only sm:not-sr-only' : ''}> Treino</span>
           </button>
         )}
         <button
@@ -216,26 +250,28 @@ export function ChartPage() {
         >
           🔔
         </button>
-        {(
-          [
-            ['setups', '◎ Setups'],
-            ['contexto', '🧭 Contexto'],
-            ['lista', '☆ Lista'],
-          ] as const
-        ).map(([k, label]) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => toggleSide(k)}
-            className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${side === k ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'} ${k === 'lista' ? 'hidden lg:block' : ''}`}
-            aria-pressed={side === k}
-          >
-            {label}
-          </button>
-        ))}
+        {!simple &&
+          (
+            [
+              ['setups', '◎ Setups'],
+              ['contexto', '🧭 Contexto'],
+              ['lista', '☆ Lista'],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => toggleSide(k)}
+              className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${side === k ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'} ${k === 'lista' ? 'hidden lg:block' : ''}`}
+              aria-pressed={side === k}
+            >
+              {label}
+            </button>
+          ))}
       </div>
-      {drawMode && <DrawingToolbar />}
-      {prefs.chartType === 'heikin' && (
+      {simple && <ReadingCard id={id} tf={tf} />}
+      {drawMode && !simple && <DrawingToolbar />}
+      {!simple && prefs.chartType === 'heikin' && (
         <p className="border-b border-line bg-panel px-2 py-1 text-xs text-warn">
           Heikin-Ashi é só visual: os preços mostrados não são negociáveis. Indicadores e setups
           usam os candles reais.{' '}
@@ -260,14 +296,15 @@ export function ChartPage() {
             <ChartView
               id={id}
               tf={tf}
-              preset={preset}
-              chartType={prefs.chartType}
+              preset={simple ? SIMPLE_PRESET : preset}
+              chartType={simple ? 'candles' : prefs.chartType}
               upColor={prefs.upColor}
               downColor={prefs.downColor}
+              simple={simple}
             />
           )}
         </div>
-        {side && (
+        {side && !simple && (
           <aside
             className="fixed inset-x-0 bottom-0 z-30 h-[60vh] rounded-t-xl border-t border-line bg-panel shadow-2xl lg:static lg:z-auto lg:h-auto lg:w-80 lg:shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none"
             aria-label={side === 'lista' ? 'Lista' : side === 'setups' ? 'Setups' : 'Contexto'}

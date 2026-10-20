@@ -57,6 +57,8 @@ export interface ChartViewProps {
   banner?: ReactNode;
   /** Não desenha marcações de setups (exercícios: seriam a resposta). */
   hideSetups?: boolean;
+  /** Modo simples (ADR-0029): setas discretas, sem linhas de gatilho/stop/alvo dos setups. */
+  simple?: boolean;
 }
 
 let seq = 0;
@@ -79,6 +81,7 @@ export function ChartView(props: ChartViewProps) {
     hideTime = false,
     banner,
     hideSetups = false,
+    simple = false,
   } = props;
   const externalRef = useRef(externalLines);
   externalRef.current = externalLines;
@@ -157,8 +160,8 @@ export function ChartView(props: ChartViewProps) {
       const a = useAnalysis.getState().byKey[aKey];
       const v = useSetupView.getState();
       if (!a || hideSetups) return;
-      controller.setSetupMarkers(a.events, v.hidden, v.showRadar);
-      controller.setOpenSetups(a.open, v.hidden);
+      controller.setSetupMarkers(a.events, v.hidden, v.showRadar, simple);
+      controller.setOpenSetups(simple ? [] : a.open, v.hidden);
     };
     const unsubView = useSetupView.subscribe(applyView);
 
@@ -270,6 +273,7 @@ export function ChartView(props: ChartViewProps) {
     drawingKey,
     hideTime,
     hideSetups,
+    simple,
   ]);
 
   // linhas do replay mudam sem recriar o gráfico
