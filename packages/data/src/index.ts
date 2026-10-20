@@ -6,6 +6,7 @@ export * from './registry';
 export * from './adapters/binance';
 export * from './adapters/alpaca';
 export * from './adapters/brapi';
+export * from './adapters/twelvedata';
 export * from './adapters/b3-calendar';
 export * from './adapters/bcb';
 export * from './adapters/cotahist';

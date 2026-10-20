@@ -634,3 +634,31 @@ o preço tende a subir ou a descer.
 - **Limitações conhecidas:** testes múltiplos (o usuário pode olhar muitos ativos e escalas até achar
   uma "vantagem" por acaso); o teste z ignora a dependência entre casos próximos; o histórico carregado
   no gráfico é limitado (no diário, alguns anos).
+
+## ADR-0030 — Forex pela internet com a Twelve Data; MT5 continua (20/10/2026)
+
+Pedido do usuário: forex também sem depender do PC Windows ("os dois": internet como padrão e MT5
+quando o PC estiver ligado). Pesquisa em DATA_SOURCES §5.1–§5.3.
+
+- **Fonte: Twelve Data, plano grátis** (cadastro + chave `TWELVE_DATA_KEY`, só no servidor). Foi a
+  única opção grátis por API oficial com candles intradiários de forex de 1 min a mensal. OANDA seria
+  tecnicamente melhor, mas não há confirmação de conta para residente no Brasil; Massive (US$ 49/mês)
+  fica como caminho pago, num segundo adaptador, se o usuário quiser.
+- **Ids `fx:EURUSD`** (12 pares fixos, inclusive USD/BRL e EUR/BRL — este último não confirmado). A
+  busca não gasta consulta. Semanal e mensal montados a partir do diário (mesma semana do resto do app).
+- **Cota protegida no servidor (nossa decisão):** 8 consultas por minuto (o cliente HTTP espera) e
+  800 por dia, contadas por dia UTC (a hora real em que a fonte zera não foi confirmada); antes de
+  passar do teto, recusa com mensagem clara e o gráfico mantém o último dado guardado. Uma só nova
+  tentativa por erro (cada tentativa pode gastar crédito). Limites ajustáveis por
+  `TWELVE_DATA_PER_MINUTE`/`TWELVE_DATA_PER_DAY` para quem pagar um plano maior.
+- **Ao vivo por consulta**: só enquanto um gráfico está aberto, a cada 60 s (1 consulta por gráfico
+  por minuto); no fim de semana do forex (sexta 17h → domingo 17h em Nova York) não consulta nada.
+  ≈ 10 horas de gráfico aberto por dia no plano grátis. **O scanner não usa esta fonte.**
+- **Selos honestos:** preço MÉDIO (não o da corretora; stops/alvos diferem ~meio spread), **sem
+  volume** (gráfico esconde o volume; regras de volume dos setups não valem), atraso "~1 min" sem
+  medição da fonte, candle diário com fechamento não confirmado (00:00 UTC ou 17h NY). Tudo isso vai nas
+  notas do ativo e na página Fontes.
+- **MT5 continua** como a outra fonte de forex (preço da corretora, tick volume, tempo real), sem
+  mudança. Os dois aparecem na busca com o nome da fonte.
+- 🔌 Nenhuma chamada real feita do ambiente de desenvolvimento. O workflow "Dados reais" testa de verdade
+  quando o segredo `TWELVE_DATA_KEY` existir no GitHub (4 consultas por rodada).

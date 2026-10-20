@@ -30,8 +30,13 @@ export function SourcesPage() {
             <span className={`h-2.5 w-2.5 rounded-full ${s.configured ? 'bg-up' : 'bg-down'}`} />
             <span className="w-28 font-semibold">{s.label}</span>
             <span className="text-muted">{MARKET_LABEL[s.market as Market] ?? s.market}</span>
-            <span className="ml-auto text-xs">
+            <span className="ml-auto text-right text-xs">
               {s.configured ? 'configurada' : 'sem chave — veja o guia'}
+              {s.quota && s.configured && (
+                <span className="block text-muted" data-testid={`quota-${s.id}`}>
+                  {s.quota.used} de {s.quota.limit} consultas hoje
+                </span>
+              )}
             </span>
           </li>
         ))}
@@ -51,6 +56,14 @@ export function SourcesPage() {
             <b>B3 (brapi grátis):</b> cerca de 30 min de atraso e só 3 meses de histórico. Para
             histórico longo, importe o COTAHIST da B3, que <b>não é ajustado por proventos</b>.
             Tempo real pelo MetaTrader 5 da sua corretora (agente abaixo).
+          </li>
+          <li>
+            <b>Forex pela internet (Twelve Data grátis):</b> não precisa de PC ligado. Preço{' '}
+            <b>médio</b> de mercado (não o da sua corretora), <b>sem volume</b>, atualizado a cada 1
+            min só enquanto o gráfico está aberto. Limite de <b>800 consultas por dia</b> (cerca de
+            10 horas de gráfico aberto); quando acaba, o gráfico mostra o último dado guardado até o
+            dia seguinte. O scanner não usa esta fonte. Chave em <code>TWELVE_DATA_KEY</code> (veja
+            o guia de publicação).
           </li>
           <li>
             <b>MetaTrader 5 (B3 e forex):</b> só atualiza com o PC ligado, o MT5 aberto e o agente

@@ -87,6 +87,52 @@ versões, regras fiscais e especificações de contrato. Cada linha tem o link e
 
 **Decisão (ADR-0023):** forex entra pelo agente MT5 (§16), com selo "tick volume" e janela semanal de Nova York.
 
+**Atualização 20/10/2026 (ADR-0030):** o usuário pediu forex **sem depender do PC Windows**. Pesquisa
+feita por busca na web restrita aos domínios oficiais (🟡) e pela leitura dos SDKs oficiais publicados
+pelos próprios provedores no GitHub (✅ SDK oficial). Os sites dos provedores estão bloqueados no
+ambiente de desenvolvimento; **nenhuma chamada real foi feita daqui** (🔌) — o teste real roda no
+workflow "Dados reais" quando o segredo `TWELVE_DATA_KEY` existir.
+
+### 5.1 Twelve Data (padrão do forex pela internet)
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| Plano Basic (US$ 0): **8 créditos por minuto e no máximo 800 por dia**, mais um "trial" de WebSocket. Exige cadastro e chave (`apikey`). | 🟡 | [Pricing](https://twelvedata.com/pricing), [Trial](https://support.twelvedata.com/en/articles/5335783-trial) | 20/10/2026 |
+| Acabou a cota do minuto → HTTP 429. Hora em que o teto diário zera: não encontrada. | 🟡 / ❌ | [Credits](https://support.twelvedata.com/en/articles/5615854-credits) | 20/10/2026 |
+| `time_series` custa **1 crédito por símbolo** (lote não economiza). | 🟡 | [Batch requests](https://support.twelvedata.com/en/articles/5203360-batch-api-requests) | 20/10/2026 |
+| `GET https://api.twelvedata.com/time_series?symbol=EUR/USD&interval=1min&outputsize=N&timezone=UTC&apikey=…`; intervalos `1min, 5min, 15min, 30min, 45min, 1h, 2h, 4h, 8h, 1day, 1week, 1month`. | ✅ (SDK oficial) 🔌 | [twelvedata-python](https://github.com/twelvedata/twelvedata-python) | 20/10/2026 |
+| `outputsize` até 5000 candles por chamada. | 🟡 | [Historical data](https://support.twelvedata.com/en/articles/5214728-getting-historical-data) | 20/10/2026 |
+| Resposta: `meta` + `values` do mais novo para o mais velho; `datetime` (abertura do candle, sem fuso no texto, no fuso pedido), `open`, `high`, `low`, `close` em texto. **Pares de moeda não trazem `volume`.** Erros vêm como `{"status":"error","code":…,"message":…}`. | 🟡 🔌 | [Docs](https://twelvedata.com/docs) | 20/10/2026 |
+| Onde fecha o candle diário de forex (00:00 UTC ou 17h de Nova York). | ❌ | — | — |
+| Preços são **médios (mid)** de mercado, não o bid/ask de uma corretora. | 🟡 | [Forex API v2](https://support.twelvedata.com/en/articles/12520817-forex-api-v2) | 20/10/2026 |
+| Atraso real do Basic para forex: "tempo real" num artigo, "cobertura US" na tabela de preços. Não medido. | 🟡 contraditório | [Trial](https://support.twelvedata.com/en/articles/5335783-trial), [Forex](https://twelvedata.com/forex) | 20/10/2026 |
+| Símbolos no formato `EUR/USD`; existe USD/BRL; EUR/BRL não confirmado. | 🟡 / ❌ | [USD/BRL](https://twelvedata.com/markets/327325/forex/usd-brl) | 20/10/2026 |
+| Planos individuais = uso pessoal/interno, sem redistribuição nem exibição a terceiros. App privado de 1 usuário = uso pessoal. | 🟡 | [Commercial and personal usage](https://support.twelvedata.com/en/articles/5332349-commercial-and-personal-usage), [Terms](https://twelvedata.com/terms) | 20/10/2026 |
+| Preços desde mar/2026: Grow US$ 79, Pro US$ 229 e Ultra US$ 999 por mês (páginas antigas ainda citam US$ 29). | 🟡 contraditório | [March 2026 updates](https://twelvedata.com/news/march-2026-updates) | 20/10/2026 |
+| Restrição a residente no Brasil: nenhuma encontrada. | ❌ | — | — |
+
+### 5.2 Alternativas pesquisadas
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| **OANDA v20 (conta practice)**: candles `/v3/instruments/{instrument}/candles` com mid/bid/ask, `volume` = tick volume, até 5000 por chamada, diário às 17h de Nova York; streaming de preços grátis com a conta. | ✅ (SDK oficial) + 🟡 | [v20-python](https://github.com/oanda/v20-python), [Instrument](https://developer.oanda.com/rest-live-v20/instrument-df/) | 20/10/2026 |
+| A lista de países da OANDA Global Markets **não inclui o Brasil**; conta demo com token para brasileiro: não confirmado. | 🟡 / ❌ | [Eligible countries](https://help.oanda.com/bvi/en/faqs/eligible-ogm-countries-bvi.htm) | 20/10/2026 |
+| **Massive (ex-Polygon.io)**: Currencies Basic grátis = 5 chamadas/min e dados de **fim de dia**; Currencies Starter **US$ 49/mês** = tempo real, WebSocket, barras pelo bid e tick volume. Uso não profissional fora dos EUA permitido. | 🟡 | [Currencies](https://massive.com/currencies), [Barras de forex](https://massive.com/knowledge-base/article/how-are-massives-forex-bars-built-and-what-do-v-and-n-mean-on-a-forex-bar) | 20/10/2026 |
+| **Tiingo** grátis: 50 requisições/hora e 1.000/dia (não aguenta um gráfico a cada 60 s). | 🟡 | [Pricing](https://www.tiingo.com/about/pricing) | 20/10/2026 |
+| **Alpha Vantage** grátis: 25 requisições/dia; forex intradiário é premium. | 🟡 | [Documentation](https://www.alphavantage.co/documentation/) | 20/10/2026 |
+| **Finnhub**: candles de forex exigem plano pago. | 🟡 | [Forex Candles](https://finnhub.io/docs/api/forex-candles) | 20/10/2026 |
+| **TraderMade** (1.000/mês) e **FCS API** (500/mês): cotas grátis pequenas demais. | 🟡 | [TraderMade](https://tradermade.com/docs/restful-api), [FCS](https://fcsapi.com/document/forex-api) | 20/10/2026 |
+| BCE/Frankfurter e PTAX do BCB: só taxa diária, sem OHLC — não servem para gráfico. | 🟡 | [Frankfurter](https://frankfurter.dev/providers/ecb/), [PTAX](https://dadosabertos.bcb.gov.br/dataset/taxas-de-cambio-todos-os-boletins-diarios) | 20/10/2026 |
+
+### 5.3 Conta de consumo (Twelve Data grátis)
+
+Gráfico atualizando a cada 60 s **o dia inteiro** = 1.440 créditos/dia: estoura os 800. Por isso o
+Radar só consulta enquanto um gráfico de forex está aberto (1 crédito por minuto por gráfico), guarda o
+histórico no cache do servidor, conta os créditos (8/min e 800/dia, ajustáveis) e, quando a cota
+acaba, mostra o erro e a hora do último dado válido. O scanner não usa esta fonte. Aguenta cerca de
+**10 horas de gráfico aberto por dia**. Para mais, plano pago (Massive US$ 49 ou Twelve Data Grow
+US$ 79, mais IOF de cartão internacional) ou o MT5.
+
 ## 6. Fundamentos
 
 Verificado em 13/10/2026 **só por busca na web**: o ambiente bloqueia `data.sec.gov`, `www.sec.gov` e

@@ -61,6 +61,8 @@ export interface SourceInfo {
   market: string;
   configured: boolean;
   simulated: boolean;
+  /** Fontes com cota diária (forex pela internet). */
+  quota?: { used: number; limit: number; day: string };
 }
 
 export const getSources = () => api<{ simulated: boolean; sources: SourceInfo[] }>('/api/sources');

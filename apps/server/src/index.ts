@@ -24,6 +24,9 @@ async function main() {
     ...(env.ALPACA_KEY_ID ? { alpacaKeyId: env.ALPACA_KEY_ID } : {}),
     ...(env.ALPACA_SECRET_KEY ? { alpacaSecretKey: env.ALPACA_SECRET_KEY } : {}),
     ...(env.BRAPI_TOKEN ? { brapiToken: env.BRAPI_TOKEN } : {}),
+    ...(env.TWELVE_DATA_KEY ? { twelveDataKey: env.TWELVE_DATA_KEY } : {}),
+    twelveDataPerMinute: env.TWELVE_DATA_PER_MINUTE,
+    twelveDataPerDay: env.TWELVE_DATA_PER_DAY,
     simulated: env.RADAR_SIMULATED,
   });
   const { app, alerts, paper, scanner } = await buildApp({ env, db, registry });

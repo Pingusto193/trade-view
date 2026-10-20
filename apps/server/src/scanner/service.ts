@@ -233,7 +233,10 @@ export class ScannerService {
       label = UNIVERSES[u.id].label;
       all = UNIVERSES[u.id].symbols;
     }
-    const uniq = [...new Set(all)];
+    // forex pela internet tem cota diária pequena (ADR-0030): o scanner não gasta essa cota
+    const fx = all.filter((x) => x.startsWith('fx:'));
+    const uniq = [...new Set(all.filter((x) => !x.startsWith('fx:')))];
+    if (fx.length) label += ' — sem o forex da Twelve Data (cota diária)';
     return {
       label,
       symbols: uniq.slice(0, SCAN_MAX_SYMBOLS),

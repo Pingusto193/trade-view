@@ -47,6 +47,11 @@ export const envSchema = z.object({
   ALPACA_KEY_ID: z.string().optional(),
   ALPACA_SECRET_KEY: z.string().optional(),
   BRAPI_TOKEN: z.string().optional(),
+  /** Forex pela internet (Twelve Data, ADR-0030). Vazio = forex só pelo MT5. */
+  TWELVE_DATA_KEY: z.string().optional(),
+  /** Limites do plano da Twelve Data (grátis: 8 por minuto e 800 por dia). */
+  TWELVE_DATA_PER_MINUTE: z.coerce.number().int().positive().default(8),
+  TWELVE_DATA_PER_DAY: z.coerce.number().int().positive().default(800),
   /**
    * Fundamentos dos EUA (SEC EDGAR): a SEC exige que todo acesso automático se identifique com nome e
    * e-mail de contato no User-Agent. Vazio = fundamentos dos EUA desligados ("não configurada").

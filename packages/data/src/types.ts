@@ -54,6 +54,8 @@ export interface MarketDataAdapter {
   getMeta(symbol: string): Promise<SymbolMeta>;
   getCandles(req: CandleRequest): Promise<Candle[]>;
   subscribe(symbol: string, tf: Timeframe, handlers: SubscribeHandlers): Subscription;
+  /** Fontes com cota diária (ex.: Twelve Data grátis): consultas usadas hoje e o limite. */
+  quota?(): { used: number; limit: number; day: string };
 }
 
 // ------------------------------------------------------------------ erros

@@ -50,6 +50,7 @@ Preencha pelo menos:
 | `RADAR_SIMULATED` | `0` (dados reais; o servidor se recusa a ligar o simulador em produção) |
 | `ALPACA_KEY_ID`, `ALPACA_SECRET_KEY` | chaves da Alpaca (ações dos EUA) |
 | `BRAPI_TOKEN` | token da brapi (B3) |
+| `TWELVE_DATA_KEY` | chave grátis da Twelve Data para **forex sem o PC Windows**: crie a conta em twelvedata.com, copie a "API key" do painel e cole aqui. O plano grátis dá 800 consultas por dia (cerca de 10 horas de gráfico de forex aberto). Sem ela, forex só pelo MetaTrader 5 |
 | `SEC_USER_AGENT` | um nome e o seu e-mail (ex.: `Radar pessoal voce@exemplo.com`): a SEC exige essa identificação para dar os fundamentos dos EUA |
 | `VAPID_SUBJECT` | `mailto:` + seu e-mail (exigido pelo push) |
 | `SMTP_*` | só se quiser alertas por e-mail |

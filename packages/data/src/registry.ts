@@ -4,12 +4,17 @@ import { BinanceAdapter } from './adapters/binance';
 import { BrapiAdapter } from './adapters/brapi';
 import { Mt5Adapter } from './adapters/mt5';
 import { SimulatedAdapter } from './adapters/simulated';
+import { TwelveDataAdapter } from './adapters/twelvedata';
 import { parseSymbolId, type MarketDataAdapter } from './types';
 
 export interface DataConfig {
   alpacaKeyId?: string;
   alpacaSecretKey?: string;
   brapiToken?: string;
+  /** Forex pela internet (Twelve Data, ADR-0030) e os limites do plano. */
+  twelveDataKey?: string;
+  twelveDataPerMinute?: number;
+  twelveDataPerDay?: number;
   /** Liga o adaptador de dados simulados (somente desenvolvimento). */
   simulated?: boolean;
 }
@@ -30,6 +35,11 @@ export class AdapterRegistry {
         ...(cfg.alpacaSecretKey ? { secretKey: cfg.alpacaSecretKey } : {}),
       }),
       new BrapiAdapter({ ...(cfg.brapiToken ? { token: cfg.brapiToken } : {}) }),
+      new TwelveDataAdapter({
+        ...(cfg.twelveDataKey ? { apiKey: cfg.twelveDataKey } : {}),
+        ...(cfg.twelveDataPerMinute ? { perMinute: cfg.twelveDataPerMinute } : {}),
+        ...(cfg.twelveDataPerDay ? { perDay: cfg.twelveDataPerDay } : {}),
+      }),
     ];
     // MetaTrader 5 pelo agente do PC do usuário (ADR-0023); o simulador do agente só em desenvolvimento.
     list.push(new Mt5Adapter());

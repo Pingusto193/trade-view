@@ -22,6 +22,7 @@ export function marketRoutes(
       market: a.market,
       configured: a.isConfigured(),
       simulated: Boolean(a.simulated),
+      ...(a.quota ? { quota: a.quota() } : {}),
     })),
   }));
 

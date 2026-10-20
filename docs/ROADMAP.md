@@ -137,5 +137,7 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
       chave Simples/Completo; cabe em 375 px (ADR-0029)
 - [x] Cartão "Leitura simples": tendência de agora + histórico contra um candle qualquer, sem
       look-ahead, com veredito honesto; página da Biblioteca "Leitura simples"
-- [ ] Forex pela internet (sem PC Windows) + MT5 quando o PC estiver ligado
+- [x] Forex pela internet (Twelve Data grátis, `fx:EURUSD`…) + MT5 quando o PC estiver ligado; cota de
+      800/dia protegida no servidor; atalhos na busca; saldo na página Fontes (ADR-0030)
+- [ ] Teste real da Twelve Data: falta o segredo `TWELVE_DATA_KEY` no GitHub (o usuário cria a conta)
 

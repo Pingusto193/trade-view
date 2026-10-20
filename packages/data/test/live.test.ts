@@ -12,6 +12,7 @@ import {
   SEC_SOURCE,
   SGS,
   SecEdgarClient,
+  TwelveDataAdapter,
   cvmFactsFor,
   parseCotahist,
   parseCotahistLine,
@@ -134,6 +135,44 @@ describe.skipIf(!live)('integração real (internet)', () => {
       expect(c.every(sane)).toBe(true);
     },
     30_000,
+  );
+
+  it.skipIf(!process.env.TWELVE_DATA_KEY)(
+    'Twelve Data: EUR/USD em 1 min e diário; USD/BRL e EUR/BRL (fatos ❌ de DATA_SOURCES §5.1)',
+    async () => {
+      const td = new TwelveDataAdapter({ apiKey: process.env.TWELVE_DATA_KEY });
+      const m1 = await td.getCandles({ symbol: 'EURUSD', tf: '1m', limit: 30 });
+      expect(m1.length).toBeGreaterThan(0);
+      expect(m1.every(sane)).toBe(true);
+      expect(m1.every((c) => c.volume === 0)).toBe(true);
+      const last = m1.at(-1)!;
+      console.info(
+        `[twelvedata] último candle de 1 min: ${new Date(last.time).toISOString()} (há ${Math.round((Date.now() - last.time) / 1000)} s; fim de semana = sexta)`,
+      );
+      const d1 = await td.getCandles({ symbol: 'EURUSD', tf: '1d', limit: 10 });
+      expect(d1.every(sane)).toBe(true);
+      const wd = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+      console.info(
+        `[twelvedata] diário (data e dia da semana em UTC): ${d1
+          .map(
+            (c) =>
+              `${new Date(c.time).toISOString().slice(0, 10)} ${wd[new Date(c.time).getUTCDay()]}`,
+          )
+          .join(', ')}`,
+      );
+      for (const p of ['USDBRL', 'EURBRL']) {
+        try {
+          const c = await td.getCandles({ symbol: p, tf: '1d', limit: 3 });
+          console.info(
+            `[twelvedata] ${p}: ${c.length} candles, último fechamento ${c.at(-1)?.close}`,
+          );
+        } catch (e) {
+          console.info(`[twelvedata] ${p}: erro "${(e as Error).message}"`);
+        }
+      }
+      console.info(`[twelvedata] consultas nesta rodada: ${JSON.stringify(td.quota())}`);
+    },
+    60_000,
   );
 
   it('BCB: Meta Selic (432) e CDI (12)', async () => {

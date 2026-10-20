@@ -3,6 +3,26 @@ import { MARKET_LABEL } from '@radar/shared';
 import { useEffect, useRef, useState } from 'react';
 import { searchSymbols } from '../lib/api';
 
+/** Atalhos quando a busca está vazia: forex pela internet (Twelve Data) e cripto (ADR-0030). */
+const QUICK: readonly { title: string; items: readonly [string, string][] }[] = [
+  {
+    title: 'Forex',
+    items: [
+      ['fx:EURUSD', 'EUR/USD'],
+      ['fx:GBPUSD', 'GBP/USD'],
+      ['fx:USDJPY', 'USD/JPY'],
+      ['fx:USDBRL', 'USD/BRL'],
+    ],
+  },
+  {
+    title: 'Cripto',
+    items: [
+      ['binance:BTCUSDT', 'BTC'],
+      ['binance:ETHUSDT', 'ETH'],
+    ],
+  },
+];
+
 /** Busca unificada de ativos entre mercados (SPEC §7). */
 export function SymbolSearch({
   onPick,
@@ -70,10 +90,32 @@ export function SymbolSearch({
                   setOpen(false);
                 }
               }}
-              placeholder="Buscar: BTC, PETR4, AAPL…"
+              placeholder="Buscar: BTC, PETR4, AAPL, EURUSD…"
               className="w-full rounded-t-lg border-b border-line bg-transparent px-3 py-3 text-base outline-none"
               aria-label="Texto da busca"
             />
+            {q.trim() === '' && (
+              <div className="space-y-1 border-b border-line px-3 py-2" aria-label="Atalhos">
+                {QUICK.map((g) => (
+                  <div key={g.title} className="flex flex-wrap items-center gap-1.5">
+                    <span className="w-14 text-xs text-muted">{g.title}</span>
+                    {g.items.map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className="rounded-full border border-line px-2.5 py-0.5 text-xs hover:border-accent"
+                        onClick={() => {
+                          onPick(id);
+                          setOpen(false);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
             <ul className="max-h-[60vh] overflow-y-auto">
               {loading && results.length === 0 && (
                 <li className="px-3 py-2 text-sm text-muted">Buscando…</li>

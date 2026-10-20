@@ -3,7 +3,8 @@ name: Dados reais
 # Testes de integração contra as fontes REAIS (Binance, BCB, B3/COTAHIST, brapi, CVM e, com segredos,
 # SEC e Alpaca). Fica fora do CI normal: depende da internet e das fontes estarem no ar.
 # Segredos opcionais (Settings › Secrets and variables › Actions): SEC_USER_AGENT ("Seu nome seu@email",
-# exigido pela SEC), BRAPI_TOKEN, ALPACA_KEY_ID e ALPACA_SECRET_KEY. Sem eles, esses testes são pulados.
+# exigido pela SEC), BRAPI_TOKEN, ALPACA_KEY_ID, ALPACA_SECRET_KEY e TWELVE_DATA_KEY (forex; gasta 4 das
+# 800 consultas diárias do plano grátis). Sem eles, esses testes são pulados.
 on:
   workflow_dispatch:
   schedule:
@@ -42,6 +43,7 @@ jobs:
           BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          TWELVE_DATA_KEY: ${{ secrets.TWELVE_DATA_KEY }}
 
   e2e:
     name: Telas com dados reais (Playwright)
