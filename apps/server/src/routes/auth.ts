@@ -36,13 +36,19 @@ export function authRoutes(app: FastifyInstance, auth: AuthService, env: Env) {
 
   app.get('/api/auth/state', async (req) => ({
     needsSetup: auth.userCount() === 0 && !env.RADAR_DEV_NO_AUTH,
+    setupCodeRequired: auth.setupCodeRequired() && !env.RADAR_DEV_NO_AUTH,
     devNoAuth: env.RADAR_DEV_NO_AUTH,
     user: req.user,
   }));
 
   app.post('/api/auth/register', strict, async (req, reply) => {
-    const b = credentials.extend({ invite: z.string().max(100).optional() }).parse(req.body);
-    const user = await auth.register(b.email, b.password, b.invite);
+    const b = credentials
+      .extend({
+        invite: z.string().max(100).optional(),
+        setupCode: z.string().max(100).optional(),
+      })
+      .parse(req.body);
+    const user = await auth.register(b.email, b.password, b.invite, b.setupCode);
     const s = auth.createSession(user.id, req.headers['user-agent']);
     setSession(reply, s.token);
     return { user };

@@ -21,6 +21,8 @@ const input =
 /** Primeiro acesso (sem nenhuma conta) ou cadastro por convite. */
 export function RegisterScreen({ invite }: { invite?: string }) {
   const setUser = useAuth((s) => s.setUser);
+  const needCode = useAuth((s) => s.setupCodeRequired) && !invite;
+  const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
@@ -33,7 +35,7 @@ export function RegisterScreen({ invite }: { invite?: string }) {
     setBusy(true);
     setErr(null);
     try {
-      const r = await register(email, pw, invite);
+      const r = await register(email, pw, invite, needCode ? code : undefined);
       setUser(r.user);
       history.replaceState(null, '', '/grafico');
     } catch (ex) {
@@ -51,6 +53,21 @@ export function RegisterScreen({ invite }: { invite?: string }) {
         </p>
       )}
       <form onSubmit={submit} className="space-y-3">
+        {needCode && (
+          <label className="block text-xs text-muted">
+            Código de instalação (aparece no fim da instalação no servidor; protege o seu Radar de
+            quem achar o endereço antes de você)
+            <input
+              className={`${input} mt-1`}
+              autoComplete="off"
+              placeholder="Código de instalação"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              aria-label="Código de instalação"
+            />
+          </label>
+        )}
         <input
           className={input}
           type="email"

@@ -130,11 +130,15 @@ export async function testApp(
     simulated?: boolean;
     sec?: SecEdgarClient;
     cvm?: CvmClient;
+    /** Código de instalação da primeira conta (SETUP_CODE). */
+    setupCode?: string;
+    nodeEnv?: 'test' | 'production';
   } = {},
 ) {
   const fake = new FakeAdapter();
   const env = envSchema.parse({
-    NODE_ENV: 'test',
+    NODE_ENV: opts.nodeEnv ?? 'test',
+    ...(opts.setupCode ? { SETUP_CODE: opts.setupCode } : {}),
     DATABASE_PATH: ':memory:',
     RADAR_DEV_NO_AUTH: opts.auth ? '0' : '1',
     PUBLIC_URL: 'http://localhost:5173',

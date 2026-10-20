@@ -6,6 +6,14 @@ const PW = 'uma-senha-bem-longa';
 test('primeiro acesso cria a conta, sair e entrar de novo', async ({ page }) => {
   await page.goto('/grafico?id=sim:SIMBTC&tf=1d');
   await expect(page.getByText('Primeiro acesso: crie sua conta')).toBeVisible();
+  // servidor público: a primeira conta exige o código de instalação (SETUP_CODE do servidor de teste)
+  await page.getByLabel('E-mail').fill(EMAIL);
+  await page.getByLabel('Senha', { exact: true }).fill(PW);
+  await page.getByLabel('Repita a senha').fill(PW);
+  await page.getByLabel('Código de instalação').fill('errado');
+  await page.getByRole('button', { name: 'Criar conta' }).click();
+  await expect(page.getByText(/Código de instalação incorreto/)).toBeVisible();
+  await page.getByLabel('Código de instalação').fill('codigo-e2e');
   await page.getByLabel('E-mail').fill(EMAIL);
   await page.getByLabel('Senha', { exact: true }).fill(PW);
   await page.getByLabel('Repita a senha').fill(PW);

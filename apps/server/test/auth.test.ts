@@ -67,6 +67,57 @@ async function authApp(now?: () => number) {
   return { t, post, cookieOf };
 }
 
+describe('código de instalação (servidor público)', () => {
+  it('a primeira conta exige o código; depois volta a valer só o convite', async () => {
+    const t = await testApp({ auth: true, setupCode: 'abc123xyz' });
+    close = () => t.app.close();
+    const reg = (body: object) =>
+      t.app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        headers: json,
+        payload: JSON.stringify({ email: 'eu@exemplo.com', password: PW, ...body }),
+      });
+    expect((await t.app.inject({ url: '/api/auth/state' })).json()).toMatchObject({
+      needsSetup: true,
+      setupCodeRequired: true,
+    });
+    const no = await reg({});
+    expect(no.statusCode).toBe(403);
+    expect(no.json().error).toMatch(/Código de instalação incorreto/);
+    expect((await reg({ setupCode: 'errado' })).statusCode).toBe(403);
+    expect((await reg({ setupCode: ' abc123xyz ' })).statusCode).toBe(200);
+    expect((await t.app.inject({ url: '/api/auth/state' })).json()).toMatchObject({
+      needsSetup: false,
+      setupCodeRequired: false,
+    });
+    // o código não abre uma segunda conta
+    const again = await t.app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers: json,
+      payload: JSON.stringify({ email: 'x@exemplo.com', password: PW, setupCode: 'abc123xyz' }),
+    });
+    expect(again.statusCode).toBe(403);
+    expect(again.json().error).toMatch(/Cadastro fechado/);
+  });
+
+  it('em produção sem SETUP_CODE o servidor gera um código (primeira conta nunca fica livre)', async () => {
+    const t = await testApp({ auth: true, nodeEnv: 'production' });
+    close = () => t.app.close();
+    expect((await t.app.inject({ url: '/api/auth/state' })).json()).toMatchObject({
+      setupCodeRequired: true,
+    });
+    const r = await t.app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers: json,
+      payload: JSON.stringify({ email: 'eu@exemplo.com', password: PW }),
+    });
+    expect(r.statusCode).toBe(403);
+  });
+});
+
 describe('contas e sessões', () => {
   it('primeiro acesso cria conta; depois o cadastro fica fechado (só com convite)', async () => {
     const { t, post, cookieOf } = await authApp();

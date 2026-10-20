@@ -40,6 +40,11 @@ export const envSchema = z.object({
   ASSISTANT_MODEL: z.string().default(''),
   ASSISTANT_PRICE_IN: z.coerce.number().min(0).default(0),
   ASSISTANT_PRICE_OUT: z.coerce.number().min(0).default(0),
+  /**
+   * Código exigido para criar a PRIMEIRA conta (servidor público: ninguém "pega" o Radar antes do dono).
+   * O instalador gera um. Vazio em produção = o servidor gera um ao ligar e escreve no log.
+   */
+  SETUP_CODE: z.string().max(100).optional(),
   /** Pasta com o build do front (apps/web/dist) para servir em produção. */
   WEB_DIST: z.string().optional(),
   /** Chave (base64, 32 bytes) do cofre de segredos. Vazia = arquivo app-secret.key ao lado do banco. */

@@ -9,7 +9,7 @@ import { CvmClient, SecEdgarClient, type AdapterRegistry, type BcbClient } from 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { AlertService } from './alerts/service';
-import { SecretBox } from './auth/crypto';
+import { SecretBox, randomToken } from './auth/crypto';
 import { AuthError, AuthService } from './auth/service';
 import type { Db } from './db/client';
 import type { Env } from './env';
@@ -138,7 +138,13 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     env.APP_SECRET,
     env.DATABASE_PATH === ':memory:' ? null : resolve(dirname(env.DATABASE_PATH), 'app-secret.key'),
   );
-  const auth = new AuthService(db, box, deps.now);
+  // servidor público: a primeira conta exige o código de instalação (o instalador gera um; sem ele, em
+  // produção, o servidor gera e escreve no log — quem tem acesso ao servidor lê)
+  const setupCode =
+    env.SETUP_CODE?.trim() || (env.NODE_ENV === 'production' ? randomToken(8) : null);
+  const auth = new AuthService(db, box, deps.now, setupCode);
+  if (setupCode && !env.SETUP_CODE && auth.userCount() === 0)
+    app.log.warn(`Primeiro acesso: o código de instalação é ${setupCode}`);
   installAuthGuard(app, auth, env);
   authRoutes(app, auth, env);
 

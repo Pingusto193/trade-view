@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { hash, verify } from '@node-rs/argon2';
 import { and, count, eq, gt, lt } from 'drizzle-orm';
 import type { Db } from '../db/client';
@@ -53,10 +54,17 @@ export class AuthService {
     private readonly db: Db,
     private readonly box: SecretBox,
     private readonly now: () => number = Date.now,
+    /** Código de instalação exigido para a primeira conta (null = livre, só desenvolvimento/testes). */
+    private readonly setupCode: string | null = null,
   ) {}
 
   userCount(): number {
     return this.db.select({ n: count() }).from(users).get()?.n ?? 0;
+  }
+
+  /** A primeira conta ainda não existe e exige o código de instalação. */
+  setupCodeRequired(): boolean {
+    return this.setupCode !== null && this.userCount() === 0;
   }
 
   private toPublic(u: typeof users.$inferSelect): PublicUser {
@@ -116,14 +124,31 @@ export class AuthService {
 
   // ---------------------------------------------------------------- cadastro e login
 
-  /** Primeira conta: livre. Depois: só com convite válido (SPEC §17 — cadastro fechado). */
-  async register(emailRaw: string, password: string, inviteToken?: string): Promise<PublicUser> {
+  /**
+   * Primeira conta: com o código de instalação (quando configurado). Depois: só com convite válido
+   * (SPEC §17 — cadastro fechado).
+   */
+  async register(
+    emailRaw: string,
+    password: string,
+    inviteToken?: string,
+    setupCode?: string,
+  ): Promise<PublicUser> {
     const email = normalizeEmail(emailRaw);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new AuthError('E-mail inválido.', 400);
     const pwErr = validatePassword(password);
     if (pwErr) throw new AuthError(pwErr, 400);
 
     let inviteHash: string | null = null;
+    if (this.setupCodeRequired()) {
+      const want = Buffer.from(sha256(this.setupCode as string), 'hex');
+      const got = Buffer.from(sha256((setupCode ?? '').trim()), 'hex');
+      if (!timingSafeEqual(want, got))
+        throw new AuthError(
+          'Código de instalação incorreto. Ele aparece no fim da instalação (ou no log do servidor).',
+          403,
+        );
+    }
     if (this.userCount() > 0) {
       if (!inviteToken)
         throw new AuthError('Cadastro fechado. Peça um convite ao dono do Radar.', 403);

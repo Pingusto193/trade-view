@@ -85,6 +85,7 @@ export default defineConfig({
         // vários testes por segundo, todos do mesmo IP: o limite de produção (600/min) estouraria
         RATE_LIMIT_MAX: '100000',
         RADAR_DEV_NO_AUTH: '0',
+        SETUP_CODE: 'codigo-e2e',
         PUBLIC_URL: `http://localhost:${AUTH_WEB_PORT}`,
       },
     },
