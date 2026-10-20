@@ -19,7 +19,8 @@ test('painel Brasil mostra CDI e Selic do Banco Central (número real, não o av
   page,
 }) => {
   await page.goto('/brasil');
+  // o BCB às vezes demora no primeiro acesso: o quadro tenta de novo sozinho a cada 5 s
   await expect(page.getByTestId('cdi-box')).toContainText(/CDI: \d+,\d{2}% ao ano/, {
-    timeout: 30_000,
+    timeout: 60_000,
   });
 });

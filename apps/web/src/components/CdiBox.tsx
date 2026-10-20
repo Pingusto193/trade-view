@@ -11,6 +11,18 @@ export function CdiBox({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     void load();
   }, [load]);
+  // logo depois de o servidor ligar, o Banco Central pode ainda não ter respondido: tenta de novo
+  // sozinho (a cada 5 s, por até 1 min) em vez de esperar o usuário recarregar a página
+  const waiting = Boolean(data && !data.cdi);
+  useEffect(() => {
+    if (!waiting) return;
+    let n = 0;
+    const t = setInterval(() => {
+      if (++n >= 12) clearInterval(t);
+      void load();
+    }, 5000);
+    return () => clearInterval(t);
+  }, [waiting, load]);
   const box = 'my-3 rounded border border-line bg-panel-2 px-3 py-2 text-sm';
   if (error && !data)
     return (
