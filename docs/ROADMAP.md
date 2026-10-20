@@ -116,6 +116,10 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
 - [~] Docker Compose + Caddy (HTTPS), guia de publicação (`docs/GUIA_PUBLICACAO.md`), backup
   (`pnpm --filter @radar/server backup`), imagem testada no CI — adiantado para o usuário usar com dados
   reais. Falta: HTTPS real testado com domínio, alternativas de hospedagem (planos B–D)
+- [x] Publicação grátis na Oracle (ADR-0031): instalador de um comando (`deploy/instalar.sh`), atualizador
+  com backup, código de instalação na primeira conta, guia `GUIA_ORACLE.md`; instalador testado no CI
+  com HTTPS (x86) e imagem ARM64 emulada
+- [ ] Usuário criar a conta Oracle + DuckDNS e rodar o instalador (passos que só ele pode fazer)
 - [x] Backup automático diário com retenção e exportação/importação completa em JSON pela tela
   (ADR-0027); guias `GUIA_BACKUP`, `GUIA_IPHONE`, `FAQ`, `GUIA_DEPLOY`, `GUIA_TELEGRAM`
 - [~] Revisão de segurança (SPEC §17): argon2id, cookie HttpOnly/SameSite/Secure, 2FA, cadastro fechado,

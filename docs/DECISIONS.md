@@ -662,3 +662,31 @@ quando o PC estiver ligado). Pesquisa em DATA_SOURCES §5.1–§5.3.
   mudança. Os dois aparecem na busca com o nome da fonte.
 - 🔌 Nenhuma chamada real feita do ambiente de desenvolvimento. O workflow "Dados reais" testa de verdade
   quando o segredo `TWELVE_DATA_KEY` existir no GitHub (4 consultas por rodada).
+
+## ADR-0031 — Publicação: Oracle grátis + DuckDNS, instalador de um comando e código de instalação (20/10/2026)
+
+Pedido do usuário: "colocar o site no ar", com servidor grátis da Oracle e sem domínio próprio.
+
+- **Por que não daqui:** o ambiente do Claude é temporário, não aceita conexões de fora e não pode criar
+  contas em nome do usuário. O usuário faz só o que exige a identidade dele (conta Oracle com cartão,
+  conta DuckDNS); o resto é um comando.
+- **Oracle Always Free, Ampere A1 com 1 OCPU e 2 GB, Ubuntu 24.04, região São Paulo** (DATA_SOURCES
+  §11). Plano B: E2.1.Micro (o instalador cria swap). 2 GB de propósito: a Oracle pode parar
+  instâncias "ociosas" (CPU, rede e — na A1 — memória < 20% por 7 dias); com 2 GB o uso de memória do
+  sistema + Docker + Radar + Caddy deve ficar acima de 20% (**inferência, não medida**: o guia manda
+  conferir nas métricas).
+- **DuckDNS** (está na Public Suffix List: o limite do Let's Encrypt é por subdomínio). sslip.io/nip.io
+  descartados (limite dividido com todos). IP atualizado por cron a cada 5 min se o usuário passar o token.
+- **`deploy/instalar.sh`** (pode rodar de novo): recusa sistema que não seja Ubuntu/Debian, cria swap
+  se houver menos de 2 GB, libera 80/443 no iptables das imagens Oracle (sem UFW, que a Oracle
+  desaconselha), instala o Docker pelo script oficial, clona o repositório público, completa o `.env`
+  de produção sem apagar o existente, liga o Compose e espera a saúde e o HTTPS.
+  `deploy/atualizar.sh` faz backup antes de atualizar e diz como voltar.
+- **Código de instalação (`SETUP_CODE`)**: num servidor público, a primeira conta era livre — quem
+  achasse o endereço antes do dono viraria dono. Agora a primeira conta exige o código (comparação em
+  tempo constante; rota já limitada a 20/min). Em produção sem `SETUP_CODE`, o servidor gera um ao
+  ligar e escreve no log. Depois da primeira conta, vale só o convite, como antes.
+- **Testado no CI** (workflow "Publicação (instalador)"): instalador num Ubuntu x86 com HTTPS do Caddy em
+  `localhost`, código errado → 403, certo → 200, reinstalar mantém o código e os dados, backup do
+  atualizador; imagem `linux/arm64` montada e ligada sob emulação (SQLite e argon2 nativos em ARM).
+  **Não testado:** numa conta Oracle de verdade, com DuckDNS e Let's Encrypt reais.

@@ -3,15 +3,15 @@
 # qualquer Ubuntu com Docker. Guia passo a passo: docs/GUIA_ORACLE.md
 #
 # Uso (no servidor, uma linha):
-#   curl -fsSL https://raw.githubusercontent.com/Pingusto193/trade-view/<ramo>/deploy/instalar.sh \
-#     | bash -s -- --dominio SEU-NOME.duckdns.org --ramo <ramo>
+#   curl -fsSL https://raw.githubusercontent.com/Pingusto193/trade-view/HEAD/deploy/instalar.sh \
+#     | bash -s -- --dominio SEU-NOME.duckdns.org
 #
 # Pode rodar de novo quando quiser: não apaga dados nem troca o .env (só completa o que falta).
 set -euo pipefail
 
 REPO="https://github.com/Pingusto193/trade-view.git"
 DOMINIO=""
-RAMO="main"
+RAMO=""
 PASTA="/opt/radar"
 DUCKDNS_TOKEN=""
 FIREWALL=1
@@ -22,7 +22,7 @@ ajuda() {
   cat <<'TXT'
 Opções:
   --dominio NOME        endereço do Radar (ex.: meuradar.duckdns.org)   [obrigatório]
-  --ramo NOME           ramo do GitHub a instalar (padrão: main)
+  --ramo NOME           ramo do GitHub a instalar (padrão: o ramo principal do repositório)
   --pasta DIR           onde instalar (padrão: /opt/radar)
   --duckdns-token TOKEN atualiza o IP no DuckDNS a cada 5 min (opcional)
   --sem-firewall        não mexe no firewall do sistema
@@ -52,6 +52,14 @@ erro() { printf '\033[1;31m[erro]\033[0m %s\n' "$*" >&2; exit 1; }
 [[ -n "$DOMINIO" ]] || { ajuda; erro "faltou --dominio (ex.: --dominio meuradar.duckdns.org)"; }
 [[ "$DOMINIO" =~ ^[A-Za-z0-9.-]+$ ]] || erro "domínio inválido: $DOMINIO"
 [[ "$(uname -s)" == "Linux" ]] || erro "este instalador é para Linux"
+if [[ -r /etc/os-release ]]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case "${ID:-}" in
+    ubuntu|debian) ;;
+    *) erro "sistema ${PRETTY_NAME:-desconhecido}: use a imagem Ubuntu (o instalador do Docker não suporta Oracle Linux). Veja o guia, passo 2." ;;
+  esac
+fi
 
 SUDO=""
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -120,10 +128,13 @@ passo "Código do Radar em $PASTA"
 if (( BAIXAR_CODIGO )); then
   command -v git >/dev/null || { $SUDO apt-get update -y >/dev/null && $SUDO apt-get install -y git >/dev/null; }
   if [[ -d "$PASTA/.git" ]]; then
-    $SUDO git -C "$PASTA" fetch --depth 1 origin "$RAMO"
-    $SUDO git -C "$PASTA" checkout -B "$RAMO" FETCH_HEAD
-  else
+    ramo="${RAMO:-$($SUDO git -C "$PASTA" rev-parse --abbrev-ref HEAD)}"
+    $SUDO git -C "$PASTA" fetch --depth 1 origin "$ramo"
+    $SUDO git -C "$PASTA" checkout -B "$ramo" FETCH_HEAD
+  elif [[ -n "$RAMO" ]]; then
     $SUDO git clone --depth 1 --branch "$RAMO" "$REPO" "$PASTA"
+  else
+    $SUDO git clone --depth 1 "$REPO" "$PASTA"
   fi
 fi
 [[ -f "$PASTA/docker-compose.yml" ]] || erro "não achei docker-compose.yml em $PASTA"

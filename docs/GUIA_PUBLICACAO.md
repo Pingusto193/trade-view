@@ -1,5 +1,8 @@
 # Guia: colocar o Radar no ar (para usar no iPhone e no PC, com dados reais)
 
+> **Caminho mais fácil e grátis:** `GUIA_ORACLE.md` (servidor grátis da Oracle + endereço grátis do
+> DuckDNS + instalador de um comando). Este guia é o caminho manual, para qualquer servidor Linux.
+
 Rodando no seu computador, o Radar só funciona enquanto o PC estiver ligado, e o iPhone não recebe
 notificações (a Apple exige um endereço **https://** público). Para usar de verdade, o Radar precisa ficar
 num **servidor ligado 24 h** com um **domínio**. Este guia faz isso com Docker, num servidor Linux.
@@ -71,8 +74,10 @@ domínio ainda não apontar para o servidor, ele tenta de novo sozinho.
 ## 6. Primeiro acesso
 
 1. Abra `https://seu-dominio` no computador.
-2. A primeira tela cria a **sua conta** (a primeira conta é a dona). Depois disso, novas contas só por
-   convite (Conta › Convites).
+2. A primeira tela cria a **sua conta** (a primeira conta é a dona) e pede o **código de
+   instalação**: é o `SETUP_CODE` do `.env` (o instalador gera um). Sem ele no `.env`, o servidor gera
+   um ao ligar e escreve no log: `docker compose logs radar | grep "código de instalação"`. Depois
+   disso, novas contas só por convite (Conta › Convites).
 3. Em **Conta**, ligue a **verificação em duas etapas**.
 4. No iPhone: abra o endereço no Safari, **Compartilhar › Adicionar à Tela de Início**, e siga o
    `docs/GUIA_NOTIFICACOES.md`.
