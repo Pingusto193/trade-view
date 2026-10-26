@@ -44,6 +44,7 @@ import { predictRoutes } from './routes/predict';
 import { PredictService } from './predict/service';
 import { NewsService } from './news/service';
 import { NewsAiService } from './news/ai';
+import { EventStudyService } from './news/event-study';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
@@ -215,13 +216,8 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   // fundamentos (SEC EDGAR e CVM): scanner, alertas de reflexividade e laboratório (ADR-0024)
   const sec =
     deps.sec ?? new SecEdgarClient(env.SEC_USER_AGENT ? { userAgent: env.SEC_USER_AGENT } : {});
-  const fundamentals = new FundamentalsService(
-    db,
-    sec,
-    deps.cvm ?? new CvmClient(),
-    deps.now,
-    app.log,
-  );
+  const cvm = deps.cvm ?? new CvmClient();
+  const fundamentals = new FundamentalsService(db, sec, cvm, deps.now, app.log);
   fundamentalsRoutes(app, fundamentals, market);
   // notícias em tempo real (SPEC §23.1, ADR-0032): ingestão contínua no servidor
   const newsSourceList = deps.newsSources ?? [
@@ -250,7 +246,12 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     onSummary: () => sync.broadcast({ type: 'sync', topic: 'news' }),
     log: app.log,
   });
-  newsRoutes(app, news, newsAi);
+  newsRoutes(
+    app,
+    news,
+    newsAi,
+    new EventStudyService(market, news, cvm, fundamentals, deps.now ?? Date.now),
+  );
   if (!env.NEWS_DISABLED && (env.NODE_ENV !== 'test' || env.RADAR_SIMULATED)) {
     news.start();
     newsAi.start();

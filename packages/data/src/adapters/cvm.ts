@@ -17,6 +17,7 @@ export const CVM_BASE = 'https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC';
 
 export const dfpZipName = (year: number) => `dfp_cia_aberta_${year}.zip`;
 export const fcaZipName = (year: number) => `fca_cia_aberta_${year}.zip`;
+export const ipeZipName = (year: number) => `ipe_cia_aberta_${year}.zip`;
 
 /** Classe da ação no ticker. UNIT = units (ON + PN juntas): a CVM não publica LPA por unit. */
 export type CvmShareClass = 'ON' | 'PN' | 'PNA' | 'PNB' | 'PNC' | 'PND' | 'PNU' | 'UNIT';
@@ -358,12 +359,70 @@ export class CvmClient {
     return parseDfpZip(bytes, year);
   }
 
+  /** Documentos eventuais (IPE) entregues num ano. */
+  async ipe(year: number): Promise<CvmIpeEvent[]> {
+    const bytes = await this.http.getBytes(`${this.base}/IPE/DADOS/${ipeZipName(year)}`);
+    return parseIpeZip(bytes, year);
+  }
+
   /** Mapa ticker → CNPJ e classe do FCA de um ano. */
   async fca(year: number): Promise<Map<string, CvmTicker>> {
     const bytes = await this.http.getBytes(`${this.base}/FCA/DADOS/${fcaZipName(year)}`);
     return parseFcaZip(bytes, year);
   }
 }
+
+/**
+ * Documento eventual da CVM (IPE): fatos relevantes, comunicados etc. A CVM informa só a DATA de
+ * entrega (DATA_SOURCES §19: atualização semanal; serve para histórico, não para alerta).
+ */
+export interface CvmIpeEvent {
+  cnpj: string;
+  company: string;
+  category: string;
+  type: string;
+  subject: string;
+  /** Data de entrega (meia-noite UTC, como os candles diários — ADR-0006). */
+  deliveredAt: number;
+  link: string | null;
+}
+
+/** Colunas que o leitor exige (os nomes vêm do dicionário de dados da CVM; 🔌 até o teste real). */
+export const IPE_REQUIRED = ['CNPJ_Companhia', 'Categoria', 'Data_Entrega'] as const;
+
+/** Lê o zip anual do IPE. Erro claro se a CVM mudar o nome das colunas exigidas. */
+export function parseIpeZip(bytes: Uint8Array, year: number): CvmIpeEvent[] {
+  const files = unzip(bytes, (n) => new RegExp(`ipe_cia_aberta_${year}\\.csv$`).test(n));
+  const text = [...files.values()][0];
+  if (!text)
+    throw new DataSourceError(`o IPE de ${year} não trouxe o arquivo esperado`, CVM_SOURCE);
+  const head = (parseCsv(text.slice(0, 2000))[0] ?? []).map((h) => h.trim());
+  const missing = IPE_REQUIRED.filter((c) => !head.includes(c));
+  if (missing.length)
+    throw new DataSourceError(
+      `o IPE de ${year} mudou de formato: faltam as colunas ${missing.join(', ')} (veio: ${head.join(', ')})`,
+      CVM_SOURCE,
+    );
+  const out: CvmIpeEvent[] = [];
+  for (const r of records(text)) {
+    const cnpj = digits(r.CNPJ_Companhia ?? '');
+    const day = isoDay(r.Data_Entrega);
+    if (cnpj.length !== 14 || day === null) continue;
+    out.push({
+      cnpj,
+      company: r.Nome_Companhia ?? '',
+      category: r.Categoria ?? '',
+      type: r.Tipo ?? '',
+      subject: r.Assunto ?? '',
+      deliveredAt: day,
+      link: r.Link_Download || null,
+    });
+  }
+  return out;
+}
+
+/** Fato relevante? (categoria normalizada, sem acento) */
+export const isFatoRelevante = (e: CvmIpeEvent) => norm(e.category) === 'FATO RELEVANTE';
 
 /** Ticker da B3 sem o "F" do mercado fracionário (PETR4F → PETR4). */
 export const b3BaseTicker = (t: string) =>

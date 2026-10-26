@@ -297,10 +297,9 @@ export class FundamentalsService {
 
   // ---------------------------------------------------------------- CVM
 
-  private async loadCvm(symbol: string, fromYear: number, toYear: number): Promise<Loaded> {
-    const source = CVM_SOURCE;
-    const t = b3BaseTicker(symbol);
-    const fca = await this.ensure('fund:cvm:fca', FUNDAMENTALS_TTL.cvmFca, async () => {
+  /** Cadastro da CVM (FCA: ticker → CNPJ), com cache. */
+  private cvmFca(): Promise<Ensured> {
+    return this.ensure('fund:cvm:fca', FUNDAMENTALS_TTL.cvmFca, async () => {
       const y = new Date(this.now()).getUTCFullYear();
       // o FCA do ano novo pode ainda não existir em janeiro
       const map = await this.cvm.fca(y).catch((err: unknown) => {
@@ -317,6 +316,18 @@ export class FundamentalsService {
         })),
       );
     });
+  }
+
+  /** CNPJ da companhia de um código da B3 (null se não estiver no cadastro ou a CVM falhar). */
+  async cvmCnpj(symbol: string): Promise<string | null> {
+    await this.cvmFca();
+    return this.ticker('cvm', b3BaseTicker(symbol))?.entity ?? null;
+  }
+
+  private async loadCvm(symbol: string, fromYear: number, toYear: number): Promise<Loaded> {
+    const source = CVM_SOURCE;
+    const t = b3BaseTicker(symbol);
+    const fca = await this.cvmFca();
     const row = this.ticker('cvm', t);
     if (!row)
       return {

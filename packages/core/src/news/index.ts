@@ -295,3 +295,4 @@ export function delayStats(samples: readonly DelaySample[]): {
     skewed,
   };
 }
+export * from './event-study';

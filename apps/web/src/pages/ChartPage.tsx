@@ -13,6 +13,7 @@ import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
 import { ContextPanel } from '../components/ContextPanel';
+import { EventStudyBox } from '../components/EventStudyBox';
 import { PredictPanel } from '../components/PredictPanel';
 import { ReadingCard } from '../components/ReadingCard';
 import { NewsList } from '../components/NewsList';
@@ -370,6 +371,7 @@ export function ChartPage() {
                         )
                     }
                   />
+                  {!fractal && <EventStudyBox id={id} tf={tf} />}
                 </div>
               )}
             </div>

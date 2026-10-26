@@ -18,6 +18,8 @@ import {
   parseCsv,
   parseDfpZip,
   parseFcaZip,
+  parseIpeZip,
+  isFatoRelevante,
   type SecCompanyFactsJson,
 } from '../src';
 import { fixture } from './helpers';
@@ -374,5 +376,32 @@ describe('CVM: cliente', () => {
   it('arquivo que ainda não existe (404) vira erro da fonte', async () => {
     const cvm = new CvmClient({ fetch: binFetch({}) });
     await expect(cvm.dfp(2030)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('CVM IPE (fatos relevantes)', () => {
+  const ipe = (csv: string) => zipSync({ ['ipe_cia_aberta_2026.csv']: latin1(csv) });
+  it('lê data de entrega, categoria e link; filtra fato relevante sem acento/caixa', () => {
+    const ev = parseIpeZip(
+      ipe(
+        'CNPJ_Companhia;Nome_Companhia;Categoria;Tipo;Assunto;Data_Entrega;Link_Download\n' +
+          '33.000.167/0001-01;PETROBRAS;Fato Relevante;;Dividendos;2026-03-05;https://www.rad.cvm.gov.br/x\n' +
+          '33.000.167/0001-01;PETROBRAS;Comunicado ao Mercado;;Outro;2026-03-06;\n' +
+          'inválido;X;Fato Relevante;;;2026-03-07;\n',
+      ),
+      2026,
+    );
+    expect(ev).toHaveLength(2);
+    expect(ev[0]).toMatchObject({
+      cnpj: '33000167000101',
+      deliveredAt: Date.UTC(2026, 2, 5),
+      link: 'https://www.rad.cvm.gov.br/x',
+    });
+    expect(ev.filter(isFatoRelevante)).toHaveLength(1);
+  });
+  it('coluna exigida faltando: erro claro (nada inventado)', () => {
+    expect(() => parseIpeZip(ipe('CNPJ;Categoria\n1;Fato Relevante\n'), 2026)).toThrow(
+      /mudou de formato: faltam as colunas CNPJ_Companhia, Data_Entrega/,
+    );
   });
 });

@@ -789,3 +789,32 @@ Decisões **nossas**:
 - **Custo:** ~0,7–1 s para 5.000 candles no worker (camadas 1 e 2 + dinheiro); no intradiário recalcula no
   máximo a cada 20 s. Formatadores de data da apuração de IR passaram a ser criados uma vez só (eram
   ~1 ms por trade).
+
+## ADR-0035 — Resumo por IA das notícias e estudo de evento (26/10/2026)
+
+Etapa 4 da SPEC §23.1. Decisões **nossas**:
+
+- **Resumo por IA:** usa a chave e os preços do **Assistente** (criptografados, só no servidor; a chave
+  nunca volta ao navegador) e tem **liga/desliga, modelo opcional e limite mensal próprios** (padrão US$ 2*),
+  checado **antes** de gastar com o pior caso (entrada estimada + 2.000 tokens de saída). Entrada da IA:
+  **só título + trecho do feed** (≤ 300 caracteres), fonte, etiquetas e os códigos das listas do usuário;
+  nunca a matéria. Saída em JSON (structured outputs nos modelos que aceitam; senão instrução + validação
+  zod): resumo de 2–3 linhas, relevância 1–5, leitura (positiva/negativa/neutra/mista) e ativos.
+  Esforço `low` nos modelos com `effort`; reserva por recusa (`fallbacks: "default"`) nos que aceitam.
+- **O que é resumido sozinho:** notícia **nova** (não acervo, não duplicata), de fonte cujos termos
+  permitem (`aiSummary`), que interessa às listas do usuário, ao mini-índice ou ao mini-dólar, ou que é
+  oficial (BCB, Copom, Fed, BLS). Fila com 1,5 s entre chamadas e teto de 60/hora*; erro passageiro volta
+  para a fila; recusa/formato errado fica registrado (sem tentar de novo sozinho). As outras: botão
+  "Resumir com IA". Quem paga: o primeiro usuário com o resumo ligado (app pessoal).
+- **Estudo de evento:** referência = fechamento do **último candle já fechado na hora da publicação**;
+  movimento depois de 1/5/20 candles; "antes de chegar" = (fechamento do último candle fechado antes da
+  chegada ÷ referência − 1) ÷ movimento depois (mediana, limitada a [−1, 2]); "o que sobrou" para quem
+  agiu na chegada; deriva dos 5 candles anteriores (antecipação/vazamento). Casos do mesmo grupo sem
+  sobreposição; régua = um candle qualquer (tamanho médio e % de alta). Grupos: tipo, tema (etiquetas
+  macro/moeda) e leitura da IA. Notícias do acervo e sem hora da fonte ficam fora da fração "antes de
+  chegar".
+- **Histórico longo:** em ações da B3 no diário, fatos relevantes da **CVM (IPE)** dos últimos 5 anos*
+  (zip anual, cache em memória: 6 h no ano corrente, 7 dias nos anteriores). A CVM informa só a **data**
+  de entrega: mede a partir do fechamento da véspera (fatos fora do pregão entram no dia seguinte) e não
+  há "antes de chegar". Colunas exigidas checadas (erro claro se a CVM mudar o formato).
+- Calcula só quando pedido (botão no painel Notícias do gráfico): o IPE é pesado.

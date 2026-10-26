@@ -17,6 +17,7 @@ import {
   SecEdgarClient,
   TwelveDataAdapter,
   cvmFactsFor,
+  isFatoRelevante,
   parseCotahist,
   parseCotahistLine,
 } from '../src';
@@ -213,6 +214,23 @@ describe.skipIf(!live)('integração real (internet)', () => {
     const { facts } = cvmFactsFor(lines, petr!.shareClass);
     const fu = computeFundamentals(facts, { source: CVM_SOURCE, asOf: Date.now() });
     expect(fu.revenueNoDecline === null && fu.epsGrowth2y === null).toBe(false);
+  }, 300_000);
+});
+
+describe.skipIf(!live)('CVM IPE (fatos relevantes, estudo de evento)', () => {
+  it('IPE do ano: colunas exigidas, fatos relevantes da Petrobras e a data de entrega', async () => {
+    const cvm = new CvmClient();
+    const y = new Date().getUTCFullYear();
+    const ev = await cvm.ipe(y);
+    const map = await cvm.fca(y).catch(() => cvm.fca(y - 1));
+    const petr = map.get('PETR4')!;
+    const fr = ev.filter((e) => e.cnpj === petr.cnpj && isFatoRelevante(e));
+    const cats = [...new Set(ev.map((e) => e.category))].slice(0, 12);
+    console.info(
+      `[cvm-ipe] ${y}: ${ev.length} documentos; categorias: ${cats.join(' | ')}; PETR4 fatos relevantes: ${fr.length}; último: ${JSON.stringify(fr.at(-1) ?? null)}; mais recente de todos: ${new Date(Math.max(...ev.map((e) => e.deliveredAt))).toISOString().slice(0, 10)}`,
+    );
+    expect(ev.length).toBeGreaterThan(100);
+    expect(ev.some(isFatoRelevante)).toBe(true);
   }, 300_000);
 });
 

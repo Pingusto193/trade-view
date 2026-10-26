@@ -1,9 +1,15 @@
-import { NEWS_KINDS, newsAiSettingsInputSchema, newsQuerySchema } from '@radar/shared';
+import {
+  NEWS_KINDS,
+  newsAiSettingsInputSchema,
+  newsQuerySchema,
+  timeframeSchema,
+} from '@radar/shared';
 import { upcomingEvents } from '@radar/data';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { AuthError, type PublicUser } from '../auth/service';
 import { NewsAiError, type NewsAiService } from '../news/ai';
+import type { EventStudyService } from '../news/event-study';
 import type { NewsService } from '../news/service';
 
 function userOf(req: FastifyRequest): PublicUser {
@@ -20,7 +26,29 @@ const csv = (v: unknown) =>
     : undefined;
 
 /** Notícias (SPEC §23.1): feed filtrado pelos ativos, saúde das fontes e leitura manual. */
-export function newsRoutes(app: FastifyInstance, news: NewsService, ai: NewsAiService) {
+export function newsRoutes(
+  app: FastifyInstance,
+  news: NewsService,
+  ai: NewsAiService,
+  study: EventStudyService,
+) {
+  // estudo de evento: o que o preço fez depois das notícias do ativo (e dos fatos relevantes da CVM)
+  app.get(
+    '/api/news/event-study',
+    { config: { rateLimit: { max: 6, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      userOf(req);
+      const q = z
+        .object({ symbolId: z.string().min(3).max(64), tf: timeframeSchema })
+        .parse(req.query);
+      try {
+        return await study.study(q.symbolId, q.tf);
+      } catch (e) {
+        return reply.code(502).send({ error: (e as Error).message });
+      }
+    },
+  );
+
   // resumo por IA: configuração (a chave fica no Assistente e nunca volta ao navegador)
   app.get('/api/news/ai', async (req) => ai.settings(userOf(req).id));
   app.put('/api/news/ai', async (req, reply) => {

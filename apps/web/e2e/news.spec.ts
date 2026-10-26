@@ -39,4 +39,10 @@ test('notícias: feed com a fonte simulada, saúde da fonte e aba no gráfico co
     timeout: 15_000,
   });
   await expect(panel.getByRole('link', { name: /SIMACAO divulga/ })).toHaveCount(0);
+
+  // estudo de evento do ativo: notícias do Radar contra um candle qualquer
+  const study = panel.getByTestId('event-study');
+  await study.getByRole('button', { name: 'Calcular estudo de evento' }).click();
+  await expect(study).toContainText('Notícias do Radar', { timeout: 15_000 });
+  await expect(study).toContainText('Régua (um candle qualquer)');
 });
