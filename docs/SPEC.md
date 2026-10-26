@@ -2,6 +2,10 @@
 
 > **Primeira tarefa:** salve este documento inteiro, sem alterações, em `docs/SPEC.md`. Ele é a fonte da verdade do projeto em todas as sessões futuras.
 
+> **Atualizado em 26/10/2026, a pedido explícito do usuário:** nova direção do projeto — notícias em
+> tempo real e previsão de direção honesta (§1, §2, §20 e a nova §23). Tudo o que já existe continua
+> valendo e é reaproveitado. Mudanças nesta SPEC só por pedido explícito do usuário (ADR-0032).
+
 ---
 
 ## 1. Missão
@@ -15,6 +19,8 @@ O Radar tem quatro trabalhos:
 3. **Planejar** — checklist e plano de trade com cálculo de posição pelo risco, antes de cada operação.
 4. **Verificar** — backtest honesto, estatísticas reais do diário e um "laboratório" que testa se as regras ensinadas funcionam de verdade, com custos, impostos brasileiros e comparação com o CDI.
 5. **Treinar** — um **Modo Treino** com dinheiro fictício, replay do passado, exercícios e feedback, para o usuário aprender o processo inteiro sem arriscar dinheiro real (seção 13).
+6. **Informar** (desde 26/10/2026) — notícias em tempo real de fontes gratuitas e permitidas, associadas aos ativos, com resumo por IA, marcadores no gráfico e estudo de evento (seção 23).
+7. **Estimar** (desde 26/10/2026) — previsão de direção **honesta**: sempre probabilidade com histórico de acerto ao lado, comparada a baselines, validada fora da amostra e conferida ao vivo num placar (seção 23). Nunca "vai subir" como certeza.
 
 O item 4 é o diferencial. O usuário aprendeu os setups com um youtuber que vende assinatura. O Radar trata cada regra como **hipótese a ser testada**, nunca como verdade.
 
@@ -22,7 +28,7 @@ O item 4 é o diferencial. O usuário aprendeu os setups com um youtuber que ven
 
 ## 2. Sobre o usuário
 
-- Brasileiro (fuso America/Sao_Paulo), iniciante em trading e **não é programador**. Toda documentação para ele deve ser em PT-BR, passo a passo, sem pressupor conhecimento técnico.
+- Brasileiro (fuso America/Sao_Paulo), iniciante em trading. **Atualização 26/10/2026:** é **desenvolvedor web** (JS, Node, React, Vite, Prisma, PostgreSQL/SQLite); a documentação técnica pode usar linguagem técnica. A interface continua em PT-BR simples e os textos de estatística continuam explicando o que cada número significa.
 - Uso estritamente pessoal. Pode haver sistema de contas, mas é um usuário.
 - Vai publicar o código no GitHub dele e hospedar por conta própria, com custo zero sempre que possível.
 - Quer o app no iPhone, com notificações, e também no computador.
@@ -604,6 +610,15 @@ Cada fase termina com o app rodando, testes passando, roadmap atualizado e relat
 - **Fase 8 — Produção**: Docker, deploy guiado (plano A e alternativas), HTTPS, backups, revisão de segurança e guias completos.
   *Pronto quando*: o usuário consegue publicar seguindo apenas o guia.
 - **Fase 9 — Assistente com IA** (opcional).
+- **Fase 10 — Simples para o dia a dia** (pedido do usuário, 20/10/2026): modo simples, leitura de tendência, forex pela internet, publicação guiada.
+- **Fase 11 — Notícias** (§23.1): ingestão contínua, deduplicação, associação a ativos, atraso medido por fonte, feed filtrado e marcadores no gráfico.
+  *Pronto quando*: uma notícia real de uma fonte verificada aparece no feed e como marcador no candle da publicação, com o atraso da fonte medido.
+- **Fase 12 — Taxas-base e placar** (§23.2, camada 1): probabilidades condicionais com n e intervalo de Wilson, baselines e placar ao vivo de previsões registradas antes do resultado.
+  *Pronto quando*: previsões são gravadas com horário antes do resultado, conferidas sozinhas depois, e a tela "Placar do modelo" mostra acerto e Brier contra os baselines.
+- **Fase 13 — Modelo** (§23.2, camada 2): regressão logística (ou gradient boosting) com walk-forward, purge/embargo, calibração e resultado em dinheiro com custos, IR e CDI.
+  *Pronto quando*: o relatório fora da amostra mostra acerto, Brier e calibração contra os baselines, e a tela troca a probabilidade por "SEM VANTAGEM COMPROVADA" quando o modelo não vence.
+- **Fase 14 — Resumo com IA e estudo de evento** (§23.1).
+  *Pronto quando*: cada notícia relevante tem resumo de 2–3 linhas com link, dentro do limite de gasto mensal, e o estudo de evento mostra o movimento antes e depois da chegada, com amostra.
 
 ---
 
@@ -660,3 +675,56 @@ Use esta seção para escrever a Biblioteca e calibrar o checklist. São afirma�
 7. "Vai na jugular" (posição gigante) contradiz a regra de 1 a 2% de risco.
 8. Todos os vídeos vendem um serviço de assinatura: há conflito de interesse.
 9. As histórias de "lendas" (Larry Williams, Kotegawa, Soros) são casos extremos, com viés de sobrevivência. Não são evidência de que o método funcione para a maioria das pessoas.
+
+---
+
+## 23. Nova direção (26/10/2026): notícias em tempo real e previsão de direção honesta
+
+Pedido explícito do usuário. **Reaproveitar tudo** (gráfico, indicadores, setups, Modo Treino,
+laboratório); não reescrever. Prioridade de ativos: **mini-índice (WIN), mini-dólar (WDO)** e a
+watchlist do usuário. Ordem de entrega: (1) ingestão de notícias + feed + marcadores; (2) taxas-base
+condicionais + placar ao vivo; (3) modelo + validação + calibração; (4) resumo com IA + estudo de
+evento. Ao fim de cada etapa: o que funciona, como testar e custo mensal (API + servidor).
+
+**Infra:** notícias e previsões exigem servidor **sempre ligado** (ingestão, gravação de previsões e
+conferência dos resultados não podem depender do navegador aberto). Hospedagem que hiberna não serve.
+
+### 23.1 Notícias em tempo real
+
+- **Ingestão contínua no servidor**, só de fontes **gratuitas e permitidas pelos termos de uso**: RSS de
+  veículos, SEC EDGAR (8-K), fatos relevantes CVM/B3, calendário econômico (Copom, IPCA, payroll, CPI).
+  Cada fonte verificada (termos, limites, atraso) e registrada em `DATA_SOURCES.md` antes do código.
+- **Deduplicação** (mesma notícia em vários feeds) e **associação a ativos**: ticker, setor, moeda,
+  índice.
+- **Atraso medido por fonte**: hora de publicação informada pela fonte × hora em que chegou ao Radar.
+- **Resumo em PT-BR de 2 a 3 linhas** + relevância + sentimento + ativos afetados, pela API da Anthropic
+  com a chave do usuário, **só no servidor**, com **limite de gasto mensal** configurável. Sempre
+  linkar a matéria original; **nunca republicar o texto inteiro**.
+- **Marcadores de notícia no gráfico** (no candle da publicação) e **feed filtrado** pelos ativos em
+  análise.
+- **Estudo de evento**: o que o preço fez depois de cada tipo de notícia, com tamanho da amostra, e
+  **quanto do movimento já tinha acontecido antes de a notícia chegar**.
+
+### 23.2 Previsão de direção, honesta
+
+**Proibido** mostrar "vai subir" ou "vai descer" como certeza. A saída é sempre uma **probabilidade com
+o histórico de acerto ao lado**.
+
+- **Horizonte configurável** (ex.: 1, 5 e 20 candles) no timeframe aberto.
+- **Camada 1 — taxas-base condicionais**: "quando esta situação (setup, tendência nas 3 escalas, ADX,
+  posição na Bollinger) aconteceu antes neste ativo, X% das vezes subiu em N candles", com **n** e
+  **intervalo de confiança de Wilson**.
+- **Camada 2 — modelo simples** (regressão logística ou gradient boosting) com features do
+  `packages/core` + score de notícias. Nada de deep learning antes de o simples provar valor.
+- **Treino walk-forward com purge/embargo**. Nunca avaliar com dados usados no treino.
+- **Baselines sempre**: moeda (50%), "sempre sobe" (taxa histórica de alta) e persistência (repete o
+  último candle).
+- **Métricas**: acerto vs. baselines, **Brier score**, **curva de calibração** e resultado em dinheiro
+  operando o sinal no backtest, depois de custos e IR, vs. CDI.
+- Se o modelo **não bater os baselines fora da amostra**, a tela mostra **"SEM VANTAGEM COMPROVADA"** no
+  lugar da probabilidade em destaque.
+- **Placar ao vivo**: toda previsão é registrada com horário **antes** do resultado e conferida depois.
+  Tela "Placar do modelo" com acerto por ativo, timeframe e horizonte. **A confiança exibida vem desse
+  placar, não do backtest.**
+- Previsões podem ser seguidas no **Modo Treino**, sem dinheiro real.
+

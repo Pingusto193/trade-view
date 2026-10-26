@@ -145,3 +145,31 @@ Cada fase termina com o app rodando, testes passando, este arquivo atualizado e 
       800/dia protegida no servidor; atalhos na busca; saldo na página Fontes (ADR-0030)
 - [ ] Teste real da Twelve Data: falta o segredo `TWELVE_DATA_KEY` no GitHub (o usuário cria a conta)
 
+## Nova direção (26/10/2026, SPEC §23, ADR-0032)
+
+Prioridade de ativos: WIN, WDO e a watchlist. **Dados de WIN/WDO só pelo agente MT5** (PC Windows ligado no
+pregão); sem ele, previsões e estudos usam substitutos (Ibovespa/USD-BRL) rotulados como tal.
+
+### Fase 11 — Notícias (etapa 1)
+
+- [ ] Fontes verificadas em DATA_SOURCES (termos, limites, atraso)
+- [ ] Ingestão contínua no servidor (polling com ETag/Last-Modified, backoff, saúde por fonte)
+- [ ] Deduplicação e associação a ativos (ticker, setor, moeda, índice); atraso medido por fonte
+- [ ] Feed filtrado pelos ativos em análise (tempo real via WebSocket) e marcadores no gráfico
+
+### Fase 12 — Taxas-base condicionais e placar ao vivo (etapa 2)
+
+- [ ] Situação (setup, tendência nas 3 escalas, ADX, posição na Bollinger) → P(sobe em N candles) com n e
+      Wilson; baselines (moeda, sempre sobe, persistência)
+- [ ] Previsões gravadas antes do resultado e conferidas sozinhas; tela "Placar do modelo"
+
+### Fase 13 — Modelo, validação e calibração (etapa 3)
+
+- [ ] Regressão logística em `packages/core`; walk-forward com purge/embargo; Brier e calibração;
+      backtest do sinal com custos, IR e CDI; "SEM VANTAGEM COMPROVADA" quando não vence os baselines
+
+### Fase 14 — Resumo com IA e estudo de evento (etapa 4)
+
+- [ ] Resumo de 2–3 linhas + relevância + sentimento + ativos (Anthropic, só no servidor, limite mensal)
+- [ ] Estudo de evento: movimento depois de cada tipo de notícia e quanto já tinha acontecido antes de chegar
+

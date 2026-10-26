@@ -1,13 +1,16 @@
 # CLAUDE.md — guia para sessões do Claude Code no projeto Radar
 
 **Leia primeiro, em toda sessão:** este arquivo, `docs/ROADMAP.md` e `docs/DECISIONS.md`. A especificação
-completa (fonte da verdade) está em `docs/SPEC.md` — não a altere. Continue de onde o roadmap parou.
+completa (fonte da verdade) está em `docs/SPEC.md` — só altere com pedido explícito do usuário (a última
+mudança, em 26/10/2026, criou a §23: notícias e previsão honesta; ADR-0032). Continue de onde o roadmap parou.
 
 ## O que é
 
 Radar: PWA pessoal (PT-BR) para ver gráficos, receber alertas, planejar trades, verificar estratégias
-(backtest honesto com custos, IR e CDI) e treinar com dinheiro fictício. **Não envia ordens.** Usuário único,
-brasileiro, iniciante, não programador.
+(backtest honesto com custos, IR e CDI), treinar com dinheiro fictício, **notícias em tempo real** e
+**previsão de direção honesta** (probabilidade + placar ao vivo, nunca certeza). **Não envia ordens.**
+Usuário único, brasileiro, iniciante em trading, **dev web** (JS/Node/React/Vite/Prisma/SQL): docs técnicas
+podem usar linguagem técnica; a interface continua em PT-BR simples.
 
 ## Princípios inegociáveis (resumo da SPEC §3)
 

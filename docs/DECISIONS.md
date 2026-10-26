@@ -690,3 +690,32 @@ Pedido do usuário: "colocar o site no ar", com servidor grátis da Oracle e sem
   `localhost`, código errado → 403, certo → 200, reinstalar mantém o código e os dados, backup do
   atualizador; imagem `linux/arm64` montada e ligada sob emulação (SQLite e argon2 nativos em ARM).
   **Não testado:** numa conta Oracle de verdade, com DuckDNS e Let's Encrypt reais.
+
+## ADR-0032 — Nova direção: notícias em tempo real e previsão honesta (26/10/2026)
+
+Pedido explícito do usuário (SPEC atualizada: §1, §2, §20, §23; CLAUDE.md idem). Tudo o que existe é
+reaproveitado. O usuário é dev web: docs técnicas podem ser técnicas.
+
+**Arquitetura (uma implementação da lógica, princípio 4):**
+
+- `packages/data/src/news/` — adaptadores de fonte (RSS/Atom genérico, SEC EDGAR 8-K, CVM IPE, calendários)
+  que só buscam e normalizam para `NewsItem` (título, link, data de publicação UTC, trecho curto ≤ 300
+  caracteres, fonte). Nada de texto integral guardado nem republicado.
+- `packages/core/src/news/` — funções puras: normalização de URL, impressão digital do título,
+  deduplicação, associação a ativos por regras (ticker, nome, setor, moeda, índice), atraso por fonte e,
+  na etapa 4, estudo de evento.
+- `packages/core/src/predict/` — situação (features do core), taxas-base com Wilson, baselines, métricas
+  (acerto, Brier, calibração), regressão logística em TS puro, walk-forward com purge/embargo. O mesmo
+  código roda no navegador (painel), no servidor (placar) e no laboratório.
+- `apps/server/src/news/` e `apps/server/src/predict/` — agendadores (ingestão; previsão a cada candle
+  fechado dos ativos prioritários; conferência quando o horizonte fecha), tabelas SQLite/Drizzle, API e
+  avisos em tempo real pelo WebSocket existente.
+- Web: página Notícias, marcadores no gráfico, painel Previsão (com "SEM VANTAGEM COMPROVADA"), página
+  Placar.
+
+**Regras de honestidade (nossas):** previsão é imutável depois de gravada (horário do servidor anterior ao
+fechamento do candle-alvo; conferência só com candle fechado); a confiança exibida vem do placar ao vivo;
+amostras sem sobreposição; Wilson para proporções; baselines lado a lado; nada de deep learning antes de o
+simples provar valor.
+
+**Limitação conhecida:** WIN/WDO só têm dados com o agente MT5 ligado; sem ele, o app diz isso e não inventa.
