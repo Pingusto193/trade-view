@@ -93,7 +93,7 @@ export class NewsService {
   /** Motivo de a fonte estar desligada (null = ligada). */
   disabledReason(s: NewsSourceDef): string | null {
     if (s.requires === 'SEC_USER_AGENT' && !this.opts.secUserAgent)
-      return 'defina SEC_USER_AGENT no .env (a SEC exige nome e e-mail de contato)';
+      return 'defina SEC_USER_AGENT no .env (nome e e-mail de contato; esta fonte recusa robôs sem ele)';
     return null;
   }
 

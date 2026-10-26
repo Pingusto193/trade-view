@@ -22,7 +22,10 @@ export interface NewsSourceDef {
    * só com título e link (DATA_SOURCES §19).
    */
   aiSummary: boolean;
-  /** Configuração exigida (sem ela a fonte fica desligada com o motivo). */
+  /**
+   * Configuração exigida (sem ela a fonte fica desligada com o motivo). SEC_USER_AGENT = User-Agent com
+   * nome e e-mail de contato: a SEC exige e o BLS recusa robôs sem ele (HTTP 403 em 26/10/2026).
+   */
   requires?: 'SEC_USER_AGENT';
   /** Etiquetas aplicadas a toda notícia da fonte (ex.: Fed → juros-us). */
   baseTags?: AssetTag[];
@@ -76,8 +79,9 @@ export function simulatedNews(now: number): RawNews[] {
 const MIN = 60_000;
 
 /**
- * Fontes reais ligadas (DATA_SOURCES §19: termos favoráveis; formato 🔌 até o teste real do workflow
- * "Dados reais"). Fontes evitadas por termos ou bloqueio a robôs ficam de fora (lista no §19).
+ * Fontes reais ligadas (DATA_SOURCES §19: termos favoráveis; formato lido pelo workflow "Dados reais").
+ * Fontes evitadas por termos ou bloqueio a robôs ficam de fora (lista no §19; a Nasdaq saiu em
+ * 26/10/2026: não respondeu em 20 s).
  */
 export const NEWS_SOURCES: readonly NewsSourceDef[] = [
   {
@@ -124,6 +128,7 @@ export const NEWS_SOURCES: readonly NewsSourceDef[] = [
     url: 'https://www.bls.gov/feed/empsit.rss',
     intervalMs: 15 * MIN,
     reader: 'feed',
+    requires: 'SEC_USER_AGENT',
     terms: 'Domínio público, com crédito ao BLS.',
     aiSummary: true,
     baseTags: [{ type: 'macro', value: 'emprego-us' }],
@@ -136,6 +141,7 @@ export const NEWS_SOURCES: readonly NewsSourceDef[] = [
     url: 'https://www.bls.gov/feed/cpi.rss',
     intervalMs: 15 * MIN,
     reader: 'feed',
+    requires: 'SEC_USER_AGENT',
     terms: 'Domínio público, com crédito ao BLS.',
     aiSummary: true,
     baseTags: [{ type: 'macro', value: 'inflacao-us' }],
@@ -151,16 +157,5 @@ export const NEWS_SOURCES: readonly NewsSourceDef[] = [
     terms:
       'Conteúdo próprio reproduzível citando "Agência Brasil"; o de agências internacionais, não.',
     aiSummary: true,
-  },
-  {
-    id: 'nasdaq-markets',
-    label: 'Nasdaq (Markets)',
-    kind: 'noticia',
-    lang: 'en',
-    url: 'https://www.nasdaq.com/feed/rssoutbound?category=Markets',
-    intervalMs: 5 * MIN,
-    reader: 'feed',
-    terms: 'Títulos podem ser exibidos com link; sem resumo por IA.',
-    aiSummary: false,
   },
 ];

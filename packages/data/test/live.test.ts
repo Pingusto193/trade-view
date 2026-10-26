@@ -242,22 +242,83 @@ describe.skipIf(!live)('notícias reais (formato e atraso)', () => {
     );
   }
 
-  it('descoberta de formato (só registra): Copom JSON, IBGE calendário, BLS iCalendar', async () => {
-    const urls = [
-      'https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados?quantidade=2',
-      'https://servicodados.ibge.gov.br/api/v3/calendario?busca=IPCA&qtd=2',
-      'https://www.bls.gov/schedule/news_release/bls.ics',
+  it('descoberta de formato (só registra): Copom, IBGE, BLS e Agência Brasil', async () => {
+    const sec = process.env.SEC_USER_AGENT;
+    const probes: { url: string; ua?: string; headers?: Record<string, string>; why: string }[] = [
+      {
+        url: 'https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados_detalhes?nro_reuniao=281',
+        why: 'texto, hora e link do comunicado do Copom',
+      },
+      {
+        url: 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/comunicadoscopom',
+        why: 'feed RSS de comunicados do Copom (nome adivinhado)',
+      },
+      {
+        url: 'https://www.bcb.gov.br/publicacoes/comunicadoscopom/cronologicos',
+        why: 'página pública dos comunicados (link original)',
+      },
+      {
+        url: 'https://servicodados.ibge.gov.br/api/v3/calendario/?qtd=3',
+        why: 'calendário IBGE (listagem geral)',
+      },
+      {
+        url: 'https://servicodados.ibge.gov.br/api/v3/agregados/7060/periodos/-1/variaveis/63?localidades=N1[all]',
+        why: 'o host do IBGE responde a qualquer coisa?',
+      },
+      {
+        url: 'https://www.bls.gov/feed/empsit.rss',
+        headers: { accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.1' },
+        why: 'BLS sem e-mail, com Accept de leitor de RSS',
+      },
+      ...(sec
+        ? [
+            { url: 'https://www.bls.gov/feed/empsit.rss', ua: sec, why: 'BLS com e-mail no UA' },
+            {
+              url: 'https://www.bls.gov/schedule/news_release/bls.ics',
+              ua: sec,
+              why: 'agenda BLS com e-mail no UA',
+            },
+          ]
+        : []),
+      {
+        url: 'https://agenciabrasil.ebc.com.br/rss/ultimasnoticias/feed.xml',
+        why: 'Agência Brasil geral (o de Economia estava 66 h parado numa segunda à tarde)',
+      },
     ];
-    for (const u of urls) {
+    for (const p of probes) {
       try {
-        const r = await fetch(u, { headers: { 'user-agent': NEWS_UA } });
+        const r = await fetch(p.url, {
+          headers: { 'user-agent': p.ua ?? NEWS_UA, ...p.headers },
+          signal: AbortSignal.timeout(20_000),
+        });
         const body = await r.text();
+        let extra = '';
+        if (/xml|rss/.test(r.headers.get('content-type') ?? '') || body.startsWith('<?xml')) {
+          try {
+            const items = parseFeed(body);
+            const dates = items
+              .map((i) => i.publishedAt)
+              .filter((t): t is number => t !== null)
+              .sort((a, b) => b - a)
+              .slice(0, 3)
+              .map(
+                (t) =>
+                  `${new Date(t).toISOString()} (há ${Math.round((Date.now() - t) / 60_000)} min)`,
+              );
+            extra = `\n  ${items.length} itens; mais novos: ${dates.join(', ')}`;
+          } catch (e) {
+            extra = `\n  não lê como feed: ${(e as Error).message}`;
+          }
+        }
         console.info(
-          `[descoberta] ${u} → HTTP ${r.status} ${r.headers.get('content-type')}\n${body.slice(0, 700)}`,
+          `[descoberta] ${p.why}: ${p.url} → HTTP ${r.status} ${r.headers.get('content-type')}${extra}\n${body.slice(0, 600)}`,
         );
       } catch (e) {
-        console.info(`[descoberta] ${u} → erro ${(e as Error).message}`);
+        const cause = (e as { cause?: { code?: string; message?: string } }).cause;
+        console.info(
+          `[descoberta] ${p.why}: ${p.url} → erro ${(e as Error).message} ${cause?.code ?? ''} ${cause?.message ?? ''}`,
+        );
       }
     }
-  }, 60_000);
+  }, 240_000);
 });
