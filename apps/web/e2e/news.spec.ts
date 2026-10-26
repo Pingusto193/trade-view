@@ -18,8 +18,10 @@ test('notícias: feed com a fonte simulada, saúde da fonte e aba no gráfico co
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', /noopener/);
 
-  // resumo por IA: sem a chave do Assistente não liga (e a fonte simulada não permite IA)
-  await expect(feed.getByRole('button', { name: 'Resumir com IA' })).toHaveCount(0);
+  // resumo por IA: a fonte simulada não permite (no CI, com internet, as fontes reais aparecem com o
+  // botão); sem a chave do Assistente não liga
+  const simItem = feed.getByRole('listitem').filter({ hasText: '[SIMULADO]' }).first();
+  await expect(simItem.getByRole('button', { name: 'Resumir com IA' })).toHaveCount(0);
   await page.getByText('Resumo por IA', { exact: true }).click();
   const ai = page.getByTestId('news-ai-settings');
   await ai.getByRole('button', { name: 'Ligar resumo por IA' }).click();

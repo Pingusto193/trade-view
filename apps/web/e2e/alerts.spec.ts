@@ -19,8 +19,15 @@ test('criar alerta de preço pelo sino do gráfico', async ({ page }) => {
 
 test('alerta no toque dispara com os dados simulados e aparece no histórico', async ({ page }) => {
   test.setTimeout(90_000);
-  const r = await page.request.get('/api/candles?id=sim:SIMBTC&tf=1m&limit=2');
-  const last = (await r.json()).candles.at(-1).close as number;
+  // preço AO VIVO (o mesmo fluxo que o servidor de alertas recebe): o do /api/candles pode estar
+  // longe dele, porque o simulador ao vivo segue o próprio passeio depois de assinado
+  await page.goto('/grafico?id=sim:SIMBTC&tf=1m');
+  const close = page.getByTestId('legend-close');
+  await expect(close).toBeVisible({ timeout: 15_000 });
+  // espera as primeiras atualizações ao vivo (uma por segundo) substituírem o histórico
+  await page.waitForTimeout(2_500);
+  const last = Number((await close.innerText()).replace(/\./g, '').replace(',', '.'));
+  expect(last).toBeGreaterThan(1);
   // dois alertas colados no preço atual: o passeio aleatório toca um deles em segundos
   for (const [direction, k] of [
     ['up', 1.0001],

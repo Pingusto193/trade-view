@@ -48,7 +48,10 @@ export function Legend({
           m <b>{formatNumber(c.low, d)}</b>
         </span>
         <span>
-          F <b className={up ? 'text-up' : 'text-down'}>{formatNumber(c.close, d)}</b>
+          F{' '}
+          <b className={up ? 'text-up' : 'text-down'} data-testid="legend-close">
+            {formatNumber(c.close, d)}
+          </b>
         </span>
         <span className={up ? 'text-up' : 'text-down'}>
           {ch >= 0 ? '+' : ''}
