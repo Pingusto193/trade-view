@@ -183,6 +183,6 @@ pregão); sem ele, previsões e estudos usam substitutos (Ibovespa/USD-BRL) rotu
 - [x] Resumo de 2–3 linhas + relevância + sentimento + ativos (Anthropic, só no servidor, limite mensal;
       ADR-0035)
 - [x] Estudo de evento: movimento depois de cada tipo de notícia e quanto já tinha acontecido antes de chegar
-      (notícias do Radar + fatos relevantes da CVM no diário; formato do IPE 🔌 até o workflow "Dados reais")
+      (notícias do Radar + fatos relevantes da CVM no diário; IPE lido de verdade no workflow "Dados reais")
 - [ ] Usar a leitura da IA e o estudo de evento como feature do modelo (precisa de meses de notícias)
 
