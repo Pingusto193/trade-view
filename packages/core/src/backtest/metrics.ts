@@ -45,18 +45,20 @@ export function sampleLabel(n: number): Metrics['sample'] {
   return 'amostra razoável';
 }
 
+// criar o formatador é caro (milhares de trades): um só de cada, reaproveitado
+const SP_MONTH = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+});
+const SP_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
+
 function monthKey(t: number): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-  })
-    .format(new Date(t))
-    .slice(0, 7);
+  return SP_MONTH.format(new Date(t)).slice(0, 7);
 }
 
 function spDate(t: number): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(t));
+  return SP_DATE.format(new Date(t));
 }
 
 /** Maior queda do patrimônio (fração do topo) e quanto tempo levou para recuperar. */

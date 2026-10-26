@@ -12,6 +12,11 @@ export function macroRoutes(app: FastifyInstance, macro: MacroService) {
       .object({ from: z.coerce.number().int().positive(), to: z.coerce.number().int().positive() })
       .parse(req.query);
     await macro.refresh();
+    // períodos longos (backtest da previsão): busca o histórico que faltar, sem esperar demais
+    await Promise.race([
+      macro.ensureCdiFrom(q.from),
+      new Promise((ok) => setTimeout(ok, 8000).unref?.()),
+    ]);
     return { cdi: macro.cdiBetween(q.from, q.to) };
   });
 }

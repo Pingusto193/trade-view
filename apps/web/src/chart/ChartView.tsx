@@ -266,6 +266,13 @@ export function ChartView(props: ChartViewProps) {
           candles,
           lastOpen,
           setupParams: usePrefs.getState().setupParams ?? {},
+          money: {
+            tick: m.tickSize,
+            pointValue: m.pointValue,
+            minQty: m.minQty,
+            qtyStep: m.qtyStep,
+            market: m.market,
+          },
         });
         // o worker esquece o pedido de previsão quando ainda não conhecia o gráfico
         predictOn = false;

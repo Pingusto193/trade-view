@@ -19,6 +19,17 @@ test('previsão: probabilidade com histórico de acerto, réguas e placar ao viv
   await expect(hist).toContainText('Moeda (50%)');
   await expect(hist).toContainText('Sempre sobe');
   await expect(hist).toContainText('Persistência');
+  // camada 2, calibração e resultado em dinheiro contra o CDI
+  await expect(panel.getByRole('region', { name: 'Modelo' })).toContainText('regressão logística');
+  await expect(hist).toContainText('Modelo');
+  await expect(
+    panel
+      .getByRole('region', { name: 'Calibração' })
+      .getByRole('img', { name: /Curva de calibração/ }),
+  ).toBeVisible();
+  const money = panel.getByRole('region', { name: 'Resultado em dinheiro' });
+  await expect(money.getByTestId('money-row')).toHaveCount(2);
+  await expect(money).toContainText('CDI');
   // trocar o horizonte
   await panel.getByRole('button', { name: '1 candle', exact: true }).click();
   await expect(head).toContainText('1 candle');

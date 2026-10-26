@@ -94,6 +94,30 @@ describe('placar ao vivo', () => {
     expect(list.json().predictions[0].detail.situation).toHaveProperty('trend');
   });
 
+  it('camada 2: com treino suficiente grava também a regressão logística, separada no placar', async () => {
+    const { t, all, push, setNow, rows } = await setup(700);
+    setNow(all[700]!.time + DAY + 60_000);
+    push(all[700]!, true);
+    const r = rows();
+    expect(r.filter((x) => x.method === 'taxa-base')).toHaveLength(3);
+    const lg = r.filter((x) => x.method === 'logistica');
+    expect(lg.map((x) => x.horizon).sort((a, b) => a - b)).toEqual([1, 5, 20]);
+    const d = JSON.parse(lg[0]!.detail);
+    expect(d.n).toBeGreaterThanOrEqual(200);
+    expect(d.coefficients).toHaveLength(5);
+    setNow(all[701]!.time + DAY + 60_000);
+    push(all[701]!, true);
+    const sb = (await t.app.inject({ url: '/api/predict/scoreboard' })).json();
+    const methods = sb.entries
+      .filter((e: { horizon: number }) => e.horizon === 1)
+      .map((e: { method: string; board: { n: number } }) => [e.method, e.board.n])
+      .sort();
+    expect(methods).toEqual([
+      ['logistica', 1],
+      ['taxa-base', 1],
+    ]);
+  });
+
   it('não grava quando o candle seguinte já começou ou quando o fechamento chega atrasado', async () => {
     const { all, push, setNow, rows } = await setup();
     // candle 300 em formação e depois o 301 em formação: o 300 fecha por inferência → não prevê

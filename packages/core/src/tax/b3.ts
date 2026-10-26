@@ -73,13 +73,15 @@ export interface TaxMonth {
   notes: string[];
 }
 
+// criar o formatador é caro (milhares de trades no backtest): um só, reaproveitado
+const SP_MONTH = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+});
+
 function monthKey(time: number): string {
-  const d = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-  }).format(new Date(time));
-  return d.slice(0, 7);
+  return SP_MONTH.format(new Date(time)).slice(0, 7);
 }
 
 function nextMonth(key: string): string {

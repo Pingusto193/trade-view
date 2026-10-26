@@ -17,6 +17,8 @@ const pct = (x: number | null | undefined, d = 0) =>
 const ci = (c: { lo: number; hi: number } | null) =>
   c ? `${formatNumber(c.lo * 100, 0)}–${formatNumber(c.hi * 100, 0)}%` : '—';
 const short = (id: string) => id.split(':')[1] ?? id;
+const methodLabel = (m: string) =>
+  m === 'logistica' ? 'camada 2: regressão logística' : 'camada 1: taxas-base';
 
 function VerdictChip({ b, min }: { b: Scoreboard; min: number }) {
   if (b.verdict === 'vantagem')
@@ -101,7 +103,7 @@ export function ScoreboardPage() {
         [...(by.get(k) ?? []), e].sort((a, b) => a.horizon - b.horizon),
       );
     }
-    return [...by.entries()];
+    return [...by.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [entries]);
 
   return (
@@ -202,7 +204,7 @@ export function ScoreboardPage() {
           return (
             <div key={k} className="overflow-x-auto rounded border border-line p-2">
               <h3 className="text-xs font-semibold">
-                {short(e0.symbolId)} · {TIMEFRAME_LABEL[e0.tf]} · taxas-base
+                {short(e0.symbolId)} · {TIMEFRAME_LABEL[e0.tf]} · {methodLabel(e0.method)}
               </h3>
               <table className="mt-1 w-full min-w-[520px] text-xs">
                 <thead className="text-muted">
@@ -237,7 +239,8 @@ export function ScoreboardPage() {
                 {short(r.symbolId)} {TIMEFRAME_LABEL[r.tf]}
               </span>
               <span>
-                {pct(r.p)} de subir em {r.horizon}
+                {pct(r.p)} de subir em {r.horizon} (
+                {r.method === 'logistica' ? 'modelo' : 'taxas-base'})
               </span>
               <span
                 className={

@@ -754,3 +754,38 @@ servidor e, na etapa 3, no laboratório). Decisões **nossas** (não estão na S
 - **Modo Treino:** "Seguir no Modo Treino" abre a boleta com o motivo preenchido; só para previsão de
   alta, porque a boleta do treino só compra.
 - **Custo:** ~0,4 s para 5.000 candles diários no worker; só calcula com o painel aberto.
+
+## ADR-0034 — Previsão honesta, camada 2: regressão logística, walk-forward com purga/embargo e dinheiro (26/10/2026)
+
+Etapa 3 da SPEC §23.2, em `packages/core/src/predict/` (`features`, `logistic`, `model`, `money`, `score`).
+Decisões **nossas**:
+
+- **Modelo:** regressão logística com L2 (λ = 1*, features padronizadas com média/desvio do PRÓPRIO treino),
+  ajustada por Newton (IRLS) em TS puro. Gradient boosting e deep learning ficam de fora até o simples
+  provar valor (SPEC). **Sempre parte do zero:** nos testes, partir dos pesos do ajuste anterior (outra
+  padronização) fez o Newton (sem busca de passo) não convergir em 50 iterações; do zero converge em 4–8.
+- **19 features sem escala de preço:** retornos de 1/5/20 candles e distâncias às MMA20/50/200 em ATR,
+  inclinação da MMA50, ADX, DI+ − DI−, IFR, %B e largura da Bollinger, ATR ÷ preço, volume ÷ média de 21,
+  tendência nas 3 escalas (−1/0/+1) e sinal de setup. **Notícias:** a feature existe (contagem recente),
+  mas fica em 0 até haver meses de notícias gravadas — treinar com ela zerada no passado e ligada agora
+  seria mudar a distribuição no meio (a etapa 4 decide com o estudo de evento).
+- **Walk-forward:** janela crescente, reajuste a cada 500 candles*, mínimo de 200 casos de treino*. No
+  ponto t, só entram casos com i + horizonte + embargo ≤ t (**purga** do horizonte + **embargo** de 10
+  candles*). Pontos avaliados sem sobreposição (um a cada horizonte), depois de 200 candles. O modelo "de
+  agora" usa todos os rótulos já conhecidos.
+- **Destaque na tela:** só aparece a probabilidade de uma camada que venceu as réguas fora da amostra
+  (regra do ADR-0033) e que o placar ao vivo, com amostra, não desmentiu; havendo as duas, a de menor
+  Brier. Senão, **SEM VANTAGEM COMPROVADA** com o que cada camada diria, em letra pequena.
+- **Dinheiro (backtest do sinal):** em cada previsão fora da amostra com p ≥ 50% + 5 pp*, compra na
+  **abertura do candle seguinte** (não dá para executar no fechamento que gerou o sinal) e vende no
+  fechamento do candle-alvo; vendas a descoberto desligadas por padrão. Custos do Modo Treino (spread,
+  derrapagem, taxas). Ações/cripto: capital todo, sem alavancagem; **futuros** (valor do ponto ≠ 1): 1
+  contrato por operação. IR pela mesma apuração da B3 (ação × "outro" pela regra do valor do ponto; day
+  trade quando entra e sai no mesmo dia em São Paulo); fora da B3 o IR não é simulado (dito na tela).
+  Comparado com "segurar" (com custos) e com o **CDI do mesmo período** (BCB, via servidor; o endpoint
+  passou a buscar o histórico que faltar, como o laboratório).
+- **Placar ao vivo:** o servidor também grava o método `logistica` (reajuste a cada 500 candles fechados,
+  todos os rótulos conhecidos), com os 5 maiores pesos no detalhe; o placar separa os métodos.
+- **Custo:** ~0,7–1 s para 5.000 candles no worker (camadas 1 e 2 + dinheiro); no intradiário recalcula no
+  máximo a cada 20 s. Formatadores de data da apuração de IR passaram a ser criados uma vez só (eram
+  ~1 ms por trade).

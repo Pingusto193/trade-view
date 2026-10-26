@@ -9,6 +9,7 @@ import {
   setupParamsSchema,
   type ContextReport,
   type MarketReading,
+  type MoneyMeta,
   type PredictionReport,
   type IndicatorOutput,
   type IndicatorPreset,
@@ -34,6 +35,8 @@ export type WorkerIn =
       candles: Candle[];
       lastOpen: boolean;
       setupParams?: unknown;
+      /** Dados do ativo para o resultado em dinheiro da previsão. */
+      money?: MoneyMeta;
     }
   | { type: 'update'; key: string; candle: Candle; closed: boolean }
   /** Liga/desliga a previsão (SPEC §23.2): só calcula com o painel aberto (custa ~0,4 s/5.000 candles). */
@@ -82,7 +85,13 @@ interface ChartState {
   tick: number;
   params: SetupParams;
   predict: boolean;
+  money?: MoneyMeta;
+  /** Último cálculo da previsão (no intradiário, no máximo um a cada PREDICT_EVERY_MS). */
+  predictedAt: number;
 }
+
+/** A previsão custa ~1 s com 5.000 candles: em candles de 1 min, recalcula no máximo a cada 20 s. */
+const PREDICT_EVERY_MS = 20_000;
 
 const charts = new Map<string, ChartState>();
 
@@ -91,7 +100,9 @@ function post(msg: WorkerOut) {
 }
 
 /** O motor acompanha a escala maior sozinho, candle a candle (agrega `tf` no período maior). */
-function buildSetups(st: Omit<ChartState, 'setups' | 'ind' | 'predict'>): SetupEngine {
+function buildSetups(
+  st: Omit<ChartState, 'setups' | 'ind' | 'predict' | 'predictedAt'>,
+): SetupEngine {
   const engine = new SetupEngine({ params: st.params, tick: st.tick, tf: st.tf, tz: st.tz });
   for (const c of st.closed) engine.push(c);
   return engine;
@@ -101,11 +112,19 @@ function buildSetups(st: Omit<ChartState, 'setups' | 'ind' | 'predict'>): SetupE
  * Camada 1 da previsão com os parâmetros PADRÃO dos setups — os mesmos do placar do servidor, para a
  * probabilidade da tela ser a que o placar grava (ADR-0033).
  */
-function prediction(st: ChartState, key: string) {
+function prediction(st: ChartState, key: string, force = false) {
+  const now = Date.now();
+  if (!force && now - st.predictedAt < PREDICT_EVERY_MS) return;
+  st.predictedAt = now;
   post({
     type: 'prediction',
     key,
-    report: predictReport(st.closed, { tf: st.tf, tz: st.tz, tick: st.tick }),
+    report: predictReport(st.closed, {
+      tf: st.tf,
+      tz: st.tz,
+      tick: st.tick,
+      ...(st.money ? { meta: st.money } : {}),
+    }),
   });
 }
 
@@ -155,7 +174,7 @@ self.onmessage = (ev: MessageEvent<WorkerIn>) => {
     const st = charts.get(m.key);
     if (!st) return;
     st.predict = m.on;
-    if (m.on) prediction(st, m.key);
+    if (m.on) prediction(st, m.key, true);
     return;
   }
   if (m.type === 'reset') {
@@ -170,10 +189,12 @@ self.onmessage = (ev: MessageEvent<WorkerIn>) => {
       ind,
       setups: buildSetups(base),
       predict: charts.get(m.key)?.predict ?? false,
+      ...(m.money ? { money: m.money } : {}),
+      predictedAt: 0,
     };
     charts.set(m.key, st);
     analysis(st, st.setups.events, true, m.key);
-    if (st.predict) prediction(st, m.key);
+    if (st.predict) prediction(st, m.key, true);
     return;
   }
   const st = charts.get(m.key);
@@ -204,7 +225,7 @@ self.onmessage = (ev: MessageEvent<WorkerIn>) => {
     if (idx >= 0) st.closed[idx] = m.candle;
     st.setups = buildSetups(st);
     analysis(st, st.setups.events, true, m.key);
-    if (st.predict) prediction(st, m.key);
+    if (st.predict) prediction(st, m.key, true);
     return;
   }
   st.closed.push(m.candle);

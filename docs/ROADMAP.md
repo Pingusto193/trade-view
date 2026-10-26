@@ -173,8 +173,10 @@ pregão); sem ele, previsões e estudos usam substitutos (Ibovespa/USD-BRL) rotu
 
 ### Fase 13 — Modelo, validação e calibração (etapa 3)
 
-- [ ] Regressão logística em `packages/core`; walk-forward com purge/embargo; Brier e calibração;
-      backtest do sinal com custos, IR e CDI; "SEM VANTAGEM COMPROVADA" quando não vence os baselines
+- [x] Regressão logística em `packages/core`; walk-forward com purge/embargo; Brier e curva de calibração;
+      backtest do sinal com custos, IR e CDI; "SEM VANTAGEM COMPROVADA" quando não vence os baselines;
+      placar ao vivo também do modelo (ADR-0034)
+- [ ] Feature de notícias ligada (depois de meses de notícias gravadas e do estudo de evento)
 
 ### Fase 14 — Resumo com IA e estudo de evento (etapa 4)
 

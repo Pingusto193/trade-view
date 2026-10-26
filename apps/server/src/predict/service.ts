@@ -2,9 +2,14 @@ import { createHash } from 'node:crypto';
 import {
   BaseRateModel,
   DEFAULT_PREDICT,
+  DEFAULT_SETUP_PARAMS,
+  FEATURE_NAMES,
+  FeatureTracker,
   SituationTracker,
+  fitLogistic,
+  predictLogistic,
   scorePredictions,
-  type Estimate,
+  type LogisticModel,
   type PredictParams,
   type Scoreboard,
   type Situation,
@@ -25,8 +30,10 @@ import type { MarketHub } from '../market/hub';
 import type { MarketService } from '../market/service';
 import type { SyncHub } from '../sync';
 
-/** Camada 1 (taxas-base). A etapa 3 acrescenta 'logistica'. */
+/** Camada 1 (taxas-base). */
 export const PREDICT_METHOD = 'taxa-base';
+/** Camada 2 (regressão logística, ADR-0034). */
+export const MODEL_METHOD = 'logistica';
 /** Candles do histórico para aquecer (o máximo que as fontes costumam devolver). */
 const HISTORY = 5000;
 /** Fechados guardados em memória para conferir previsões. */
@@ -51,7 +58,13 @@ export interface PredictionRow {
   p: number;
   alwaysUpP: number;
   persistUp: boolean | null;
-  detail: { situation: Situation; levels: { id: string; n: number; rate: number | null }[] };
+  detail: {
+    situation: Situation;
+    levels: { id: string; n: number; rate: number | null }[];
+    /** Só na camada 2: casos de treino e os 5 maiores pesos. */
+    n?: number;
+    coefficients?: { name: string | undefined; weight: number }[];
+  };
   status: 'aberta' | 'conferida' | 'cancelada';
   resolvedAt: number | null;
   targetTime: number | null;
@@ -87,6 +100,13 @@ interface Group {
   label: string;
   tracker: SituationTracker | null;
   models: BaseRateModel[];
+  features: FeatureTracker | null;
+  /** Vetor de features de cada candle fechado (alinhado com `times`). */
+  feats: (number[] | null)[];
+  /** Regressão logística por horizonte e quantos candles fechados havia ao ajustar. */
+  logistic: Map<number, { model: LogisticModel; at: number; upRate: number }>;
+  /** Candles fechados recebidos (não diminui com o corte de memória). */
+  count: number;
   times: number[];
   closes: number[];
   forming: Candle | null;
@@ -238,6 +258,10 @@ export class PredictService {
       label: symbolId.split(':')[1] ?? symbolId,
       tracker: null,
       models: [],
+      features: null,
+      feats: [],
+      logistic: new Map(),
+      count: 0,
       times: [],
       closes: [],
       forming: null,
@@ -266,6 +290,7 @@ export class PredictService {
         tick: meta.tickSize,
       });
       g.models = this.params.horizons.map((h) => new BaseRateModel(h, this.params.shrink));
+      g.features = new FeatureTracker(DEFAULT_SETUP_PARAMS.pa);
       for (const c of closed) this.feed(g, c);
       g.open = this.db
         .select()
@@ -312,13 +337,45 @@ export class PredictService {
   private feed(g: Group, c: Candle): Situation {
     g.times.push(c.time);
     g.closes.push(c.close);
-    if (g.times.length > KEEP) {
-      g.times.splice(0, g.times.length - KEEP);
-      g.closes.splice(0, g.closes.length - KEEP);
-    }
     const s = g.tracker!.push(c);
+    g.feats.push(g.features!.push(c, s, g.tracker!.engine.series));
+    g.count++;
+    if (g.times.length > KEEP) {
+      const cut = g.times.length - KEEP;
+      g.times.splice(0, cut);
+      g.closes.splice(0, cut);
+      g.feats.splice(0, cut);
+    }
     for (const m of g.models) m.push(c.close, s);
     return s;
+  }
+
+  /**
+   * Regressão logística do horizonte, reajustada a cada `refitEvery` candles com todos os rótulos já
+   * conhecidos (i + horizonte ≤ último candle fechado). null com casos de treino de menos.
+   */
+  private logisticFor(g: Group, h: number) {
+    const cur = g.logistic.get(h);
+    if (cur && g.count - cur.at < this.params.refitEvery) return cur;
+    const X: number[][] = [];
+    const y: boolean[] = [];
+    let up = 0;
+    for (let i = 0; i + h < g.closes.length; i++) {
+      const x = g.feats[i];
+      if (!x) continue;
+      const u = (g.closes[i + h] as number) > (g.closes[i] as number);
+      X.push(x);
+      y.push(u);
+      if (u) up++;
+    }
+    if (X.length < this.params.minTrain) return null;
+    const fit = {
+      model: fitLogistic(X, y, { l2: this.params.l2 }),
+      at: g.count,
+      upRate: up / X.length,
+    };
+    g.logistic.set(h, fit);
+    return fit;
   }
 
   /** Mesma regra do AlertRuntime: candles velhos/repetidos são ignorados; candle novo fecha o anterior. */
@@ -345,38 +402,82 @@ export class PredictService {
     const situation = this.feed(g, c);
     let changed = this.resolveOpen(g);
     // só grava com o fechamento explícito e enquanto o candle seguinte nem fechou (nada do futuro)
-    if (explicit && this.now() <= c.time + 2 * tfMs(g.tf)) {
+    if (explicit && this.now() <= c.time + 2 * tfMs(g.tf) && g.times.length > this.params.warmup) {
+      const n = g.closes.length;
+      const persistUp = n > 1 ? c.close > (g.closes[n - 2] as number) : null;
+      const isOpen = (h: number, method: string) =>
+        g.open.some((p) => p.horizon === h && p.method === method);
       for (const m of g.models) {
-        if (g.open.some((p) => p.horizon === m.horizon && p.method === PREDICT_METHOD)) continue;
-        if (g.times.length <= this.params.warmup) continue;
-        this.record(g, c, m.estimate(), situation);
+        if (!isOpen(m.horizon, PREDICT_METHOD)) {
+          const e = m.estimate();
+          this.record(g, c, {
+            method: PREDICT_METHOD,
+            horizon: m.horizon,
+            p: e.p,
+            alwaysUpP: e.alwaysUpP,
+            persistUp: e.persistUp,
+            detail: {
+              situation,
+              levels: [...e.levels, ...e.facets].map((l) => ({ id: l.id, n: l.n, rate: l.rate })),
+            },
+          });
+          changed = true;
+        }
+        const x = g.feats.at(-1);
+        if (!x || isOpen(m.horizon, MODEL_METHOD)) continue;
+        const fit = this.logisticFor(g, m.horizon);
+        if (!fit) continue;
+        this.record(g, c, {
+          method: MODEL_METHOD,
+          horizon: m.horizon,
+          p: predictLogistic(fit.model, x),
+          alwaysUpP: fit.upRate,
+          persistUp,
+          detail: {
+            situation,
+            levels: [],
+            n: fit.model.n,
+            coefficients: fit.model.w
+              .map((w, j) => ({ name: FEATURE_NAMES[j], weight: w }))
+              .sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight))
+              .slice(0, 5),
+          },
+        });
         changed = true;
       }
     }
     if (changed) this.sync.broadcast({ type: 'sync', topic: 'predict', symbolId: g.symbolId });
   }
 
-  private record(g: Group, c: Candle, e: Estimate, situation: Situation): void {
+  private record(
+    g: Group,
+    c: Candle,
+    r: {
+      method: string;
+      horizon: number;
+      p: number;
+      alwaysUpP: number;
+      persistUp: boolean | null;
+      detail: PredictionRow['detail'];
+    },
+  ): void {
     const id = createHash('sha256')
-      .update(`${g.symbolId}|${g.tf}|${e.horizon}|${PREDICT_METHOD}|${c.time}`)
+      .update(`${g.symbolId}|${g.tf}|${r.horizon}|${r.method}|${c.time}`)
       .digest('hex')
       .slice(0, 24);
     const row = {
       id,
       symbolId: g.symbolId,
       tf: g.tf,
-      horizon: e.horizon,
-      method: PREDICT_METHOD,
+      horizon: r.horizon,
+      method: r.method,
       candleTime: c.time,
       createdAt: this.now(),
       close: c.close,
-      p: e.p,
-      alwaysUpP: e.alwaysUpP,
-      persistUp: e.persistUp,
-      detail: JSON.stringify({
-        situation,
-        levels: [...e.levels, ...e.facets].map((l) => ({ id: l.id, n: l.n, rate: l.rate })),
-      }),
+      p: r.p,
+      alwaysUpP: r.alwaysUpP,
+      persistUp: r.persistUp,
+      detail: JSON.stringify(r.detail),
     };
     const res = this.db.insert(predictions).values(row).onConflictDoNothing().run();
     if (res.changes === 0) return;

@@ -107,7 +107,19 @@ describe('Painel Brasil (Selic e CDI do Banco Central)', () => {
     const r = (await t.app.inject({ url: `/api/macro/cdi?from=${from}&to=${NOW}` })).json();
     expect(r.cdi.days).toBeGreaterThan(18);
     expect(r.cdi.acc).toBeCloseTo(1.00055131 ** r.cdi.days - 1, 6);
-    // período antes do que o servidor guarda: não chuta
+    // período antes do que o servidor guarda: busca o trecho que falta no BCB
+    const old = (
+      await t.app.inject({ url: `/api/macro/cdi?from=${Date.UTC(2015, 0, 1)}&to=${NOW}` })
+    ).json();
+    expect(old.cdi.days).toBeGreaterThan(2500);
+  });
+
+  it('CDI de um período antigo com o BCB fora do ar: null (não chuta)', async () => {
+    const st = { fail: false, calls: 0 };
+    const t = await testApp({ bcb: fakeBcb(st), now: () => NOW });
+    close = () => t.app.close();
+    await t.app.inject({ url: `/api/macro/cdi?from=${NOW - 30 * DAY}&to=${NOW}` });
+    st.fail = true;
     const old = (
       await t.app.inject({ url: `/api/macro/cdi?from=${Date.UTC(2015, 0, 1)}&to=${NOW}` })
     ).json();
