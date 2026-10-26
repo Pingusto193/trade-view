@@ -242,6 +242,7 @@ export class NewsService {
       const dup = findDuplicate(cand, recent);
       const backlog = firstOk || (raw.publishedAt !== null && raw.publishedAt < firstPollAt);
       const tags = tagText(`${title} ${raw.snippet ?? ''}`, extra, s.lang);
+      if (s.onlyTagged && tags.length === 0) continue;
       const item: NewsItem = {
         id: itemId,
         sourceId: id,

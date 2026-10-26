@@ -152,10 +152,16 @@ pregão); sem ele, previsões e estudos usam substitutos (Ibovespa/USD-BRL) rotu
 
 ### Fase 11 — Notícias (etapa 1)
 
-- [ ] Fontes verificadas em DATA_SOURCES (termos, limites, atraso)
-- [ ] Ingestão contínua no servidor (polling com ETag/Last-Modified, backoff, saúde por fonte)
-- [ ] Deduplicação e associação a ativos (ticker, setor, moeda, índice); atraso medido por fonte
-- [ ] Feed filtrado pelos ativos em análise (tempo real via WebSocket) e marcadores no gráfico
+- [x] Fontes verificadas em DATA_SOURCES §19 (termos; formato lido de verdade no workflow "Dados reais":
+      BCB notas, BCB Copom, Fed, Agência Brasil ✅; Nasdaq ❌ desligada; BLS só com e-mail no User-Agent)
+- [x] Ingestão contínua no servidor (polling com ETag/Last-Modified, backoff, saúde por fonte)
+- [x] Deduplicação e associação a ativos (ticker, setor, moeda, índice); atraso medido por fonte (só
+      notícias novas; o acervo da primeira leitura fica fora)
+- [x] Feed filtrado pelos ativos em análise (tempo real via WebSocket) e marcadores no gráfico
+- [ ] Agenda: Copom e FOMC ✅ (datas oficiais em configuração); IPCA (IBGE inacessível dos EUA), payroll e CPI
+      (BLS exige e-mail) pendentes — OPEN_QUESTIONS 12 e 13
+- [ ] Fatos relevantes CVM/B3 em tempo real: **não há fonte grátis permitida** (CVM IPE é semanal; B3 sem
+      API) — a CVM IPE entra no estudo de evento (etapa 4)
 
 ### Fase 12 — Taxas-base condicionais e placar ao vivo (etapa 2)
 

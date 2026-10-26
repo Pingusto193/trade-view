@@ -29,6 +29,8 @@ export interface NewsSourceDef {
   requires?: 'SEC_USER_AGENT';
   /** Etiquetas aplicadas a toda notícia da fonte (ex.: Fed → juros-us). */
   baseTags?: AssetTag[];
+  /** Feed geral (esporte, cultura…): só entram notícias associadas a algum ativo. */
+  onlyTagged?: boolean;
 }
 
 /** Fonte de DADOS SIMULADOS (só com RADAR_SIMULATED=1): manchetes falsas com "[SIMULADO]" no título. */
@@ -109,6 +111,18 @@ export const NEWS_SOURCES: readonly NewsSourceDef[] = [
     baseTags: [{ type: 'macro', value: 'juros-br' }],
   },
   {
+    id: 'bcb-copom',
+    label: 'Banco Central (comunicados do Copom)',
+    kind: 'oficial',
+    lang: 'pt',
+    url: 'https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/comunicadoscopom',
+    intervalMs: 2 * MIN,
+    reader: 'feed',
+    terms: 'Dados abertos do BCB (ODbL).',
+    aiSummary: true,
+    baseTags: [{ type: 'macro', value: 'juros-br' }],
+  },
+  {
     id: 'fed-monetary',
     label: 'Federal Reserve (política monetária)',
     kind: 'oficial',
@@ -147,15 +161,17 @@ export const NEWS_SOURCES: readonly NewsSourceDef[] = [
     baseTags: [{ type: 'macro', value: 'inflacao-us' }],
   },
   {
-    id: 'agencia-brasil-economia',
-    label: 'Agência Brasil (Economia)',
+    // o feed de Economia ficou 66 h parado numa segunda à tarde (26/10/2026); o geral estava em dia
+    id: 'agencia-brasil',
+    label: 'Agência Brasil (últimas)',
     kind: 'noticia',
     lang: 'pt',
-    url: 'https://agenciabrasil.ebc.com.br/rss/economia/feed.xml',
+    url: 'https://agenciabrasil.ebc.com.br/rss/ultimasnoticias/feed.xml',
     intervalMs: 5 * MIN,
     reader: 'feed',
     terms:
       'Conteúdo próprio reproduzível citando "Agência Brasil"; o de agências internacionais, não.',
     aiSummary: true,
+    onlyTagged: true,
   },
 ];

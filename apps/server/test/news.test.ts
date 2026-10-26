@@ -168,6 +168,25 @@ describe('ingestão de notícias', () => {
     expect(svc.query({ symbols: ['binance:BTCUSDT'], limit: 50, duplicates: false })).toEqual([]);
   });
 
+  it('feed geral: só entram notícias associadas a algum ativo', async () => {
+    const { svc } = service([src('a', { onlyTagged: true })], {
+      'https://a.exemplo/rss': {
+        body: rss([
+          { t: 'Time vence clássico e lidera o campeonato', link: 'https://a.exemplo/f', min: 0 },
+          {
+            t: 'Dólar sobe com Copom no radar dos investidores',
+            link: 'https://a.exemplo/d',
+            min: 1,
+          },
+        ]),
+      },
+    });
+    expect(await svc.poll('a')).toEqual({ added: 1, notModified: false });
+    expect(svc.query({ limit: 5, duplicates: false }).map((i) => i.title)).toEqual([
+      'Dólar sobe com Copom no radar dos investidores',
+    ]);
+  });
+
   it('erro da fonte fica registrado (nada inventado)', async () => {
     const { svc } = service([src('a')], { 'https://a.exemplo/rss': { body: '', status: 500 } });
     await expect(svc.poll('a')).rejects.toThrow(/HTTP 500/);
