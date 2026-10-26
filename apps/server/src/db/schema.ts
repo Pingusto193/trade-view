@@ -758,3 +758,56 @@ export const newsTags = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.tag, t.newsId] })],
 );
+
+/** Ativos/escalas que o servidor acompanha para o placar (SPEC §23.2). O placar é um só para todos. */
+export const predictTargets = sqliteTable(
+  'predict_targets',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.symbolId, t.tf] })],
+);
+
+/**
+ * Previsões gravadas ANTES do resultado e conferidas depois (placar ao vivo, ADR-0033). Imutáveis: os
+ * gatilhos da migração 0014 recusam alterar o que foi previsto, conferir duas vezes ou apagar.
+ */
+export const predictions = sqliteTable(
+  'predictions',
+  {
+    id: text('id').primaryKey(),
+    symbolId: text('symbol_id').notNull(),
+    tf: text('tf').notNull(),
+    horizon: integer('horizon').notNull(),
+    /** 'taxa-base' (camada 1); 'logistica' na etapa 3. */
+    method: text('method').notNull(),
+    /** Abertura (UTC) do candle FECHADO em que a previsão foi feita. */
+    candleTime: integer('candle_time').notNull(),
+    /** Relógio do servidor ao gravar. */
+    createdAt: integer('created_at').notNull(),
+    close: real('close').notNull(),
+    /** Probabilidade de o fechamento daqui a `horizon` candles ser mais alto. */
+    p: real('p').notNull(),
+    /** Réguas no mesmo momento: taxa histórica de alta e direção do último candle. */
+    alwaysUpP: real('always_up_p').notNull(),
+    persistUp: integer('persist_up', { mode: 'boolean' }),
+    /** JSON: situação e níveis (n, taxa) usados. */
+    detail: text('detail').notNull(),
+    /** 'aberta' | 'conferida' | 'cancelada'. */
+    status: text('status').notNull().default('aberta'),
+    resolvedAt: integer('resolved_at'),
+    targetTime: integer('target_time'),
+    targetClose: real('target_close'),
+    up: integer('up', { mode: 'boolean' }),
+    note: text('note'),
+  },
+  (t) => [
+    uniqueIndex('predictions_key').on(t.symbolId, t.tf, t.horizon, t.method, t.candleTime),
+    index('predictions_status').on(t.status),
+  ],
+);

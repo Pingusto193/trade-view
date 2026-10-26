@@ -26,6 +26,7 @@ import { RealJournalPage } from './pages/RealJournalPage';
 import { CalculatorPage } from './pages/CalculatorPage';
 import { ReplayPage } from './pages/ReplayPage';
 import { ExercisesPage } from './pages/ExercisesPage';
+import { ScoreboardPage } from './pages/ScoreboardPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { TrainingPage } from './pages/TrainingPage';
 
@@ -43,6 +44,7 @@ const NAV = [
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
   { to: '/noticias', label: 'Notícias', icon: '📰' },
+  { to: '/placar', label: 'Placar', icon: '🏁' },
   { to: '/laboratorio', label: 'Laboratório', icon: '🧪' },
   { to: '/scanner', label: 'Scanner', icon: '📡' },
   { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
@@ -154,6 +156,7 @@ function Shell() {
           />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
+          <Route path="/placar" element={<ScoreboardPage />} />
           <Route
             path="/noticias"
             element={

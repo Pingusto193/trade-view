@@ -39,6 +39,8 @@ import { alertRoutes } from './routes/alerts';
 import { experimentRoutes } from './routes/experiments';
 import { fundamentalsRoutes } from './routes/fundamentals';
 import { newsRoutes } from './routes/news';
+import { predictRoutes } from './routes/predict';
+import { PredictService } from './predict/service';
 import { NewsService } from './news/service';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
@@ -96,6 +98,7 @@ export interface RadarApp {
   mt5: Mt5Service;
   fundamentals: FundamentalsService;
   news: NewsService;
+  predict: PredictService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -293,6 +296,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
       reload: async (userId) => {
         await alerts.reloadUser(userId);
         await paper.start();
+        await predict.reload();
       },
     },
     deps.now,
@@ -316,6 +320,9 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     fundamentals,
   );
   scannerRoutes(app, scanner);
+  // placar ao vivo da previsão honesta (SPEC §23.2, ADR-0033)
+  const predict = new PredictService(db, market, hub, sync, app.log, deps.now);
+  predictRoutes(app, predict);
 
   // Produção: o servidor entrega o PWA (mesma origem → cookies e WebSocket sem CORS).
   const dist = env.WEB_DIST ? resolve(env.WEB_DIST) : null;
@@ -334,12 +341,14 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
     alerts.close();
     paper.close();
     scanner.close();
+    predict.close();
     hub.closeAll();
     mt5.close();
   });
   return {
     app,
     news,
+    predict,
     market,
     hub,
     store,

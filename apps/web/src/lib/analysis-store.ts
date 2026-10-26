@@ -1,4 +1,4 @@
-import type { SetupId } from '@radar/core';
+import type { PredictionReport, SetupId } from '@radar/core';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AnalysisPayload } from '../chart/indicator-worker';
@@ -14,6 +14,12 @@ interface AnalysisState {
   apply(key: string, payload: AnalysisPayload, reset: boolean): void;
   clear(key: string): void;
   focusOn(key: string, index: number): void;
+  /** Previsão (camada 1) por ativo e escala; undefined = ainda calculando. */
+  predictions: Record<string, PredictionReport | null>;
+  /** Quantos painéis querem a previsão de cada gráfico (o worker só calcula se > 0). */
+  predictWanted: Record<string, number>;
+  wantPrediction(key: string, on: boolean): void;
+  setPrediction(key: string, r: PredictionReport | null): void;
 }
 
 const MAX_EVENTS = 3000;
@@ -36,6 +42,16 @@ export const useAnalysis = create<AnalysisState>()((set) => ({
       return { byKey: next };
     }),
   focusOn: (key, index) => set({ focus: { key, index, nonce: Date.now() } }),
+  predictions: {},
+  predictWanted: {},
+  wantPrediction: (key, on) =>
+    set((s) => ({
+      predictWanted: {
+        ...s.predictWanted,
+        [key]: Math.max(0, (s.predictWanted[key] ?? 0) + (on ? 1 : -1)),
+      },
+    })),
+  setPrediction: (key, r) => set((s) => ({ predictions: { ...s.predictions, [key]: r } })),
 }));
 
 export const analysisKey = (id: string, tf: string) => `${id}|${tf}`;

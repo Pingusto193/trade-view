@@ -8,6 +8,12 @@ const ITEMS = [
     desc: 'Feed em tempo real filtrado pelos seus ativos, com o atraso de cada fonte',
   },
   {
+    to: '/placar',
+    icon: '🏁',
+    label: 'Placar do modelo',
+    desc: 'Previsões gravadas antes do resultado e conferidas sozinhas, contra moeda e "sempre sobe"',
+  },
+  {
     to: '/diario',
     icon: '📓',
     label: 'Diário real',

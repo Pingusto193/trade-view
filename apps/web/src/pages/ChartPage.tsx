@@ -13,6 +13,7 @@ import { useDrawings, useDrawingTool } from '../lib/drawings-store';
 import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
 import { ContextPanel } from '../components/ContextPanel';
+import { PredictPanel } from '../components/PredictPanel';
 import { ReadingCard } from '../components/ReadingCard';
 import { NewsList } from '../components/NewsList';
 import { analysisKey, useAnalysis } from '../lib/analysis-store';
@@ -52,12 +53,13 @@ export function ChartPage() {
   const [drawMode, setDrawMode] = useState(false);
   const [showList, setShowList] = useState(false);
   const [editPreset, setEditPreset] = useState(false);
-  type Side = 'lista' | 'setups' | 'contexto' | 'noticias';
+  type Side = 'lista' | 'setups' | 'contexto' | 'noticias' | 'previsao';
   const SIDE_LABEL: Record<Side, string> = {
     lista: 'Lista',
     setups: 'Setups',
     contexto: 'Contexto',
     noticias: 'Notícias',
+    previsao: 'Previsão',
   };
   const [side, setSide] = useState<Side | null>(() =>
     window.innerWidth >= 1200 ? 'setups' : null,
@@ -268,6 +270,18 @@ export function ChartPage() {
         >
           📰<span className={simple ? 'sr-only sm:not-sr-only' : ''}> Notícias</span>
         </button>
+        {!fractal && (
+          <button
+            type="button"
+            onClick={() => toggleSide('previsao')}
+            className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${side === 'previsao' ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
+            aria-pressed={side === 'previsao'}
+            aria-label="Previsão deste ativo"
+            title="Previsão honesta (probabilidade com histórico de acerto)"
+          >
+            📊<span className={simple ? 'sr-only sm:not-sr-only' : ''}> Previsão</span>
+          </button>
+        )}
         {!simple &&
           (
             [
@@ -322,7 +336,7 @@ export function ChartPage() {
             />
           )}
         </div>
-        {side && (!simple || side === 'noticias') && (
+        {side && (!simple || side === 'noticias' || side === 'previsao') && (
           <aside
             className="fixed inset-x-0 bottom-0 z-30 h-[60vh] rounded-t-xl border-t border-line bg-panel shadow-2xl lg:static lg:z-auto lg:h-auto lg:w-80 lg:shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none"
             aria-label={SIDE_LABEL[side]}
@@ -341,6 +355,7 @@ export function ChartPage() {
               {side === 'lista' && <WatchlistPanel compact />}
               {side === 'setups' && <SetupsPanel id={id} tf={fractal ? mapping.setup : tf} />}
               {side === 'contexto' && <ContextPanel id={id} tf={fractal ? mapping.setup : tf} />}
+              {side === 'previsao' && !fractal && <PredictPanel id={id} tf={tf} />}
               {side === 'noticias' && (
                 <div className="h-full overflow-y-auto">
                   <NewsList

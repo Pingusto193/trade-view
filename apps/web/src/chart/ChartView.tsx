@@ -218,7 +218,22 @@ export function ChartView(props: ChartViewProps) {
     };
     if (showNews) void useNews.getState().load([id]);
     const unsubNews = showNews ? useNews.subscribe(applyNews) : () => undefined;
+    // previsão (SPEC §23.2): o worker só calcula enquanto algum painel pedir
+    const wanted = () => (useAnalysis.getState().predictWanted[aKey] ?? 0) > 0;
+    let predictOn = false;
+    const syncPredict = () => {
+      if (wanted() === predictOn) return;
+      predictOn = wanted();
+      indicatorWorker.post({ type: 'predict', key, on: predictOn });
+    };
+    const unsubPredict = useAnalysis.subscribe((st, prev) => {
+      if (st.predictWanted !== prev.predictWanted) syncPredict();
+    });
     const stopWorker = indicatorWorker.listen(key, (msg) => {
+      if (msg.type === 'prediction') {
+        useAnalysis.getState().setPrediction(aKey, msg.report);
+        return;
+      }
       if (msg.type === 'analysis') {
         useAnalysis.getState().apply(aKey, msg, msg.reset);
         applyView();
@@ -252,6 +267,9 @@ export function ChartView(props: ChartViewProps) {
           lastOpen,
           setupParams: usePrefs.getState().setupParams ?? {},
         });
+        // o worker esquece o pedido de previsão quando ainda não conhecia o gráfico
+        predictOn = false;
+        syncPredict();
       },
       onUpdate: (candle, closed) => {
         controller.update(candle);
@@ -269,6 +287,7 @@ export function ChartView(props: ChartViewProps) {
       unsubView();
       unsubFocus();
       unsubNews();
+      unsubPredict();
       unsubDrawings();
       unsubTool();
       cancelAnimationFrame(raf);

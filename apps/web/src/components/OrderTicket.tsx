@@ -28,12 +28,14 @@ import { HelpLink } from './HelpLink';
 
 /** Boleta do Modo Treino aberta de qualquer gráfico. */
 export const useTicket = create<{
-  target: { symbolId: string; tf: Timeframe } | null;
-  open(symbolId: string, tf: Timeframe): void;
+  target: { symbolId: string; tf: Timeframe; note?: string } | null;
+  /** `preset.note`: motivo já preenchido (ex.: seguindo uma previsão do Radar). */
+  open(symbolId: string, tf: Timeframe, preset?: { note?: string }): void;
   close(): void;
 }>()((set) => ({
   target: null,
-  open: (symbolId, tf) => set({ target: { symbolId, tf } }),
+  open: (symbolId, tf, preset) =>
+    set({ target: { symbolId, tf, ...(preset?.note ? { note: preset.note } : {}) } }),
   close: () => set({ target: null }),
 }));
 
@@ -51,10 +53,28 @@ export function OrderTicket() {
   const target = useTicket((s) => s.target);
   const close = useTicket((s) => s.close);
   if (!target) return null;
-  return <Ticket key={target.symbolId} symbolId={target.symbolId} tf={target.tf} onClose={close} />;
+  return (
+    <Ticket
+      key={`${target.symbolId}|${target.note ?? ''}`}
+      symbolId={target.symbolId}
+      tf={target.tf}
+      initialNote={target.note ?? ''}
+      onClose={close}
+    />
+  );
 }
 
-function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; onClose(): void }) {
+function Ticket({
+  symbolId,
+  tf,
+  initialNote,
+  onClose,
+}: {
+  symbolId: string;
+  tf: Timeframe;
+  initialNote: string;
+  onClose(): void;
+}) {
   const prefs = usePrefs();
   const paper = usePaper();
   const ctx = useAnalysis((s) => s.byKey[analysisKey(symbolId, tf)]?.context ?? null);
@@ -65,7 +85,7 @@ function Ticket({ symbolId, tf, onClose }: { symbolId: string; tf: Timeframe; on
   const [stop, setStop] = useState('');
   const [tgt, setTgt] = useState('');
   const [qty, setQty] = useState('');
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(initialNote);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // plano de trade (SPEC §11)

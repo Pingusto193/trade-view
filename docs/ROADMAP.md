@@ -165,9 +165,11 @@ pregão); sem ele, previsões e estudos usam substitutos (Ibovespa/USD-BRL) rotu
 
 ### Fase 12 — Taxas-base condicionais e placar ao vivo (etapa 2)
 
-- [ ] Situação (setup, tendência nas 3 escalas, ADX, posição na Bollinger) → P(sobe em N candles) com n e
-      Wilson; baselines (moeda, sempre sobe, persistência)
-- [ ] Previsões gravadas antes do resultado e conferidas sozinhas; tela "Placar do modelo"
+- [x] Situação (setup, tendência nas 3 escalas, ADX, posição na Bollinger) → P(sobe em N candles) com n e
+      Wilson; baselines (moeda, sempre sobe, persistência); histórico de acerto fora da amostra e
+      "SEM VANTAGEM COMPROVADA" (ADR-0033)
+- [x] Previsões gravadas antes do resultado e conferidas sozinhas (imutáveis no banco); tela "Placar do
+      modelo"; painel Previsão no gráfico; seguir no Modo Treino
 
 ### Fase 13 — Modelo, validação e calibração (etapa 3)
 

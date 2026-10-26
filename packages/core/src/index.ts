@@ -41,3 +41,4 @@ export * from './scanner/scan';
 export * from './scanner/filters';
 export * from './fundamentals/annual';
 export * from './news';
+export * from './predict';

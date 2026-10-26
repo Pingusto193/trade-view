@@ -719,3 +719,38 @@ amostras sem sobreposição; Wilson para proporções; baselines lado a lado; na
 simples provar valor.
 
 **Limitação conhecida:** WIN/WDO só têm dados com o agente MT5 ligado; sem ele, o app diz isso e não inventa.
+
+## ADR-0033 — Previsão honesta, camada 1: taxas-base, réguas, veredito e placar imutável (26/10/2026)
+
+Etapa 2 da SPEC §23.2. Tudo em `packages/core/src/predict/` (mesmo código no worker do navegador, no
+servidor e, na etapa 3, no laboratório). Decisões **nossas** (não estão na SPEC):
+
+- **Alvo:** "o fechamento daqui a N candles fica MAIS ALTO que o de agora". Empate conta como "não subiu".
+  Horizontes padrão 1, 5 e 20 (*, editáveis no schema `predictParamsSchema`).
+- **Situação** = setup armado/acionado no candle (compra, venda ou nenhum; os dois lados = nenhum) +
+  tendência na escala do gráfico, na maior e na maior ainda (mesma regra do painel de contexto; escalas
+  maiores só com períodos fechados) + faixa do ADX + posição na Bollinger (20, 2). Usa os **parâmetros
+  padrão** dos setups, os mesmos no painel e no placar (o placar é um só para todos).
+- **Casos sem sobreposição** por situação (depois de contar o candle i, o próximo da mesma situação só a
+  partir de i + N), como na leitura simples (ADR-0029). O caso só entra quando o candle i + N fecha.
+- **Estimativa:** taxa da situação completa **encolhida em cadeia** (completa → 3 escalas → escala do
+  gráfico → qualquer candle → 50%) com 30 "casos fictícios" (*). Situação rara não vira 0% ou 100%.
+- **Réguas:** moeda (50%; Brier 0,25), "sempre sobe" (acerto = % de altas no período; Brier com a taxa
+  histórica de alta conhecida no momento) e persistência (repete a direção do último candle;
+  probabilidade 0 ou 1, então o Brier é a taxa de erro). Previsão de exatamente 50% vale meio acerto.
+- **Veredito:** "vantagem" só com ≥ 30 previsões (*), **limite inferior** do IC de Wilson do acerto acima do
+  acerto da melhor régua **e** Brier menor que o de todas. O resto é **SEM VANTAGEM COMPROVADA** (ou
+  "poucos casos"). A tela só destaca a probabilidade se o histórico fora da amostra tiver vantagem e o
+  placar ao vivo, com amostra, não disser o contrário; a linha "Confiança" vem sempre do placar ao vivo.
+- **Histórico fora da amostra:** em cada ponto do passado a regra só conhece casos já conferidos (janela
+  crescente; os rótulos usados terminam até o candle da previsão, então não há sobreposição com o futuro).
+  Pontos de avaliação sem sobreposição (um a cada N candles) depois de 200 candles de aquecimento (*).
+- **Placar ao vivo (servidor):** uma previsão aberta por (ativo, escala, horizonte, método) de cada vez.
+  Grava só com o **fechamento explícito** do candle e enquanto o candle seguinte não fechou; se o
+  fechamento foi deduzido pela chegada do candle seguinte (abertura já conhecida), **não grava**.
+  Confere com o candle i + N da série; cancela (com motivo) se o candle da previsão sumiu da fonte ou se
+  o histórico não alcança mais. Gatilhos no SQLite recusam alterar o que foi previsto, conferir duas
+  vezes e apagar. Alvos por usuário (`predict_targets`, entram na exportação); previsões são globais.
+- **Modo Treino:** "Seguir no Modo Treino" abre a boleta com o motivo preenchido; só para previsão de
+  alta, porque a boleta do treino só compra.
+- **Custo:** ~0,4 s para 5.000 candles diários no worker; só calcula com o painel aberto.

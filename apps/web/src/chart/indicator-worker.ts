@@ -4,10 +4,12 @@ import {
   SetupEngine,
   computeContext,
   marketReading,
+  predictReport,
   sessionDate,
   setupParamsSchema,
   type ContextReport,
   type MarketReading,
+  type PredictionReport,
   type IndicatorOutput,
   type IndicatorPreset,
   type SetupEvent,
@@ -34,6 +36,8 @@ export type WorkerIn =
       setupParams?: unknown;
     }
   | { type: 'update'; key: string; candle: Candle; closed: boolean }
+  /** Liga/desliga a previsão (SPEC §23.2): só calcula com o painel aberto (custa ~0,4 s/5.000 candles). */
+  | { type: 'predict'; key: string; on: boolean }
   | { type: 'dispose'; key: string };
 
 export interface TailValue {
@@ -66,7 +70,8 @@ export interface AnalysisPayload {
 export type WorkerOut =
   | { type: 'full'; key: string; outputs: IndicatorOutput[] }
   | { type: 'delta'; key: string; mode: 'append' | 'replace'; time: number; tail: TailValue[] }
-  | ({ type: 'analysis'; key: string; reset: boolean } & AnalysisPayload);
+  | ({ type: 'analysis'; key: string; reset: boolean } & AnalysisPayload)
+  | { type: 'prediction'; key: string; report: PredictionReport | null };
 
 interface ChartState {
   ind: IndicatorEngine;
@@ -76,6 +81,7 @@ interface ChartState {
   tz: string;
   tick: number;
   params: SetupParams;
+  predict: boolean;
 }
 
 const charts = new Map<string, ChartState>();
@@ -85,10 +91,22 @@ function post(msg: WorkerOut) {
 }
 
 /** O motor acompanha a escala maior sozinho, candle a candle (agrega `tf` no período maior). */
-function buildSetups(st: Omit<ChartState, 'setups' | 'ind'>): SetupEngine {
+function buildSetups(st: Omit<ChartState, 'setups' | 'ind' | 'predict'>): SetupEngine {
   const engine = new SetupEngine({ params: st.params, tick: st.tick, tf: st.tf, tz: st.tz });
   for (const c of st.closed) engine.push(c);
   return engine;
+}
+
+/**
+ * Camada 1 da previsão com os parâmetros PADRÃO dos setups — os mesmos do placar do servidor, para a
+ * probabilidade da tela ser a que o placar grava (ADR-0033).
+ */
+function prediction(st: ChartState, key: string) {
+  post({
+    type: 'prediction',
+    key,
+    report: predictReport(st.closed, { tf: st.tf, tz: st.tz, tick: st.tick }),
+  });
 }
 
 function analysis(st: ChartState, events: SetupEvent[], reset: boolean, key: string) {
@@ -133,6 +151,13 @@ self.onmessage = (ev: MessageEvent<WorkerIn>) => {
     charts.delete(m.key);
     return;
   }
+  if (m.type === 'predict') {
+    const st = charts.get(m.key);
+    if (!st) return;
+    st.predict = m.on;
+    if (m.on) prediction(st, m.key);
+    return;
+  }
   if (m.type === 'reset') {
     const parsed = setupParamsSchema.safeParse(m.setupParams ?? {});
     const params = parsed.success ? parsed.data : setupParamsSchema.parse({});
@@ -140,9 +165,15 @@ self.onmessage = (ev: MessageEvent<WorkerIn>) => {
     post({ type: 'full', key: m.key, outputs: ind.reset(m.candles, m.lastOpen) });
     const closed = m.lastOpen ? m.candles.slice(0, -1) : [...m.candles];
     const base = { closed, tf: m.tf, tz: m.tz, tick: m.tick, params };
-    const st: ChartState = { ...base, ind, setups: buildSetups(base) };
+    const st: ChartState = {
+      ...base,
+      ind,
+      setups: buildSetups(base),
+      predict: charts.get(m.key)?.predict ?? false,
+    };
     charts.set(m.key, st);
     analysis(st, st.setups.events, true, m.key);
+    if (st.predict) prediction(st, m.key);
     return;
   }
   const st = charts.get(m.key);
@@ -173,9 +204,11 @@ self.onmessage = (ev: MessageEvent<WorkerIn>) => {
     if (idx >= 0) st.closed[idx] = m.candle;
     st.setups = buildSetups(st);
     analysis(st, st.setups.events, true, m.key);
+    if (st.predict) prediction(st, m.key);
     return;
   }
   st.closed.push(m.candle);
   const evs = st.setups.push(m.candle);
   analysis(st, evs, false, m.key);
+  if (st.predict) prediction(st, m.key);
 };

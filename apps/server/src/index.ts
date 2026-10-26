@@ -29,7 +29,7 @@ async function main() {
     twelveDataPerDay: env.TWELVE_DATA_PER_DAY,
     simulated: env.RADAR_SIMULATED,
   });
-  const { app, alerts, paper, scanner } = await buildApp({ env, db, registry });
+  const { app, alerts, paper, scanner, predict } = await buildApp({ env, db, registry });
 
   const shutdown = async (sig: string) => {
     app.log.info(`recebido ${sig}, encerrando…`);
@@ -47,6 +47,8 @@ async function main() {
   await paper.start();
   // scanner: agenda diária (pregão fechado) e a cada candle intradiário das listas (SPEC §14)
   scanner.start();
+  // placar ao vivo: previsões gravadas antes do resultado e conferidas sozinhas (SPEC §23.2)
+  await predict.start();
   // backup diário do banco, com retenção (SPEC §17)
   if (env.BACKUP_EVERY_HOURS > 0 && env.DATABASE_PATH !== ':memory:')
     scheduleBackups({
