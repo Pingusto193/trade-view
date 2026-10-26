@@ -1,6 +1,80 @@
-import { NEWS_KIND_LABEL, formatAgo, formatDateTime, type NewsItem } from '@radar/shared';
-import { useEffect } from 'react';
+import {
+  NEWS_KIND_LABEL,
+  formatAgo,
+  formatDateTime,
+  type NewsItem,
+  type NewsSentiment,
+} from '@radar/shared';
+import { useEffect, useState } from 'react';
+import { api } from '../lib/api';
 import { feedKey, useNews } from '../lib/news-store';
+
+const SENTIMENT: Record<NewsSentiment, { label: string; tone: string }> = {
+  positivo: { label: 'positiva', tone: 'bg-up/15 text-up' },
+  negativo: { label: 'negativa', tone: 'bg-down/15 text-down' },
+  neutro: { label: 'neutra', tone: 'bg-panel-2 text-muted' },
+  misto: { label: 'mista', tone: 'bg-warn/15 text-warn' },
+};
+
+/** Resumo por IA (2–3 linhas, só do título + trecho do feed), relevância, sentimento e ativos. */
+function AiSummary({ n, compact }: { n: NewsItem; compact: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (!n.aiAllowed) return null;
+  const ai = n.ai;
+  if (!ai || (!ai.summary && ai.error)) {
+    return (
+      <div className="text-[11px] text-muted">
+        {ai?.error && <span>Sem resumo: {ai.error}. </span>}
+        <button
+          type="button"
+          disabled={busy}
+          className="underline decoration-dotted"
+          onClick={() => {
+            setBusy(true);
+            setErr(null);
+            api(`/api/news/${encodeURIComponent(n.id)}/summary`, { method: 'POST' })
+              .then(() => useNews.getState().reloadAll())
+              .catch((e: Error) => setErr(e.message))
+              .finally(() => setBusy(false));
+          }}
+        >
+          {busy ? 'Resumindo…' : 'Resumir com IA'}
+        </button>
+        {err && <span className="ml-1 text-down">{err}</span>}
+      </div>
+    );
+  }
+  return (
+    <div
+      className="space-y-1 rounded border border-line/60 bg-panel-2/40 px-2 py-1"
+      data-testid="news-ai"
+    >
+      <p className={`text-xs ${compact ? 'line-clamp-3' : ''}`}>{ai.summary}</p>
+      <div className="flex flex-wrap items-center gap-1 text-[10px]">
+        {ai.relevance !== null && (
+          <span
+            className="rounded bg-panel-2 px-1.5 text-muted"
+            title="1 = não deve mexer em preços; 5 = pode mexer forte"
+          >
+            relevância {ai.relevance}/5
+          </span>
+        )}
+        {ai.sentiment && (
+          <span className={`rounded px-1.5 ${SENTIMENT[ai.sentiment].tone}`}>
+            leitura {SENTIMENT[ai.sentiment].label}
+          </span>
+        )}
+        {ai.assets.slice(0, 6).map((a) => (
+          <span key={a} className="rounded bg-accent/10 px-1.5 text-accent">
+            {a}
+          </span>
+        ))}
+        <span className="text-muted">· resumo por IA ({ai.model}); pode errar — abra o link</span>
+      </div>
+    </div>
+  );
+}
 
 const TAG_LABEL: Record<string, string> = {
   'macro:juros-br': 'juros BR',
@@ -87,7 +161,10 @@ export function NewsList({
             >
               {n.title}
             </a>
-            {!compact && n.snippet && <p className="text-xs text-muted">{n.snippet}</p>}
+            {!compact && n.snippet && !n.ai?.summary && (
+              <p className="text-xs text-muted">{n.snippet}</p>
+            )}
+            <AiSummary n={n} compact={compact} />
             {n.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {n.tags.slice(0, compact ? 4 : 8).map((tg) => {

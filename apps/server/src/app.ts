@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import cookie from '@fastify/cookie';
@@ -42,6 +43,7 @@ import { newsRoutes } from './routes/news';
 import { predictRoutes } from './routes/predict';
 import { PredictService } from './predict/service';
 import { NewsService } from './news/service';
+import { NewsAiService } from './news/ai';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
@@ -98,6 +100,7 @@ export interface RadarApp {
   mt5: Mt5Service;
   fundamentals: FundamentalsService;
   news: NewsService;
+  newsAi: NewsAiService;
   predict: PredictService;
 }
 
@@ -221,22 +224,37 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   );
   fundamentalsRoutes(app, fundamentals, market);
   // notícias em tempo real (SPEC §23.1, ADR-0032): ingestão contínua no servidor
+  const newsSourceList = deps.newsSources ?? [
+    ...NEWS_SOURCES,
+    ...(env.RADAR_SIMULATED ? [SIM_NEWS_SOURCE] : []),
+  ];
   const news = new NewsService(db, {
-    sources: deps.newsSources ?? [
-      ...NEWS_SOURCES,
-      ...(env.RADAR_SIMULATED ? [SIM_NEWS_SOURCE] : []),
-    ],
+    sources: newsSourceList,
     userAgent: `Radar/1.0 (app pessoal; +${env.PUBLIC_URL})`,
     ...(env.SEC_USER_AGENT ? { secUserAgent: env.SEC_USER_AGENT } : {}),
     ...(deps.newsFetch ? { fetch: deps.newsFetch } : {}),
     ...(deps.now ? { now: deps.now } : {}),
     cikTickers: async () =>
       new Map([...(await sec.tickers()).values()].map((c) => [c.cik, c.ticker] as const)),
-    onNew: () => sync.broadcast({ type: 'sync', topic: 'news' }),
+    onNew: (items) => {
+      sync.broadcast({ type: 'sync', topic: 'news' });
+      newsAi.enqueue(items);
+    },
     log: app.log,
   });
-  newsRoutes(app, news);
-  if (!env.NEWS_DISABLED && (env.NODE_ENV !== 'test' || env.RADAR_SIMULATED)) news.start();
+  // resumo por IA (SPEC §23.1): chave e preços do Assistente, limite mensal próprio, só no servidor
+  const newsAi = new NewsAiService(db, box, {
+    sources: newsSourceList,
+    client: deps.anthropic ?? ((apiKey) => new Anthropic({ apiKey })),
+    now: deps.now ?? Date.now,
+    onSummary: () => sync.broadcast({ type: 'sync', topic: 'news' }),
+    log: app.log,
+  });
+  newsRoutes(app, news, newsAi);
+  if (!env.NEWS_DISABLED && (env.NODE_ENV !== 'test' || env.RADAR_SIMULATED)) {
+    news.start();
+    newsAi.start();
+  }
   const alerts = new AlertService(
     db,
     market,
@@ -338,6 +356,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
 
   app.addHook('onClose', async () => {
     news.stop();
+    newsAi.stop();
     alerts.close();
     paper.close();
     scanner.close();
@@ -348,6 +367,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   return {
     app,
     news,
+    newsAi,
     predict,
     market,
     hub,

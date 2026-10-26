@@ -32,7 +32,9 @@ export const useNews = create<{
   load(symbols?: readonly string[], since?: number): Promise<void>;
   loadSources(): Promise<void>;
   loadAgenda(): Promise<void>;
-}>()((set) => ({
+  /** Recarrega os feeds abertos (ex.: depois de um resumo novo). */
+  reloadAll(): void;
+}>()((set, get) => ({
   feeds: {},
   sources: null,
   agenda: null,
@@ -65,6 +67,10 @@ export const useNews = create<{
       }));
     }
   },
+  reloadAll() {
+    const st = get();
+    for (const key of Object.keys(st.feeds)) void st.load(key === '*' ? undefined : key.split(','));
+  },
   async loadSources() {
     const r = await api<{ sources: NewsSourceStatus[] }>('/api/news/sources');
     set({ sources: r.sources });
@@ -73,7 +79,5 @@ export const useNews = create<{
 
 // notícia nova no servidor: recarrega os feeds abertos
 marketSocket.onSync((m) => {
-  if (m.topic !== 'news') return;
-  const st = useNews.getState();
-  for (const key of Object.keys(st.feeds)) void st.load(key === '*' ? undefined : key.split(','));
+  if (m.topic === 'news') useNews.getState().reloadAll();
 });

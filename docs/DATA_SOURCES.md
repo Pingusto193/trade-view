@@ -377,6 +377,9 @@ B3 = `real_volume` quando a corretora manda, senão tick volume (com aviso).
 | Recusa por segurança volta como `stop_reason: "refusal"`; o parâmetro `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`) refaz o pedido em outro modelo na mesma chamada (Opus 5.5, Opus 5, Sonnet 5.5, Fable 5.1). | 🟡 (referência do SDK oficial) | [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) | 14/10/2026 |
 | O ambiente de desenvolvimento alcança `api.anthropic.com` (HTTP 401 sem chave, como esperado). Nenhuma chamada com chave foi feita (custa dinheiro do usuário). | 🔌 (conexão ok; uso com chave pendente) | — | 19/10/2026 |
 
+| Structured outputs (`output_config.format`, JSON Schema; sem mínimo/máximo numérico nem tamanho de texto) nos modelos Fable 5/5.1, Mythos 5/5.1, Opus 5.5, Opus 5, Opus 4.8, Sonnet 5.5, Sonnet 5, Haiku 5.5, Haiku 4.5 (e Opus 4.5/4.1). `output_config.effort` aceito nos modelos 4.5+ atuais (Haiku 4.5 e Sonnet 4.5 recusam) | 🟡 (referência do SDK oficial, cache de 06/10/2026) | [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) | 26/10/2026 |
+| Resumo de notícia (etapa 4): ~400 tokens de entrada e ~150–300 de saída por notícia (estimativa nossa; o pensamento adaptativo conta na saída) | 🔌 (medir com a chave do usuário: o custo real aparece em Notícias › Resumo por IA) | — | 26/10/2026 |
+
 **Decisões:** o nome do modelo e os preços NÃO ficam fixos no código: vêm do `.env` (`ASSISTANT_MODEL`, `ASSISTANT_PRICE_IN`, `ASSISTANT_PRICE_OUT`) e podem ser mudados na tela; a lista de modelos é buscada na API com a chave do usuário. O custo mostrado é estimativa pelos preços configurados (com reserva para outro modelo, o preço real pode diferir um pouco).
 
 ## 18. Testes com dados reais (workflow "Dados reais" no GitHub)

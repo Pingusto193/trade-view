@@ -1,5 +1,6 @@
 import { formatAgo, formatDateTime, formatIn } from '@radar/shared';
 import { useEffect, useMemo, useState } from 'react';
+import { NewsAiSettingsBox } from '../components/NewsAiSettingsBox';
 import { NewsList } from '../components/NewsList';
 import { useNews } from '../lib/news-store';
 import { usePrefs } from '../lib/prefs';
@@ -100,6 +101,12 @@ export default function NewsPage() {
       <section className="rounded border border-line" aria-label="Feed de notícias">
         <NewsList symbols={symbols} />
       </section>
+      <details className="rounded border border-line p-3">
+        <summary className="cursor-pointer font-semibold">Resumo por IA</summary>
+        <div className="mt-2">
+          <NewsAiSettingsBox />
+        </div>
+      </details>
       <details className="rounded border border-line p-3">
         <summary className="cursor-pointer font-semibold">Fontes e atraso medido</summary>
         <p className="mt-2 text-xs text-muted">

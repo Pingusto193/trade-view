@@ -811,3 +811,47 @@ export const predictions = sqliteTable(
     index('predictions_status').on(t.status),
   ],
 );
+
+/** Resumo por IA das notícias (SPEC §23.1): liga/desliga, modelo e limite mensal próprios. */
+export const newsAiSettings = sqliteTable('news_ai_settings', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  /** null = o modelo do Assistente. */
+  model: text('model'),
+  monthlyLimitUsd: real('monthly_limit_usd').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+/** Gasto dos resumos de notícias por mês (America/Sao_Paulo), separado do Assistente. */
+export const newsAiUsage = sqliteTable(
+  'news_ai_usage',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    month: text('month').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    costUsd: real('cost_usd').notNull().default(0),
+    requests: integer('requests').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.month] })],
+);
+
+/** Resumo de cada notícia (feito só com título + trecho do feed; nunca com a matéria inteira). */
+export const newsAi = sqliteTable('news_ai', {
+  newsId: text('news_id')
+    .primaryKey()
+    .references(() => newsItems.id, { onDelete: 'cascade' }),
+  summary: text('summary'),
+  relevance: integer('relevance'),
+  sentiment: text('sentiment'),
+  /** JSON de string[]. */
+  assets: text('assets').notNull().default('[]'),
+  model: text('model'),
+  costUsd: real('cost_usd'),
+  error: text('error'),
+  createdAt: integer('created_at').notNull(),
+});

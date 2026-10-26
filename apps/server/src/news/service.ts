@@ -25,7 +25,8 @@ import {
 } from '@radar/data';
 import { and, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { newsItems, newsSources, newsTags } from '../db/schema';
+import { newsAi, newsItems, newsSources, newsTags } from '../db/schema';
+import { toAi } from './ai';
 
 const DAY = 86_400_000;
 /** Janela de comparação da deduplicação (as notícias recentes de todas as fontes). */
@@ -49,7 +50,12 @@ export interface NewsServiceOptions {
 
 type Row = typeof newsItems.$inferSelect;
 
-const toItem = (r: Row, labels: Map<string, string>): NewsItem => ({
+const toItem = (
+  r: Row,
+  labels: Map<string, string>,
+  aiOk: ReadonlySet<string>,
+  ai: typeof newsAi.$inferSelect | null = null,
+): NewsItem => ({
   id: r.id,
   sourceId: r.sourceId,
   sourceLabel: labels.get(r.sourceId) ?? r.sourceId,
@@ -63,6 +69,8 @@ const toItem = (r: Row, labels: Map<string, string>): NewsItem => ({
   backlog: r.backlog,
   tags: JSON.parse(r.tags) as AssetTag[],
   duplicateOf: r.duplicateOf,
+  aiAllowed: aiOk.has(r.sourceId),
+  ai: ai ? toAi(ai) : null,
 });
 
 /**
@@ -101,7 +109,11 @@ export class NewsService {
     if (this.running) return;
     this.running = true;
     let i = 0;
-    for (const s of this.opts.sources) {
+    // o simulador (só em desenvolvimento) primeiro: a tela de teste não espera as fontes reais
+    const order = [...this.opts.sources].sort(
+      (a, b) => Number(b.reader === 'sim') - Number(a.reader === 'sim'),
+    );
+    for (const s of order) {
       if (this.disabledReason(s)) continue;
       // espalha a primeira leitura (não bate em todas as fontes no mesmo segundo)
       this.schedule(s, 2_000 + i++ * 3_000);
@@ -257,6 +269,8 @@ export class NewsService {
         backlog,
         tags,
         duplicateOf: dup,
+        aiAllowed: s.aiSummary,
+        ai: null,
       };
       this.db.transaction((tx) => {
         tx.insert(newsItems)
@@ -316,13 +330,15 @@ export class NewsService {
       );
     }
     const rows = this.db
-      .select()
+      .select({ n: newsItems, ai: newsAi })
       .from(newsItems)
+      .leftJoin(newsAi, eq(newsAi.newsId, newsItems.id))
       .where(conds.length ? and(...conds) : undefined)
       .orderBy(desc(sql`coalesce(${newsItems.publishedAt}, ${newsItems.arrivedAt})`))
       .limit(q.limit)
       .all();
-    return rows.map((r) => toItem(r, this.labels));
+    const aiOk = new Set(this.opts.sources.filter((x) => x.aiSummary).map((x) => x.id));
+    return rows.map((r) => toItem(r.n, this.labels, aiOk, r.ai));
   }
 
   /** Saúde de cada fonte + atraso medido nos últimos 7 dias. */

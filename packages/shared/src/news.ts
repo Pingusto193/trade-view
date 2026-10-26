@@ -45,6 +45,52 @@ export interface NewsItem {
   tags: AssetTag[];
   /** Mesma notícia vista antes em outra fonte (id da primeira). */
   duplicateOf: string | null;
+  /** Os termos da fonte permitem resumo por IA (DATA_SOURCES §19)? */
+  aiAllowed: boolean;
+  /** Resumo por IA (só fontes que permitem; null = não resumida). */
+  ai: NewsAi | null;
+}
+
+export const NEWS_SENTIMENTS = ['positivo', 'negativo', 'neutro', 'misto'] as const;
+export type NewsSentiment = (typeof NEWS_SENTIMENTS)[number];
+
+/** Resumo de 2–3 linhas feito pela IA só a partir do título e do trecho do feed (SPEC §23.1). */
+export interface NewsAi {
+  summary: string | null;
+  /** 1 (irrelevante para preços) a 5 (pode mexer forte no mesmo dia). */
+  relevance: number | null;
+  sentiment: NewsSentiment | null;
+  /** Ativos, moedas ou índices que a IA apontou como afetados. */
+  assets: string[];
+  model: string | null;
+  /** Por que não há resumo (recusa, erro da API). */
+  error: string | null;
+  createdAt: number;
+}
+
+/** Resumo por IA das notícias: usa a chave e os preços do Assistente, com limite mensal próprio. */
+export const newsAiSettingsInputSchema = z.object({
+  enabled: z.boolean(),
+  /** Vazio = o mesmo modelo do Assistente. */
+  model: z.string().trim().max(80).optional(),
+  monthlyLimitUsd: z.number().min(0.1).max(1000),
+});
+export type NewsAiSettingsInput = z.infer<typeof newsAiSettingsInputSchema>;
+
+export interface NewsAiSettings {
+  enabled: boolean;
+  model: string | null;
+  /** Modelo que será usado (o próprio ou o do Assistente). */
+  effectiveModel: string | null;
+  monthlyLimitUsd: number;
+  month: string;
+  spentUsd: number;
+  requests: number;
+  /** Chave e preços vêm do Assistente (Conta › Assistente). */
+  keyConfigured: boolean;
+  pricesConfigured: boolean;
+  /** Na fila esperando resumo. */
+  pending: number;
 }
 
 export interface NewsSourceStatus {
