@@ -5,7 +5,16 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
-import { CvmClient, SecEdgarClient, type AdapterRegistry, type BcbClient } from '@radar/data';
+import {
+  CvmClient,
+  NEWS_SOURCES,
+  SIM_NEWS_SOURCE,
+  SecEdgarClient,
+  type AdapterRegistry,
+  type BcbClient,
+  type FetchFn,
+  type NewsSourceDef,
+} from '@radar/data';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import { AlertService } from './alerts/service';
@@ -29,6 +38,8 @@ import { RealJournalService } from './real/service';
 import { alertRoutes } from './routes/alerts';
 import { experimentRoutes } from './routes/experiments';
 import { fundamentalsRoutes } from './routes/fundamentals';
+import { newsRoutes } from './routes/news';
+import { NewsService } from './news/service';
 import { labRoutes } from './routes/lab';
 import { macroRoutes } from './routes/macro';
 import { paperRoutes } from './routes/paper';
@@ -60,6 +71,9 @@ export interface AppDeps {
   bcb?: BcbClient;
   /** Fontes de fundamentos (testes usam fixtures). */
   sec?: SecEdgarClient;
+  /** Notícias (testes): fontes e fetch falsos. */
+  newsSources?: readonly NewsSourceDef[];
+  newsFetch?: FetchFn;
   cvm?: CvmClient;
   /** Cliente da API da Anthropic por chave (testes usam um falso, sem internet). */
   anthropic?: (apiKey: string) => AnthropicLike;
@@ -81,6 +95,7 @@ export interface RadarApp {
   scanner: ScannerService;
   mt5: Mt5Service;
   fundamentals: FundamentalsService;
+  news: NewsService;
 }
 
 export async function buildApp(deps: AppDeps): Promise<RadarApp> {
@@ -192,14 +207,33 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   };
   const notifier = new Notifier(db, box, senders, vapid.publicKey, deps.now);
   // fundamentos (SEC EDGAR e CVM): scanner, alertas de reflexividade e laboratório (ADR-0024)
+  const sec =
+    deps.sec ?? new SecEdgarClient(env.SEC_USER_AGENT ? { userAgent: env.SEC_USER_AGENT } : {});
   const fundamentals = new FundamentalsService(
     db,
-    deps.sec ?? new SecEdgarClient(env.SEC_USER_AGENT ? { userAgent: env.SEC_USER_AGENT } : {}),
+    sec,
     deps.cvm ?? new CvmClient(),
     deps.now,
     app.log,
   );
   fundamentalsRoutes(app, fundamentals, market);
+  // notícias em tempo real (SPEC §23.1, ADR-0032): ingestão contínua no servidor
+  const news = new NewsService(db, {
+    sources: deps.newsSources ?? [
+      ...NEWS_SOURCES,
+      ...(env.RADAR_SIMULATED ? [SIM_NEWS_SOURCE] : []),
+    ],
+    userAgent: `Radar/1.0 (app pessoal; +${env.PUBLIC_URL})`,
+    ...(env.SEC_USER_AGENT ? { secUserAgent: env.SEC_USER_AGENT } : {}),
+    ...(deps.newsFetch ? { fetch: deps.newsFetch } : {}),
+    ...(deps.now ? { now: deps.now } : {}),
+    cikTickers: async () =>
+      new Map([...(await sec.tickers()).values()].map((c) => [c.cik, c.ticker] as const)),
+    onNew: () => sync.broadcast({ type: 'sync', topic: 'news' }),
+    log: app.log,
+  });
+  newsRoutes(app, news);
+  if (!env.NEWS_DISABLED && (env.NODE_ENV !== 'test' || env.RADAR_SIMULATED)) news.start();
   const alerts = new AlertService(
     db,
     market,
@@ -296,6 +330,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   }
 
   app.addHook('onClose', async () => {
+    news.stop();
     alerts.close();
     paper.close();
     scanner.close();
@@ -304,6 +339,7 @@ export async function buildApp(deps: AppDeps): Promise<RadarApp> {
   });
   return {
     app,
+    news,
     market,
     hub,
     store,

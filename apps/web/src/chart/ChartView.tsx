@@ -21,6 +21,7 @@ import { registerChart } from './registry';
 import { LiveSeries, type LiveSeriesEvents } from './live-series';
 import { SourceBadge } from './SourceBadge';
 import { indicatorWorker } from './worker-client';
+import { feedKey, useNews } from '../lib/news-store';
 
 export interface ChartHandle {
   syncCrosshair(timeMs: number | null, sourceTf: Timeframe): void;
@@ -202,7 +203,21 @@ export function ChartView(props: ChartViewProps) {
       if (st.focus && st.focus !== prev.focus && st.focus.key === aKey) {
         controller.focusIndex(st.focus.index);
       }
+      if (st.focusAt && st.focusAt !== prev.focusAt && st.focusAt.key === aKey) {
+        controller.focusTime(st.focusAt.time);
+      }
     });
+    // marcadores de notícia (SPEC §23.1) — nunca no replay/exercícios (entregariam a data e o ativo)
+    const showNews = !source && !hideTime;
+    const nKey = feedKey([id]);
+    const applyNews = () => {
+      const f = useNews.getState().feeds[nKey];
+      controller.setNewsMarkers(
+        showNews ? (f?.items ?? []).map((n) => n.publishedAt ?? n.arrivedAt) : [],
+      );
+    };
+    if (showNews) void useNews.getState().load([id]);
+    const unsubNews = showNews ? useNews.subscribe(applyNews) : () => undefined;
     const stopWorker = indicatorWorker.listen(key, (msg) => {
       if (msg.type === 'analysis') {
         useAnalysis.getState().apply(aKey, msg, msg.reset);
@@ -253,6 +268,7 @@ export function ChartView(props: ChartViewProps) {
       unsubPaper();
       unsubView();
       unsubFocus();
+      unsubNews();
       unsubDrawings();
       unsubTool();
       cancelAnimationFrame(raf);

@@ -33,6 +33,7 @@ import { TrainingPage } from './pages/TrainingPage';
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 // a trilha lê os títulos das páginas da Biblioteca: vai no mesmo pedaço carregado sob demanda
 const TrailPage = lazy(() => import('./pages/TrailPage'));
+const NewsPage = lazy(() => import('./pages/NewsPage'));
 
 /** Navegação do computador (topo). */
 const NAV = [
@@ -41,6 +42,7 @@ const NAV = [
   { to: '/diario', label: 'Diário', icon: '📓' },
   { to: '/listas', label: 'Listas', icon: '☆' },
   { to: '/alertas', label: 'Alertas', icon: '🔔' },
+  { to: '/noticias', label: 'Notícias', icon: '📰' },
   { to: '/laboratorio', label: 'Laboratório', icon: '🧪' },
   { to: '/scanner', label: 'Scanner', icon: '📡' },
   { to: '/biblioteca', label: 'Biblioteca', icon: '📚' },
@@ -152,6 +154,14 @@ function Shell() {
           />
           <Route path="/laboratorio/experimentos" element={<ExperimentsPage />} />
           <Route path="/fontes" element={<SourcesPage />} />
+          <Route
+            path="/noticias"
+            element={
+              <Suspense fallback={<p className="p-3 text-sm text-muted">Carregando…</p>}>
+                <NewsPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/biblioteca/:slug?"
             element={

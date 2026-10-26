@@ -258,6 +258,27 @@ Docker lidos no código-fonte oficial dos sites no GitHub = ✅. **Correção:**
 | Let's Encrypt: 50 certificados por domínio registrado a cada 7 dias e **5 por conjunto idêntico de nomes a cada 7 dias** (apagar os dados do Caddy e reinstalar várias vezes esgota); HTTP-01 só na porta 80. | ✅ | [Rate limits](https://letsencrypt.org/docs/rate-limits/), [Challenge types](https://letsencrypt.org/docs/challenge-types/) | 20/10/2026 |
 | Caddy emite HTTPS sozinho quando o DNS aponta para o servidor, as portas 80/443 estão abertas por fora e a pasta de dados é persistente (no Compose: volumes `caddy-data`/`caddy-config`). | ✅ | [Caddy Automatic HTTPS](https://caddyserver.com/docs/automatic-https), [Caddy no Compose](https://caddyserver.com/docs/running#docker-compose) | 20/10/2026 |
 
+### 11.1 Servidor sempre ligado — comparação (26/10/2026)
+
+Notícias e previsões exigem servidor ligado 24 h (SPEC §23). Pesquisa por busca (sites dos provedores
+bloqueados aqui): tudo 🟡; "(terceiros)" = só blogs/agregadores. Reais estimados com US$ 1 = R$ 5,50 (dólar
+de 26/10/2026, dia de alta forte) e IOF de 3,5% em compra internacional no cartão (🟡, Decreto 12.499/2025).
+
+| Opção | Preço/mês | Hiberna? | Região | Observações | Selo | Fonte | Data |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Oracle Always Free (conta grátis) | R$ 0 | Não hiberna, mas pode **parar** VM ociosa (§11) | São Paulo | risco de parada e de mudança de regras | 🟡 | [Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) | 26/10/2026 |
+| Oracle Pay As You Go mantendo Always Free | US$ 0 dentro dos limites; pré-autorização US$ 100 | parada por ociosidade "só para Always Free" (e-mail citado em fórum) | São Paulo | acima do limite paga; orçamento só avisa | 🟡 | [Upgrade](https://docs.oracle.com/en-us/iaas/Content/Billing/Tasks/changingpaymentmethod.htm), [fórum](https://community.oracle.com/customerconnect/discussion/671904/reclamation-of-idle-compute-instances) | 26/10/2026 |
+| Locaweb VPS 1 GB (2 vCPU, 40 GB) | R$ 29,90 no mensal (R$ 15,90 com 24 meses) | Não | Brasil | em reais, sem IOF; IPv4 dedicado e Docker **não confirmados** | 🟡 | [VPS](https://www.locaweb.com.br/servidor-vps/) | 26/10/2026 |
+| Magalu Cloud BV1-1-10 (1 vCPU, 1 GB, 10 GB) | R$ 34,99 com impostos | Não | São Paulo | Pix/boleto; R$ 100 de crédito ao validar cartão; IP grátis "por enquanto" | 🟡 | [Preços](https://magalu.cloud/precos/virtual-machines/) | 26/10/2026 |
+| AWS Lightsail 1 GB | US$ 7 (≈ R$ 44 com impostos, faturado em reais com CPF) | Não | São Paulo (desde 06/2026) | sem IOF, aceita Pix; preço específico de SP não confirmado | 🟡 | [Planos](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-bundles.html), [SP](https://aws.amazon.com/about-aws/whats-new/2026/06/amazon-lightsail-aws-regions/) | 26/10/2026 |
+| Vultr 1 GB São Paulo | ≈ US$ 7,50 | Não | São Paulo | preço de SP só por terceiros | 🟡 (terceiros) | [Vultr](https://www.vultr.com/pricing/) | 26/10/2026 |
+| Hetzner CX23/CAX11 | €5,99–6,49 com IPv4 | Não | Alemanha/Finlândia | **sem estoque para novos clientes** desde 06/2026 | 🟡 | [Status](https://status.hetzner.com/incident/0a75c7ae-3377-41dc-aabe-601063724d24) | 26/10/2026 |
+| Render grátis / Koyeb grátis | US$ 0 | **Sim** (15 min / 1 h) e sem disco persistente | — | não servem | 🟡 | [Render](https://render.com/docs/free), [Koyeb](https://www.koyeb.com/pricing) | 26/10/2026 |
+| Fly.io | ≈ US$ 6 em SP com volume | **auto-stop ligado por padrão** (precisa desligar) | São Paulo | sem plano grátis | 🟡 | [Autostop](https://fly.io/docs/launch/autostop-autostart/) | 26/10/2026 |
+
+Binance: lista de 2023 (fórum) de países bloqueados inclui EUA, Canadá e Holanda; se o
+`data-api.binance.vision` bloqueia por país não foi confirmado (❌). Servidor no Brasil é o mais seguro.
+
 ## 13. Notificações (Fase 4)
 
 Nesta sessão `webkit.org` e `core.telegram.org` não abriram diretamente (DNS bloqueado no ambiente); os fatos vieram pelo buscador, que mostrou trechos das páginas oficiais. Por isso o selo máximo é 🟡 até alguém abrir as páginas.
@@ -295,6 +316,7 @@ treino. Spread de cripto e derrapagens são **decisão nossa**, não medidos.
 | tailwindcss                  | 4.x            | MIT              |                                                                                                                                                                                      |
 | fastify                      | 5.x            | MIT              |                                                                                                                                                                                      |
 | drizzle-orm / better-sqlite3 | 0.45 / 13      | Apache-2.0 / MIT |                                                                                                                                                                                      |
+| fast-xml-parser | 5.11.2 (fixado, publicado em 29/09/2026) | MIT | Leitor de RSS/Atom das notícias (ADR-0032). DOCTYPE removido antes de ler (sem expansão de entidades). Consultado no registro em 26/10/2026. |
 | zod                          | 4.x            | MIT              |                                                                                                                                                                                      |
 | vitest                       | 5.x            | MIT              |                                                                                                                                                                                      |
 | web-push                     | 3.6.7          | **MPL-2.0**      | Licença copyleft fraca por arquivo; uso como dependência é permitido. Última versão de 2024.                                                                                         |
@@ -375,3 +397,55 @@ Run workflow) e toda segunda às 09:13 de Brasília. Primeira rodada completa: [
 | Alpaca | 🔌 pulado: faltam `ALPACA_KEY_ID` e `ALPACA_SECRET_KEY` |
 | MetaTrader 5 | 🔌 precisa do MT5 aberto num Windows (fora do alcance do GitHub) |
 | Anthropic (assistente) | 🔌 de propósito fora: cada chamada custa dinheiro da conta do usuário |
+
+## 19. Notícias e calendário (SPEC §23.1, ADR-0032) — pesquisa de 26/10/2026
+
+Os sites estão bloqueados no ambiente de desenvolvimento: tudo veio de trechos do buscador nos domínios
+oficiais (🟡) ou de código de terceiros; **nenhum feed foi baixado daqui** (🔌). O workflow "Dados reais"
+baixa cada fonte ligada e registra formato e atraso reais (§18). Regra do projeto: o Radar guarda título,
+link, horário e trecho curto do feed; o resumo por IA usa **só título + trecho do feed** (nunca baixa a
+matéria) e só nas fontes marcadas como permitidas.
+
+| Fonte | Endereço | Termos | Resumo IA | Selo | Fonte | Data |
+| --- | --- | --- | --- | --- | --- | --- |
+| SEC EDGAR 8-K (Atom) | `https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&company=&owner=include&start=0&count=40&output=atom`; `updated` = hora de aceitação com fuso; aparece 1–3 min após a aceitação; exige User-Agent com e-mail, 10 req/s | "public information … may be copied or further distributed … without the SEC's permission" | permitido | 🟡 🔌 | [Webmaster FAQ](https://www.sec.gov/about/webmaster-frequently-asked-questions), [Privacy](https://www.sec.gov/about/privacy-information), [edgartools](https://pypi.org/project/edgartools/) | 26/10/2026 |
+| Banco Central — notas à imprensa (RSS) | `https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/notasImprensa` (URL vinda do Feeder; a página oficial de RSS existe mas não mostra as URLs) | dados abertos (ODbL) | permitido | 🟡 🔌 | [RSS BCB](https://www.bcb.gov.br/en/about/rssen), [Feeder](https://feeder.co/discover/d1cb7ec4c4/bcb-gov-br) | 26/10/2026 |
+| Banco Central — Copom (JSON) | `https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados?quantidade=5` e `…/copom/atas?quantidade=N` | ODbL | permitido | 🟡 🔌 (formato não lido) | [Dados abertos Copom](https://dadosabertos.bcb.gov.br/dataset/atas-comunicados-copom) | 26/10/2026 |
+| Federal Reserve (RSS) | página `https://www.federalreserve.gov/feeds/` ("All Press Releases", "Monetary Policy"); arquivo `press_monetary.xml` **não confirmado** | domínio público, citar o Board | permitido | 🟡 / ❌ nome do arquivo | [Feeds](https://federalreserve.gov/feeds), [Disclaimer](https://federalreserve.gov/disclaimer.htm) | 26/10/2026 |
+| BLS (RSS) | `https://www.bls.gov/feed/empsit.rss` (payroll), `https://www.bls.gov/feed/cpi.rss` (CPI); relatos de 403 sem User-Agent com e-mail | domínio público, com crédito | permitido | 🟡 🔌 | [BLS feeds](https://www.bls.gov/feed/), [Copyright](https://www.bls.gov/opub/copyright-information.htm) | 26/10/2026 |
+| Agência Brasil — Economia (RSS) | `https://agenciabrasil.ebc.com.br/rss/economia/feed.xml` | conteúdo próprio reproduzível com indicação da fonte; **conteúdo de agências internacionais é proibido** | permitido só para conteúdo próprio | 🟡 🔌 | [Feeds](https://agenciabrasil.ebc.com.br/feed/), [Sobre](https://agenciabrasil.ebc.com.br/sobre) | 26/10/2026 |
+| Nasdaq — Markets (RSS) | `https://www.nasdaq.com/feed/rssoutbound?category=Markets` | a página diz que os títulos podem ser exibidos no próprio site | **proibido** (só título + link) | 🟡 | [Nasdaq RSS](https://nasdaq.com/services/rss.aspx) | 26/10/2026 |
+| IBGE — calendário e releases (JSON) | `https://servicodados.ibge.gov.br/api/v3/calendario` e `…/api/v3/noticias`; formato das datas contraditório | reprodução com citação | permitido | 🟡 🔌 | [API IBGE](https://servicodados.ibge.gov.br/api/docs/) | 26/10/2026 |
+| BLS — calendário (iCalendar) | `https://www.bls.gov/schedule/news_release/bls.ics`, horários em ET | domínio público | — | 🟡 🔌 | [Agenda BLS](https://www.bls.gov/schedule/news_release/cpi.htm) | 26/10/2026 |
+| CVM IPE (fatos relevantes) | `https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/IPE/DADOS/ipe_cia_aberta_AAAA.zip`; atualização **semanal** → atraso de até ~1 semana: serve para histórico (estudo de evento), não para alerta; colunas não lidas | ODbL | permitido | 🟡 🔌 / ❌ colunas | [Conjunto IPE](https://dados.cvm.gov.br/dataset/cia_aberta-doc-ipe) | 26/10/2026 |
+| Atraso entre publicar e aparecer no feed (veículos) | nenhum veículo documenta | — | — | ❌ | — | 26/10/2026 |
+
+**Evitadas (termos ou bloqueio):**
+
+| Fonte | Motivo | Selo | Fonte | Data |
+| --- | --- | --- | --- | --- |
+| Investing.com | termos proíbem "employing any automated system … to extract data or content … for any purpose" | 🟡 | [Terms](https://cdn.investing.com/about-us/terms_and_conditions.html) | 26/10/2026 |
+| Yahoo Finance (RSS por ticker) | termos proíbem coleta automática sem permissão | 🟡 | [Yahoo ToS](https://legal.yahoo.com/xw/en/yahoo/terms/otos/index.html) | 26/10/2026 |
+| FRED | termos proíbem armazenar/cachear e uso para IA | 🟡 | [API Terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html) | 26/10/2026 |
+| Reuters | sem RSS público desde 2020; bloqueia robôs de IA | 🟡 / ✅ bloqueio observado | [Feeder](https://feeder.co/knowledge-base/rss-content/reuters-rss-feeds/) | 26/10/2026 |
+| G1, Valor (Globo), Folha (UOL), Estadão, MarketWatch | bloqueiam robôs de IA (busca do Claude recusada nesses domínios); Globo veda uso em IA generativa | ✅ bloqueio observado / 🟡 política | [InfoMoney sobre bloqueios](https://www.infomoney.com.br/business/o-que-significam-os-bloqueios-de-jornais-aos-treinamentos-de-ia-generativa/) | 26/10/2026 |
+| Exame, Money Times, Poder360 | termos proíbem coleta automática/reprodução sem autorização | 🟡 | [Exame](https://exame.com/institucional/termos-de-uso/), [Money Times](https://www.moneytimes.com.br/termos-de-uso/), [Poder360](https://www.poder360.com.br/reproducao-de-material/) | 26/10/2026 |
+| InfoMoney, CNBC | termos não encontrados (desconhecido ≠ permitido) | ❌ | — | 26/10/2026 |
+| B3 (Plantão de empresas, BDI, RAD/ENET) | sem API/feed público; seria scraping | ❌ | — | 26/10/2026 |
+
+**Calendário (datas oficiais copiadas para arquivo de configuração, sem API):**
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| Copom: reuniões restantes de 2026 em 03–04/11 e 08–09/12; 2027: 26–27/01, 16–17/03, 27–28/04, 15–16/06, 03–04/08, 21–22/09, 26–27/10, 07–08/12; comunicado ~18h30 do 2º dia | 🟡 | [BCB Copom](https://www.bcb.gov.br/en/monetarypolicy/committee) | 26/10/2026 |
+| FOMC 2026: 27–28/10, 08–09/12; 2027: 26–27/01, 16–17/03, 27–28/04, 08–09/06, 27–28/07, 14–15/09, 26–27/10, 07–08/12; decisão às 14h ET do 2º dia | 🟡 | [FOMC calendars](https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm) | 26/10/2026 |
+
+## 20. Mini-índice (WIN) e mini-dólar (WDO)
+
+| Fato | Selo | Fonte | Data |
+| --- | --- | --- | --- |
+| Não existe fonte grátis, permitida e automática de candles **intradiários** de WIN/WDO; o caminho grátis é o agente MT5 com a conta da corretora (§16) | 🟡 (busca extensa) | — | 26/10/2026 |
+| Termos da B3 em páginas de market data: "vedada a coleta automatizada, inclusive por meio de ferramentas de inteligência artificial, para quaisquer finalidades, comerciais ou não" — **pode atingir o download automático do COTAHIST** (ADR-0009); precisa de leitura completa ou consulta à B3 | 🟡 | [Índices B3](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/cotacoes/indices.htm), [Termos](https://www.b3.com.br/pt_br/termos-de-uso-e-protecao-de-dados/termos-de-uso/) | 26/10/2026 |
+| brapi futuros (fim de pregão, ~1 ano, contrato completo como `WINZ26`): incluído no plano **Pro, R$ 139,99/mês**; se funciona sem token é contraditório | 🟡 contraditório | [Blog futuros](https://brapi.dev/blog/api-contratos-futuros-b3-cotacao-historico-curva), [Pricing](https://brapi.dev/pricing) | 26/10/2026 |
+| Substitutos rotulados: Ibovespa `^BVSP` pela brapi (~30 min de atraso, 3 meses de diário) ou BOVA11; USD/BRL pela Twelve Data (§5.1) | 🟡 | [brapi IBOV](https://brapi.dev/faq/buscar-ibov) | 26/10/2026 |
+

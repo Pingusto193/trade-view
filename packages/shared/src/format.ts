@@ -91,6 +91,11 @@ export function formatSessionDate(utcMidnightMs: number): string {
 }
 
 /** Tempo relativo curto em PT-BR: "há 3 min", "há 2 h", "há 5 dias". */
+/** Quanto falta até um instante futuro: "em 5 min", "em 3 h", "em 4 dias". */
+export function formatIn(utcMs: number, now: number = Date.now()): string {
+  return formatAgo(now, utcMs).replace('há ', 'em ');
+}
+
 export function formatAgo(utcMs: number, now: number = Date.now()): string {
   const s = Math.max(0, Math.round((now - utcMs) / 1000));
   if (s < 60) return `há ${s} s`;

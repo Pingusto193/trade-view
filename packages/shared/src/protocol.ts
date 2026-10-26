@@ -71,6 +71,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
       'scanner',
       'real',
       'replay',
+      'news',
     ]),
     symbolId: z.string().optional(),
     origin: z.string().optional(),

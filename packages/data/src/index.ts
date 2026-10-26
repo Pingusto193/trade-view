@@ -15,3 +15,6 @@ export * from './adapters/cvm';
 export * from './adapters/simulated';
 export * from './adapters/mt5';
 export * from './adapters/mt5-clock';
+export * from './news/feed';
+export * from './news/sources';
+export * from './news/calendar';

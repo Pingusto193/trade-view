@@ -45,6 +45,8 @@ export const envSchema = z.object({
    * O instalador gera um. Vazio em produção = o servidor gera um ao ligar e escreve no log.
    */
   SETUP_CODE: z.string().max(100).optional(),
+  /** Desliga a ingestão de notícias (ADR-0032). Nos testes ela só liga com dados simulados. */
+  NEWS_DISABLED: bool,
   /** Pasta com o build do front (apps/web/dist) para servir em produção. */
   WEB_DIST: z.string().optional(),
   /** Chave (base64, 32 bytes) do cofre de segredos. Vazia = arquivo app-secret.key ao lado do banco. */

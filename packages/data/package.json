@@ -12,6 +12,7 @@
   "dependencies": {
     "@radar/core": "workspace:*",
     "@radar/shared": "workspace:*",
+    "fast-xml-parser": "5.11.2",
     "fflate": "^0.8.3",
     "zod": "^4.6.6"
   }

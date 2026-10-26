@@ -6,6 +6,9 @@ import {
   AlpacaAdapter,
   BcbClient,
   BinanceAdapter,
+  NEWS_SOURCES,
+  fetchFeed,
+  parseFeed,
   BrapiAdapter,
   CVM_SOURCE,
   CvmClient,
@@ -211,4 +214,50 @@ describe.skipIf(!live)('integração real (internet)', () => {
     const fu = computeFundamentals(facts, { source: CVM_SOURCE, asOf: Date.now() });
     expect(fu.revenueNoDecline === null && fu.epsGrowth2y === null).toBe(false);
   }, 300_000);
+});
+
+// Notícias (SPEC §23.1): formato e atraso reais de cada fonte ligada (DATA_SOURCES §19)
+const NEWS_UA = 'Radar/1.0 (app pessoal; +https://github.com/Pingusto193/trade-view)';
+describe.skipIf(!live)('notícias reais (formato e atraso)', () => {
+  for (const s of NEWS_SOURCES) {
+    const ua = s.requires === 'SEC_USER_AGENT' ? process.env.SEC_USER_AGENT : NEWS_UA;
+    it.skipIf(!ua)(
+      `${s.label}: o feed responde, é RSS/Atom e tem itens`,
+      async () => {
+        const r = await fetchFeed(s.url, { source: s.label, userAgent: ua! });
+        expect(r.status).toBe(200);
+        const items = parseFeed(r.status === 200 ? r.body : '');
+        const dated = items.filter((i) => i.publishedAt !== null);
+        const newest = dated.length ? Math.max(...dated.map((i) => i.publishedAt as number)) : null;
+        console.info(
+          `[news] ${s.id}: ${items.length} itens, ${dated.length} com data; mais novo ${
+            newest
+              ? `${new Date(newest).toISOString()} (há ${Math.round((Date.now() - newest) / 60_000)} min)`
+              : '—'
+          }; ex.: "${items[0]?.title ?? ''}" ${items[0]?.url ?? ''}`,
+        );
+        expect(items.length).toBeGreaterThan(0);
+      },
+      30_000,
+    );
+  }
+
+  it('descoberta de formato (só registra): Copom JSON, IBGE calendário, BLS iCalendar', async () => {
+    const urls = [
+      'https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados?quantidade=2',
+      'https://servicodados.ibge.gov.br/api/v3/calendario?busca=IPCA&qtd=2',
+      'https://www.bls.gov/schedule/news_release/bls.ics',
+    ];
+    for (const u of urls) {
+      try {
+        const r = await fetch(u, { headers: { 'user-agent': NEWS_UA } });
+        const body = await r.text();
+        console.info(
+          `[descoberta] ${u} → HTTP ${r.status} ${r.headers.get('content-type')}\n${body.slice(0, 700)}`,
+        );
+      } catch (e) {
+        console.info(`[descoberta] ${u} → erro ${(e as Error).message}`);
+      }
+    }
+  }, 60_000);
 });

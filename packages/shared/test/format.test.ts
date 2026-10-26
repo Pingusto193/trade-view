@@ -3,6 +3,7 @@ import {
   formatBRL,
   formatDate,
   formatDateTime,
+  formatIn,
   formatNumber,
   formatPercent,
   formatSessionDate,
@@ -46,5 +47,14 @@ describe('formatação PT-BR', () => {
 
   it('datas de candles diários não sofrem conversão de fuso', () => {
     expect(formatSessionDate(Date.UTC(2026, 9, 12))).toBe('12/10/2026');
+  });
+});
+
+describe('formatIn', () => {
+  it('quanto falta até um instante futuro', () => {
+    const now = Date.UTC(2026, 9, 26, 12);
+    expect(formatIn(now + 5 * 60_000, now)).toBe('em 5 min');
+    expect(formatIn(now + 3 * 3_600_000, now)).toBe('em 3 h');
+    expect(formatIn(now + 4 * 86_400_000, now)).toBe('em 4 dias');
   });
 });

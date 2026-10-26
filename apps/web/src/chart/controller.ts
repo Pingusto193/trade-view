@@ -89,6 +89,10 @@ export class ChartController {
   private lastTimesLen = 0;
   readonly drawings: DrawingManager | null = null;
   private markers: ISeriesMarkersPluginApi<Time> | null = null;
+  private setupMarkerList: SeriesMarker<Time>[] = [];
+  private newsMarkerList: SeriesMarker<Time>[] = [];
+  /** Horários (UTC ms) das notícias do ativo, para refazer os marcadores quando os candles mudam. */
+  private newsTimes: readonly number[] = [];
   private setupLines: IPriceLine[] = [];
   private paperLines: IPriceLine[] = [];
 
@@ -243,6 +247,7 @@ export class ChartController {
     this.lastTimesLen = n;
     this.drawings?.setCandleTimes(candles.map((c) => c.time));
     this.applyPaneSizes();
+    if (this.newsTimes.length) this.setNewsMarkers(this.newsTimes);
   }
 
   update(candle: Candle): void {
@@ -535,9 +540,60 @@ export class ChartController {
         }
       }
     }
-    list.sort((a, b) => (a.time as number) - (b.time as number));
+    this.setupMarkerList = list;
+    this.flushMarkers();
+  }
+
+  private flushMarkers(): void {
+    const list = [...this.setupMarkerList, ...this.newsMarkerList].sort(
+      (a, b) => (a.time as number) - (b.time as number),
+    );
     if (!this.markers) this.markers = createSeriesMarkers(this.price, list);
     else this.markers.setMarkers(list);
+  }
+
+  /** Índice do último candle que começou até `t` (o candle em que a notícia saiu), ou −1. */
+  indexAtOrBefore(t: number): number {
+    let lo = 0;
+    let hi = this.candles.length - 1;
+    let idx = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if ((this.candles[mid] as Candle).time <= t) {
+        idx = mid;
+        lo = mid + 1;
+      } else hi = mid - 1;
+    }
+    return idx;
+  }
+
+  /**
+   * Marcadores de notícia (SPEC §23.1): um círculo no candle da publicação; várias notícias no mesmo
+   * candle viram um marcador com a contagem.
+   */
+  setNewsMarkers(times: readonly number[]): void {
+    this.newsTimes = times;
+    const count = new Map<number, number>();
+    for (const t of times) {
+      const i = this.indexAtOrBefore(t);
+      if (i >= 0) count.set(i, (count.get(i) ?? 0) + 1);
+    }
+    this.newsMarkerList = [...count.entries()].map(([i, n]) => ({
+      time: toChartTime((this.candles[i] as Candle).time, this.opts.tf),
+      position: 'aboveBar' as const,
+      shape: 'circle' as const,
+      color: '#a78bfa',
+      size: 0.6,
+      text: n > 1 ? `${n}` : '',
+      id: `news:${i}`,
+    }));
+    this.flushMarkers();
+  }
+
+  /** Leva o gráfico até o candle de um instante (ex.: hora de uma notícia). */
+  focusTime(t: number): void {
+    const i = this.indexAtOrBefore(t);
+    if (i >= 0) this.focusIndex(i);
   }
 
   /** Linhas de gatilho, stop e alvo das ocorrências abertas. */

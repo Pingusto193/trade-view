@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 
 const ITEMS = [
   {
+    to: '/noticias',
+    icon: '📰',
+    label: 'Notícias',
+    desc: 'Feed em tempo real filtrado pelos seus ativos, com o atraso de cada fonte',
+  },
+  {
     to: '/diario',
     icon: '📓',
     label: 'Diário real',

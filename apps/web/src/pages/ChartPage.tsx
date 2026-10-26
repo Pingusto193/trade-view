@@ -14,6 +14,8 @@ import { PresetEditor } from '../components/PresetEditor';
 import { SymbolSearch } from '../components/SymbolSearch';
 import { ContextPanel } from '../components/ContextPanel';
 import { ReadingCard } from '../components/ReadingCard';
+import { NewsList } from '../components/NewsList';
+import { analysisKey, useAnalysis } from '../lib/analysis-store';
 import { HelpLink } from '../components/HelpLink';
 import { SetupsPanel } from '../components/SetupsPanel';
 import { WatchlistPanel } from '../components/WatchlistPanel';
@@ -50,7 +52,13 @@ export function ChartPage() {
   const [drawMode, setDrawMode] = useState(false);
   const [showList, setShowList] = useState(false);
   const [editPreset, setEditPreset] = useState(false);
-  type Side = 'lista' | 'setups' | 'contexto';
+  type Side = 'lista' | 'setups' | 'contexto' | 'noticias';
+  const SIDE_LABEL: Record<Side, string> = {
+    lista: 'Lista',
+    setups: 'Setups',
+    contexto: 'Contexto',
+    noticias: 'Notícias',
+  };
   const [side, setSide] = useState<Side | null>(() =>
     window.innerWidth >= 1200 ? 'setups' : null,
   );
@@ -250,6 +258,16 @@ export function ChartPage() {
         >
           🔔
         </button>
+        <button
+          type="button"
+          onClick={() => toggleSide('noticias')}
+          className={`whitespace-nowrap rounded border px-2 py-1 text-xs ${side === 'noticias' ? 'border-accent bg-accent/20 text-accent' : 'border-line text-muted'}`}
+          aria-pressed={side === 'noticias'}
+          aria-label="Notícias deste ativo"
+          title="Notícias deste ativo"
+        >
+          📰<span className={simple ? 'sr-only sm:not-sr-only' : ''}> Notícias</span>
+        </button>
         {!simple &&
           (
             [
@@ -304,13 +322,13 @@ export function ChartPage() {
             />
           )}
         </div>
-        {side && !simple && (
+        {side && (!simple || side === 'noticias') && (
           <aside
             className="fixed inset-x-0 bottom-0 z-30 h-[60vh] rounded-t-xl border-t border-line bg-panel shadow-2xl lg:static lg:z-auto lg:h-auto lg:w-80 lg:shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none"
-            aria-label={side === 'lista' ? 'Lista' : side === 'setups' ? 'Setups' : 'Contexto'}
+            aria-label={SIDE_LABEL[side]}
           >
             <div className="flex items-center border-b border-line px-2 py-1 text-xs lg:hidden">
-              <b>{side === 'lista' ? 'Lista' : side === 'setups' ? 'Setups' : 'Contexto'}</b>
+              <b>{SIDE_LABEL[side]}</b>
               <button
                 className="ml-auto px-2 text-muted"
                 onClick={() => setSide(null)}
@@ -323,6 +341,22 @@ export function ChartPage() {
               {side === 'lista' && <WatchlistPanel compact />}
               {side === 'setups' && <SetupsPanel id={id} tf={fractal ? mapping.setup : tf} />}
               {side === 'contexto' && <ContextPanel id={id} tf={fractal ? mapping.setup : tf} />}
+              {side === 'noticias' && (
+                <div className="h-full overflow-y-auto">
+                  <NewsList
+                    symbols={[id]}
+                    compact
+                    onPick={(n) =>
+                      useAnalysis
+                        .getState()
+                        .focusTimeOn(
+                          analysisKey(id, fractal ? mapping.setup : tf),
+                          n.publishedAt ?? n.arrivedAt,
+                        )
+                    }
+                  />
+                </div>
+              )}
             </div>
           </aside>
         )}

@@ -707,3 +707,54 @@ export const assistantUsage = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.month] })],
 );
+
+// ------------------------------------------------------------------ notícias (ADR-0032)
+
+/** Estado de cada fonte de notícias: validadores do GET condicional e saúde da ingestão. */
+export const newsSources = sqliteTable('news_sources', {
+  id: text('id').primaryKey(),
+  etag: text('etag'),
+  lastModified: text('last_modified'),
+  /** Primeira leitura: o que já estava no feed nesse momento é acervo (fora da medição de atraso). */
+  firstPollAt: integer('first_poll_at'),
+  lastPollAt: integer('last_poll_at'),
+  lastOkAt: integer('last_ok_at'),
+  lastError: text('last_error'),
+});
+
+/** Notícias: só título, link, datas e trecho curto do feed — nunca o texto integral da matéria. */
+export const newsItems = sqliteTable(
+  'news_items',
+  {
+    id: text('id').primaryKey(),
+    sourceId: text('source_id').notNull(),
+    kind: text('kind').notNull(),
+    lang: text('lang').notNull(),
+    url: text('url').notNull(),
+    canonicalUrl: text('canonical_url').notNull(),
+    title: text('title').notNull(),
+    snippet: text('snippet'),
+    publishedAt: integer('published_at'),
+    arrivedAt: integer('arrived_at').notNull(),
+    backlog: integer('backlog', { mode: 'boolean' }).notNull(),
+    duplicateOf: text('duplicate_of'),
+    /** JSON de AssetTag[] (cópia de news_tags para devolver sem junção). */
+    tags: text('tags').notNull(),
+  },
+  (t) => [
+    uniqueIndex('news_items_source_url').on(t.sourceId, t.canonicalUrl),
+    index('news_items_arrived').on(t.arrivedAt),
+  ],
+);
+
+/** Etiquetas de ativo por notícia ("moeda:USD", "ticker:PETR4"…) para filtrar pelo ativo em análise. */
+export const newsTags = sqliteTable(
+  'news_tags',
+  {
+    newsId: text('news_id')
+      .notNull()
+      .references(() => newsItems.id, { onDelete: 'cascade' }),
+    tag: text('tag').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.tag, t.newsId] })],
+);

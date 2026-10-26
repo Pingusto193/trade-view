@@ -1,6 +1,6 @@
 import type { AnthropicLike } from '../src/assistant/service';
 import type { Candle, SymbolMeta, SymbolSearchResult, Timeframe } from '@radar/shared';
-import type { BcbClient, CvmClient, SecEdgarClient } from '@radar/data';
+import type { BcbClient, CvmClient, FetchFn, NewsSourceDef, SecEdgarClient } from '@radar/data';
 import {
   AdapterRegistry,
   DataSourceError,
@@ -130,6 +130,9 @@ export async function testApp(
     simulated?: boolean;
     sec?: SecEdgarClient;
     cvm?: CvmClient;
+    /** Notícias: fontes e fetch falsos. */
+    newsSources?: readonly NewsSourceDef[];
+    newsFetch?: FetchFn;
     /** Código de instalação da primeira conta (SETUP_CODE). */
     setupCode?: string;
     nodeEnv?: 'test' | 'production';
@@ -156,6 +159,8 @@ export async function testApp(
     ...(opts.anthropic ? { anthropic: opts.anthropic } : {}),
     ...(opts.sec ? { sec: opts.sec } : {}),
     ...(opts.cvm ? { cvm: opts.cvm } : {}),
+    ...(opts.newsSources ? { newsSources: opts.newsSources } : {}),
+    ...(opts.newsFetch ? { newsFetch: opts.newsFetch } : {}),
     ...(opts.now !== undefined
       ? { now: typeof opts.now === 'function' ? opts.now : () => opts.now as number }
       : {}),

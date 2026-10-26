@@ -8,6 +8,9 @@ interface AnalysisState {
   byKey: Record<string, AnalysisPayload>;
   /** Pedido para o gráfico focar num candle (índice). */
   focus: { key: string; index: number; nonce: number } | null;
+  /** Pedido para o gráfico ir até um instante (ex.: hora de uma notícia). */
+  focusAt: { key: string; time: number; nonce: number } | null;
+  focusTimeOn(key: string, time: number): void;
   apply(key: string, payload: AnalysisPayload, reset: boolean): void;
   clear(key: string): void;
   focusOn(key: string, index: number): void;
@@ -18,6 +21,8 @@ const MAX_EVENTS = 3000;
 export const useAnalysis = create<AnalysisState>()((set) => ({
   byKey: {},
   focus: null,
+  focusAt: null,
+  focusTimeOn: (key, time) => set({ focusAt: { key, time, nonce: Date.now() } }),
   apply: (key, p, reset) =>
     set((s) => {
       const prev = s.byKey[key];

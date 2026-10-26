@@ -30,6 +30,11 @@ export class SyncHub {
     };
   }
 
+  /** Aviso para todos os usuários conectados (dados globais, ex.: notícias novas). */
+  broadcast(msg: SyncMsg): void {
+    for (const userId of [...this.byUser.keys()]) this.notify(userId, msg);
+  }
+
   notify(userId: number, msg: SyncMsg): void {
     for (const fn of this.internal) {
       try {
